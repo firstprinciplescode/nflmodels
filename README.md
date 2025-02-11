@@ -58,7 +58,8 @@ This repository is organized into several **key components**, each focusing on d
 ## 📂 Repository Structure (Planned)
 As the repository grows, files will be organized into the following structure:
 
-nfl-data-repo/
+nfl-data-repo
+
 ├── data-scraping/  
 ├── play-by-play-processing/  
 ├── key-metrics-models/   
