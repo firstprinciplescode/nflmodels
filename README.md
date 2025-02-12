@@ -13,10 +13,6 @@ This repository is organized into several **key components**, each focusing on d
 - A **Python scraper** to pull data from the **PFF API**.
 - Collects propietary information from PFF such as information on quarterback pressure and rushing statistics.
 
-### **2️⃣ Data Manipulation (R) - QB & Defense Group Creation**
-- **Grouping & analysis** of QB and defensive performance by:
-  - Identifying **good vs. bad weeks** across **QB + team + season** (qbgrp_ssn), **defense + season** (def_ssn) combinations.
-
 ### **3️⃣ Data Manipulation (R) - Play-by-Play Processing**
 - **Preprocessing play-by-play data** before the creation of machine learning models.
 - Includes **play-by-play integration with personnel information**.
