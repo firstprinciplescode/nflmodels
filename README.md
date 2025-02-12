@@ -9,7 +9,7 @@ This repository serves as a **centralized hub** for all of my NFL data scraping,
 ## 📌 Repository Overview
 This repository is organized into several **key components**, each focusing on different aspects of **NFL analytics**:
 
-### **1️⃣ Data Collection - PFF API Scraper (Python)**
+### **1️⃣ Data Scraping - PFF API Scraper (Python)**
 - A **Python scraper** to pull data from the **PFF API**.
 - Collects propietary information from PFF such as information on quarterback pressure and rushing statistics.
 
