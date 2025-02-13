@@ -64,15 +64,15 @@ As the repository grows, files will be organized into the following structure:
 
 nfl-data-repo
 
-├── data_scraping/  
-├── play_by_play_processing/  
-├── qbgrp_def/   
-├── ids_hub/  
-├── rushing_stats/
-├── receiving_stats/
-├── qb_stats/
-├── functions/  
-└── README.md  
+- data_scraping/
+- play_by_play_processing/
+- qbgrp_def/
+- ids_hub/
+- rushing_stats/
+- receiving_stats/
+- qb_stats/
+- functions/
+- README.md  
 
 ## 🛠️ Setup & Dependencies
 This project is built using **Python (for scraping) and R (for data analysis & modeling).**
