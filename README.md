@@ -66,7 +66,6 @@ nfl-data-repo
 
 ├── data_scraping/  
 ├── play_by_play_processing/  
-├── key_metrics_models/   
 ├── qbgrp_def/   
 ├── ids_hub/  
 ├── rushing_stats/
