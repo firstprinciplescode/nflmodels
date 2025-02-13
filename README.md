@@ -13,7 +13,7 @@ This repository is organized into several **key components**, each focusing on d
 - A **Python scraper** to pull data from the **PFF API**.
 - Collects propietary information from PFF such as information on quarterback pressure and rushing statistics.
 
-### **3️⃣ Data Manipulation (R) - Play-by-Play Processing** **(📂 play-by-play-processing)**
+### **3️⃣ Data Manipulation (R) - Play-by-Play Processing** **(📂 play_by_play_processing)**
 - **Preprocessing play-by-play data** before the creation of machine learning models.
 - Includes **play-by-play integration with personnel information**.
 - **Metrics predicted include:**
@@ -23,7 +23,7 @@ This repository is organized into several **key components**, each focusing on d
   - **Expected yards per carry**
   - Other key game-level metrics.
 
-### **4️⃣ Clustering QB, Defense Performance** **(📂 qbgrp-def)**
+### **4️⃣ Clustering QB, Defense Performance** **(📂 qbgrp_def)**
 - Creating **data frames to cluster**:
   - QB + team + season (`qbgrp_ssn`) performance.
   - Defensive season (`def_ssn`) performance.
@@ -41,7 +41,7 @@ This repository is organized into several **key components**, each focusing on d
 
 ### **6️⃣ Core Data Frames - The Foundation for Advanced Analysis**
 - **Rushing, receiving, and QB stats** data frames.
-  - **(📂 rushing-stats)**, **(📂 receiving-stats)**, **(📂 qb-stats)** respectively
+  - **(📂 rushing_stats)**, **(📂 receiving_stats)**, **(📂 qb_stats)** respectively
 - **Clustering** of rushers, receivers into groups based on categories including
   - receiver pre-snap alignment
   - receiver route depth
@@ -64,14 +64,14 @@ As the repository grows, files will be organized into the following structure:
 
 nfl-data-repo
 
-├── data-scraping/  
-├── play-by-play-processing/  
-├── key-metrics-models/   
-├── qbgrp-def/   
-├── ids-hub/  
-├── rushing-stats/
-├── receiving-stats/
-├── qb-stats/
+├── data_scraping/  
+├── play_by_play_processing/  
+├── key_metrics_models/   
+├── qbgrp_def/   
+├── ids_hub/  
+├── rushing_stats/
+├── receiving_stats/
+├── qb_stats/
 ├── functions/  
 └── README.md  
 
