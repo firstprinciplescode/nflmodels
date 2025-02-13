@@ -35,7 +35,7 @@ This repository is organized into several **key components**, each focusing on d
   - Pressure statistics
 - **Weight derivation** to measure similarity across performances between qbgrp_ssn, def_ssn.
 
-### **5️⃣ IDs Hub** **(📂 ids-hub)**
+### **5️⃣ IDs Hub** **(📂 ids_hub)**
 - **Construction of a unique player/team ID system** to **standardize joins** across multiple datasets.
 - Ensures **consistent merging** of data from different sources.
 
