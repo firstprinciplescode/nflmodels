@@ -6,7 +6,7 @@ This repository serves as a **centralized hub** for all of my NFL data scraping,
 
 ---
 
-## 📂 Repository Structure (Planned)
+## 📂 Repository Structure
 As the repository grows, files will be organized into the following structure:
 
 nfl-data-repo
