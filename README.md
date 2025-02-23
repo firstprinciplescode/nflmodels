@@ -33,7 +33,7 @@ This repository is organized into several **key components**, each focusing on d
 - A **Python scraper** to pull data from the **PFF API**.
 - Collects propietary information from PFF such as information on quarterback pressure and rushing statistics.
 
-### **3️⃣ Data Manipulation (R) - Play-by-Play Processing**
+### **2️⃣ Data Manipulation (R) - Play-by-Play Processing**
 - **Preprocessing play-by-play data** before the creation of machine learning models.
 - Includes **play-by-play integration with personnel information**.
 - **Metrics predicted include:**
@@ -45,7 +45,7 @@ This repository is organized into several **key components**, each focusing on d
  
 ## 📂 qbgrp_def/
 
-### **4️⃣ Clustering QB, Defense Performance**
+### **3️⃣ Clustering QB, Defense Performance**
 - Creating **data frames to cluster**:
   - QB + team + season (`qbgrp_ssn`) performance.
   - Defensive season (`def_ssn`) performance.
@@ -59,11 +59,11 @@ This repository is organized into several **key components**, each focusing on d
 
 ## 📂 big_data_frames/
 
-### **5️⃣ IDs Hub**
+### **4️⃣ IDs Hub**
 - **Construction of a unique player/team ID system** to **standardize joins** across multiple datasets.
 - Ensures **consistent merging** of data from different sources.
 
-### **6️⃣ Core Data Frames - The Foundation for Advanced Analysis**
+### **5️⃣ Core Data Frames - The Foundation for Advanced Analysis**
 - **Rushing, receiving, and QB stats** data frames.
 - **Clustering** of rushers, receivers into groups based on categories including
   - receiver pre-snap alignment
@@ -77,7 +77,7 @@ This repository is organized into several **key components**, each focusing on d
 
 ## 📂 functions/
 
-### **7️⃣ Advanced Statistical Functions**
+### **6️⃣ Advanced Statistical Functions**
 - Functions to:
   - **Find similar players** (e.g., WRs, RBs) based on performance profiles.
   - **Calculate key statistical insights** in **comparable game situations** for statistics like completion percentage, scramble percentage, sack rate, etc..
