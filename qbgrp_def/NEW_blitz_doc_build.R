@@ -169,14 +169,14 @@ watchlist_press_off = list(train=dtrain_press_off, test=dtest_press_off)
 
 
 eta_press_off = .075 # .075
-gamma_press_off = 12 # 12
+gamma_press_off = 5 # 5
 max_depth_press_off = 5 # 5
 min_child_weight_press_off = 2.5 # 2.5
-alpha_press_off = .1 # .1
+alpha_press_off = .95 # .95
 lambda_press_off = .2 # .2
 colsample_bynode_press_off = 0 # 0
-colsample_bylevel_press_off = .425 # .425
-colsample_bytree_press_off = .775 # .775
+colsample_bylevel_press_off = .1 # .1
+colsample_bytree_press_off = .4 # .4
 
 xgb_press_off_route <- xgboost(data = dtrain_press_off, 
                                label = y_train_press_off, 
@@ -188,7 +188,7 @@ xgb_press_off_route <- xgboost(data = dtrain_press_off,
                                colsample_bynode = colsample_bynode_press_off,
                                colsample_bytree = colsample_bytree_press_off,
                                colsample_bylevel = colsample_bylevel_press_off,
-                               nround = 550, # 550
+                               nround = 620, # 620
                                objective = "reg:squarederror",
                                nthread = 2,
                                gamma = gamma_press_off,
@@ -217,19 +217,19 @@ importance_matrix_press_off
 
 predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "response")
 
-rmse(y_test_press_off, mean(y_test_press_off)) # 1.052
+rmse(y_test_press_off, mean(y_test_press_off)) # .98
 
 rmse_value <- rmse(predictions, y_test_press_off)
 rmse_value 
 
-# 1.02
+# .95
 
 
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
 summary(lm(y_test_press_off ~ predictions))
 
-# 7.14
+# 6.8
 
 
 xgb_press_off_route <- xgboost(data = as.matrix(d_xpass_all), 
@@ -242,7 +242,7 @@ xgb_press_off_route <- xgboost(data = as.matrix(d_xpass_all),
                                colsample_bynode = colsample_bynode_press_off,
                                colsample_bytree = colsample_bytree_press_off,
                                colsample_bylevel = colsample_bylevel_press_off,
-                               nround = 550, # 550
+                               nround = 620, # 620
                                objective = "reg:squarederror",
                                nthread = 2,
                                gamma = gamma_press_off,
@@ -253,6 +253,9 @@ predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "r
 
 plot(y_test_press_off, predictions)
 abline(lm(predictions ~ y_test_press_off))
+
+importance_matrix_press_off <- xgb.importance(names_press_off, model = xgb_press_off_route)
+importance_matrix_press_off
 
 
 write.csv(importance_matrix_press_off, 'imp_blitz_off.csv')
@@ -323,7 +326,7 @@ comparison_blitz_func <- function(qbgrp_ssn2, threshold, year = NULL) {
 }
 
 # Example usage
-comparison_blitz_func("PHIHurts-2024", .8)
+comparison_blitz_func("KCMahomes-2024", .675)
 
 
 dependencies_blitz <- list(

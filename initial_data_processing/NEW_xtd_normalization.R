@@ -132,8 +132,8 @@ rmse_value <- rmse(y_test_xtd_df, mean(y_test_xtd_df))
 rmse_value # 1.42
 
 
-rmse_value <- rmse(predictions, y_test_press_off)
-rmse_value 
+rmse_value <- rmse(predictions, y_test_xtd_df)
+rmse_value # 1.219
 
 
 
@@ -166,7 +166,7 @@ importance_matrix_xtd_df <- xgb.importance(names_xtd_df, model = xgb_xtd_df)
 importance_matrix_xtd_df
 
 
-combined_xtd_df$mixed_xtd <- ifelse(!is.na(combined_xtd_df$part_after_new_xtd), .2181 * combined_xtd_df$pbp_after_new_xtd + .2559 * combined_xtd_df$part_after_new_xtd + .1336 * combined_xtd_df$part_after_old_xtd + .1058 * combined_xtd_df$pbp_after_old_xtd + .0988 * combined_xtd_df$part_before_new_xtd + .0486 * combined_xtd_df$pbp_before_old_xtd + .0812 * combined_xtd_df$pbp_before_new_xtd + .0579 * combined_xtd_df$part_before_old_xtd, (.2182 / (.2182 + .1058 + .0812 + .0486)) * combined_xtd_df$pbp_after_new_xtd + (.1058 / (.2182 + .1058 + .0812 + .0486)) * combined_xtd_df$pbp_after_old_xtd + (.0812 / (.2182 + .1058 + .0548 + .0486)) * combined_xtd_df$pbp_before_old_xtd + (.0547 / (.2182 + .1058 + .0812 + .0486)) * combined_xtd_df$pbp_before_new_xtd) 
+combined_xtd_df$mixed_xtd <- ifelse(!is.na(combined_xtd_df$part_after_new_xtd), .2058 * combined_xtd_df$pbp_after_new_xtd + .2571 * combined_xtd_df$part_after_new_xtd + .1456 * combined_xtd_df$part_after_old_xtd + .1152 * combined_xtd_df$pbp_after_old_xtd + .1069 * combined_xtd_df$part_before_new_xtd + .0493 * combined_xtd_df$pbp_before_old_xtd + .0663 * combined_xtd_df$pbp_before_new_xtd + .0538 * combined_xtd_df$part_before_old_xtd, (.2182 / (.2058 + .1152 + .0663 + .0493)) * combined_xtd_df$pbp_after_new_xtd + (.1152 / (.2058 + .1152 + .0663 + .0493)) * combined_xtd_df$pbp_after_old_xtd + (.0493 / (.2058 + .1152 + .0663 + .0493)) * combined_xtd_df$pbp_before_old_xtd + (.0663 / (.2058 + .1152 + .0663 + .0493)) * combined_xtd_df$pbp_before_new_xtd) 
 
 View(combined_xtd_df)
 

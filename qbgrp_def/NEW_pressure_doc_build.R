@@ -27,7 +27,7 @@ library(mgcv)
 
 options(scipen = 999)
 
-setwd("C:/Users/AndLi/Downloads/NFL Models")
+setwd("C:/Users/AndLi/Downloads/Blank Model")
 
 
 df_press <- read.xlsx("df_press_all.xlsx")
@@ -142,7 +142,7 @@ for(i in 1:nrow(combined_press_agg_reg)){
 #####
 #####
 
-
+  
 xtd_pressure_df <- xtd_pressure_df %>% select(-c(OffPerformance_Bad, OffPerformance_diff, OffPerformance_Good, DefPerformance_Good, DefPerformance_Bad, DefPerformance_diff))
 xtd_pressure_df <- xtd_pressure_df %>% select(-qbgrp_ssn_Good)
 
@@ -255,6 +255,8 @@ predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "r
 plot(y_test_press_off, predictions)
 abline(lm(predictions ~ y_test_press_off))
 
+importance_matrix_press_off <- xgb.importance(names_press_off, model = xgb_press_off_route)
+importance_matrix_press_off
 
 write.csv(importance_matrix_press_off, 'imp_press_off.csv')
 
@@ -324,7 +326,7 @@ comparison_pressure_func <- function(qbgrp_ssn2, threshold, year = NULL) {
 }
 
 # Example usage
-comparison_pressure_func("PHIHurts-2024", .9)
+comparison_pressure_func("KCMahomes-2024", .9)
 
 
 dependencies_pressure <- list(

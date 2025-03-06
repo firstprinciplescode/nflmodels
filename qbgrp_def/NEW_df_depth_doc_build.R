@@ -133,7 +133,7 @@ df_depth_agg_reg <- df_depth_agg %>%
 
 df_depth_agg_reg  <- df_depth_agg_reg %>% arrange(qbgrp_ssn, team_name, Season, Week)
 
-xtd_depth_df <- data.frame()
+# xtd_depth_df <- data.frame()
 for(i in 1:nrow(df_depth_agg_reg)){
   rel_ssn = df_depth_agg_reg[i,]$qbgrp_ssn
   df_press = df_depth_agg_reg[-i,]
@@ -237,20 +237,20 @@ importance_matrix_press_off
 
 predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "response")
 
-rmse(y_test_press_off, mean(y_test_press_off))
+rmse(y_test_press_off, mean(y_test_press_off)) # .951
 
 
 rmse_value <- rmse(predictions, y_test_press_off)
 rmse_value
 
-# .96
+# .917
 
 
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
 summary(lm(y_test_press_off ~ predictions))
 
-# 6.1
+# 6.3
 
 
 xgb_press_off_route <- xgboost(data = as.matrix(d_xpass_all),
@@ -275,6 +275,8 @@ predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "r
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
 
+importance_matrix_press_off <- xgb.importance(names_press_off, model = xgb_press_off_route)
+importance_matrix_press_off
 
 write.csv(importance_matrix_press_off, 'imp_depth_off.csv')
 
@@ -351,7 +353,7 @@ list_dependencies_depth <- list(
 save(list_dependencies_depth, file = 'dependencies_depth.RData')
 
 # Example usage
-comparison_depth_func("KCMahomes-2024", .775)
+comparison_depth_func("DENNix-2024", .775)
 
 saveRDS(comparison_depth_func, file = "comparison_depth_func.rds")
 

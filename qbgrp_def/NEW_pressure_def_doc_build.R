@@ -27,7 +27,7 @@ library(mgcv)
 
 options(scipen = 999)
 
-setwd("C:/Users/vflre/Downloads/NFL Models")
+setwd("C:/Users/AndLi/Downloads/Blank Model")
 
 
 df_press <- read.xlsx("df_press_all.xlsx")
@@ -116,9 +116,6 @@ combined_press_agg_reg <- combined_press_agg_reg %>% arrange(def_ssn, Week, Seas
 #####
 #####
 #####
-
-
-combined_press_agg_reg_df_formation <- combined_press_agg_reg %>% ungroup() %>% arrange(def_ssn, team_name, Season, Week) %>% select(-c(team_name:no_pressure_snaps, pressures_qb:OffPerformance))
 
 #xtd_pressure_df <- data.frame()
 for(i in 1:nrow(combined_press_agg_reg)){
@@ -262,6 +259,9 @@ predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "r
 plot(predictions, y_test_press_off)
 abline(lm(predictions ~ y_test_press_off))
 
+importance_matrix_press_off <- xgb.importance(names_press_off, model = xgb_press_off_route)
+importance_matrix_press_off
+
 
 write.csv(importance_matrix_press_off, 'imp_press_def.csv')
 
@@ -331,7 +331,7 @@ comparison_pressure_def_func <- function(def_ssn2, threshold, year = NULL) {
 }
 
 # Example usage
-comparison_pressure_def_func("KC2024", .875)
+comparison_pressure_def_func("PHI2024", .875)
 
 
 dependencies_pressure_def <- list(

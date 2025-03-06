@@ -27,7 +27,7 @@ library(mgcv)
 
 options(scipen = 999)
 
-setwd("C:/Users/AndLi/Downloads/Blank Model")
+setwd("C:/Users/vflre/Downloads/NFL Models")
 
 
 df_depth <- read.xlsx("df_depth_all.xlsx")
@@ -235,19 +235,19 @@ importance_matrix_press_off
 
 predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "response")
 
-rmse(y_test_press_off, mean(y_test_press_off)) # 1.021
+rmse(y_test_press_off, mean(y_test_press_off)) # 1.029
 
 
 rmse_value <- rmse(predictions, y_test_press_off)
 rmse_value
 
-# 1.011
+# 1.02
 
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
 summary(lm(y_test_press_off ~ predictions))
 
-# 3.3
+# 4
 
 
 xgb_press_off_route <- xgboost(data = as.matrix(d_xpass_all),
@@ -271,6 +271,9 @@ predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "r
 
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
+
+importance_matrix_press_off <- xgb.importance(names_press_off, model = xgb_press_off_route)
+importance_matrix_press_off
 
 
 write.csv(importance_matrix_press_off, 'imp_depth_def.csv')
@@ -348,6 +351,6 @@ list_dependencies_depth <- list(
 save(list_dependencies_depth, file = 'dependencies_depth_def.RData')
 
 # Example usage
-comparison_depth_def_func("KC2024", .925)
+comparison_depth_def_func("MIN2024", .925)
 
 saveRDS(comparison_depth_def_func, file = 'comparison_depth_def_func.rds')

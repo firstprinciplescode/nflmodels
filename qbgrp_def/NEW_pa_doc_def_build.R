@@ -224,19 +224,19 @@ importance_matrix_press_off
 
 predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "response")
 
-rmse(y_test_press_off, mean(y_test_press_off)) # 1.021
+rmse(y_test_press_off, mean(y_test_press_off)) # 1.008
 
 rmse_value <- rmse(predictions, y_test_press_off)
 rmse_value
 
-# 1.014
+# 1
 
 
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
 summary(lm(y_test_press_off ~ predictions))
 
-# 3.69
+# 3.75
 
 
 xgb_press_off_route <- xgboost(data = as.matrix(d_xpass_all),
@@ -261,6 +261,10 @@ predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "r
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
 summary(lm(y_test_press_off ~ predictions))
+
+importance_matrix_press_off <- xgb.importance(names_press_off, model = xgb_press_off_route)
+importance_matrix_press_off
+
 
 write.csv(importance_matrix_press_off, 'imp_pa_def.csv')
 
@@ -338,6 +342,6 @@ list_dependencies_pa_def <- list(
 save(list_dependencies_pa_def, file = 'dependencies_pa_def.RData')
 
 # Example usage
-comparison_pa_def_func("PHI2024", .8)
+comparison_pa_def_func("KC2024", .85)
 
 saveRDS(comparison_pa_def_func, file = 'comparison_pa_def_func.rds')

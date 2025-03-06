@@ -103,8 +103,7 @@ cluster_sum_depth
 
 # START HERE
 
-
-cluster_sum_depth$name = c("SMT", "DT", "MT", "RB", "BT", "G", "ST")
+cluster_sum_depth$name = c("RB", "ST", "BT", "G", "SMT", "MT", "DT")
 
 
 rec_depth_post_cluster$cluster <- kmeans_rec_depth_combined$cluster
@@ -169,7 +168,8 @@ cluster_sum_depth_tgt <- rec_depth_post_cluster_tgt %>% group_by(cluster) %>% dp
 
 cluster_sum_depth_tgt
 
-cluster_sum_depth_tgt$name = c("MT", "SL", "BT", "ST", "ML", "SRB", "G", "DT")
+
+cluster_sum_depth_tgt$name = c("SL", "MT", "BT", "G", "ST", "RB", "DT", "ML")
 
 
 rec_depth_post_cluster_tgt$cluster <- kmeans_rec_depth_combined_tgt$cluster
@@ -223,7 +223,7 @@ cluster_sum_alignment
 #### AGAIN - ALWAYS MAKE SURE TO CHECK THIS SHIT
 
 
-cluster_sum_alignment$name <- c("WSWR", "ITE", "STE", "RB", "SWR", "WWR")
+cluster_sum_alignment$name <- c("WWR", "STE", "SWR", "ITE", "RB", "WSWR")
 
 
 colnames(cluster_sum_alignment)[1] <- "cluster"

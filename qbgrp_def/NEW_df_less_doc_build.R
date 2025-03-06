@@ -27,7 +27,7 @@ library(mgcv)
 
 options(scipen = 999)
 
-setwd("C:/Users/AndLi/Downloads/NFL Models")
+setwd("C:/Users/AndLi/Downloads/Blank Model")
 
 
 df_tip <- read.xlsx("df_time_in_pocket_all.xlsx")
@@ -253,6 +253,8 @@ predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "r
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
 
+importance_matrix_press_off <- xgb.importance(names_press_off, model = xgb_press_off_route)
+importance_matrix_press_off
 
 write.csv(importance_matrix_press_off, 'imp_less_off.csv')
 
@@ -329,6 +331,6 @@ list_dependencies_less <- list(
 save(list_dependencies_less, file = 'list_dependencies_less.RData')
 
 # Example usage
-comparison_less_func("KCMahomes-2024", .675)
+comparison_less_func("PHIHurts-2024", .675)
 
 saveRDS(comparison_less_func, file = "comparison_less_func.rds")

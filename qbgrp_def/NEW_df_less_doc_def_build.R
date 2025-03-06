@@ -27,7 +27,7 @@ library(mgcv)
 
 options(scipen = 999)
 
-setwd("C:/Users/AndLi/Downloads/Blank Model")
+setwd("C:/Users/vflre/Downloads/NFL Models")
 
 
 df_tip <- read.xlsx("df_time_in_pocket_all.xlsx")
@@ -167,15 +167,15 @@ d_all_pass_all = xgb.DMatrix(data = as.matrix(d_xpass_all), label = d_ypass_all)
 watchlist_press_off = list(train=dtrain_press_off, test=dtest_press_off)
 
 
-eta_press_off = .037 # .037
-gamma_press_off = 12.75 # 12.75
-max_depth_press_off = 12 # 12
+eta_press_off = .03 # .03
+gamma_press_off = 16.5 # 16.5
+max_depth_press_off = 15 # 15
 min_child_weight_press_off = 0 # 0
-alpha_press_off = .6 # .6
-lambda_press_off = .25 # .25
-colsample_bynode_press_off = .65 # .65
+alpha_press_off = .3 # .3
+lambda_press_off = .35 # .35
+colsample_bynode_press_off = .6 # .6
 colsample_bylevel_press_off = .25 # .25
-colsample_bytree_press_off = .425 # .425
+colsample_bytree_press_off = .1 # .1
 
 
 xgb_press_off_route <- xgboost(data = dtrain_press_off,
@@ -188,7 +188,7 @@ xgb_press_off_route <- xgboost(data = dtrain_press_off,
                                colsample_bynode = colsample_bynode_press_off,
                                colsample_bytree = colsample_bytree_press_off,
                                colsample_bylevel = colsample_bylevel_press_off,
-                               nround = 555, # 555
+                               nround = 450, # 450
                                objective = "reg:squarederror",
                                nthread = 2,
                                gamma = gamma_press_off,
@@ -217,19 +217,20 @@ importance_matrix_press_off
 
 predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "response")
 
-rmse(y_test_press_off, mean(y_test_press_off)) # 1.032
+rmse(y_test_press_off, mean(y_test_press_off))
+# .999
 
 rmse_value <- rmse(predictions, y_test_press_off)
 rmse_value
 
-# 1.0245
+# .997
 
 
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
 summary(lm(y_test_press_off ~ predictions))
 
-# 2.95
+# 2
 
 
 xgb_press_off_route <- xgboost(data = as.matrix(d_xpass_all),
@@ -242,7 +243,7 @@ xgb_press_off_route <- xgboost(data = as.matrix(d_xpass_all),
                                colsample_bynode = colsample_bynode_press_off,
                                colsample_bytree = colsample_bytree_press_off,
                                colsample_bylevel = colsample_bylevel_press_off,
-                               nround = 555, # 555
+                               nround = 450, # 450
                                objective = "reg:squarederror",
                                nthread = 2,
                                gamma = gamma_press_off,
@@ -253,6 +254,9 @@ predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "r
 
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
+
+importance_matrix_press_off <- xgb.importance(names_press_off, model = xgb_press_off_route)
+importance_matrix_press_off
 
 
 write.csv(importance_matrix_press_off, 'imp_less_def.csv')
@@ -331,7 +335,7 @@ save(list_dependencies_less_def, file = 'dependencies_less_def.RData')
 
 
 # Example usage
-comparison_less_def_func("KC2024", .8)
+comparison_less_def_func("PHI2024", .8)
 
 
 saveRDS(comparison_less_def_func, file = "comparison_less_def_func.rds")

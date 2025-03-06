@@ -216,19 +216,19 @@ importance_matrix_press_off
 
 predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "response")
 
-rmse(y_test_press_off, mean(y_test_press_off)) # 1.028
+rmse(y_test_press_off, mean(y_test_press_off)) # .972
 
 
 rmse_value <- rmse(predictions, y_test_press_off)
 rmse_value 
 
-# 1.001
+# .948
 
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
 summary(lm(y_test_press_off ~ predictions))
 
-# 6.396
+# 6.1
 
 
 xgb_press_off_route <- xgboost(data = as.matrix(d_xpass_all), 
@@ -252,6 +252,10 @@ predictions <- predict(xgb_press_off_route, newdata = dtest_press_off, type = "r
 
 plot(predictions, y_test_press_off)
 abline(lm(y_test_press_off ~ predictions))
+
+
+importance_matrix_press_off <- xgb.importance(names_press_off, model = xgb_press_off_route)
+importance_matrix_press_off
 
 
 write.csv(importance_matrix_press_off, 'imp_pa_off.csv')
