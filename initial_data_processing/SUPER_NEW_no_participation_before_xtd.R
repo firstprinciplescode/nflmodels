@@ -373,53 +373,53 @@ at$archive$best()
 xgboost_pbp_nfl_weather$td_side <- as.integer(as.factor(xgboost_pbp_nfl_weather$td_side)) - 1
 
 
-sample_split_all_dfs_pass <- sample.split(Y = xgboost_pbp_nfl_weather$td_side, SplitRatio = 0.8)
-train_set_pass_all_dfs <- subset(x = xgboost_pbp_nfl_weather, sample_split_all_dfs_pass == TRUE)
-test_set_pass_all_dfs <- subset(x = xgboost_pbp_nfl_weather, sample_split_all_dfs_pass == FALSE)
+sample_split_all_dfs_pass_weather <- sample.split(Y = xgboost_pbp_nfl_weather$td_side, SplitRatio = 0.8)
+train_set_pass_all_dfs_weather <- subset(x = xgboost_pbp_nfl_weather, sample_split_all_dfs_pass_weather == TRUE)
+test_set_pass_all_dfs_weather <- subset(x = xgboost_pbp_nfl_weather, sample_split_all_dfs_pass_weather == FALSE)
 
-train_set_pass_all_dfs <- train_set_pass_all_dfs %>% filter(!is.na(td_side)) %>% filter(!is.na(score_differential))
-test_set_pass_all_dfs <- test_set_pass_all_dfs %>% filter(!is.na(td_side)) %>% filter(!is.na(score_differential))
+train_set_pass_all_dfs_weather <- train_set_pass_all_dfs_weather %>% filter(!is.na(td_side)) %>% filter(!is.na(score_differential))
+test_set_pass_all_dfs_weather <- test_set_pass_all_dfs_weather %>% filter(!is.na(td_side)) %>% filter(!is.na(score_differential))
 
-X_train_pass_all_dfs <- train_set_pass_all_dfs %>% select(-td_side) %>% as.data.frame()
-X_test_pass_all_dfs <- test_set_pass_all_dfs %>% select(-td_side) %>% as.data.frame()
-y_train_pass_all_dfs <- train_set_pass_all_dfs$td_side
-y_test_pass_all_dfs <- test_set_pass_all_dfs$td_side
-
-
-dtrain_pass_all_dfs = xgb.DMatrix(data = as.matrix(X_train_pass_all_dfs), label = y_train_pass_all_dfs)
-dtest_pass_all_dfs = xgb.DMatrix(data =as.matrix(X_test_pass_all_dfs), label = y_test_pass_all_dfs)
-
-d_xpass_all = xgboost_pbp_nfl_weather %>% select(-td_side)
-d_ypass_all = xgboost_pbp_nfl_weather$td_side
-d_all_pass_all = xgb.DMatrix(data = as.matrix(d_xpass_all), label = d_ypass_all)
-
-watchlist_pass_all_dfs = list(train=dtrain_pass_all_dfs, test=dtest_pass_all_dfs)
+X_train_pass_all_dfs_weather <- train_set_pass_all_dfs_weather %>% select(-td_side) %>% as.data.frame()
+X_test_pass_all_dfs_weather <- test_set_pass_all_dfs_weather %>% select(-td_side) %>% as.data.frame()
+y_train_pass_all_dfs_weather <- train_set_pass_all_dfs_weather$td_side
+y_test_pass_all_dfs_weather <- test_set_pass_all_dfs_weather$td_side
 
 
-eta_pbp_pass = .007 # .064
-gamma_pbp_pass = 4.782 # 4.25
-max_depth_pbp_pass = 3 # 6
-min_child_weight_pbp_pass = 12.869 # 0
-alpha_pbp_pass = .926 # 0
-lambda_pbp_pass = .939 # .75
-colsample_bynode_pbp_pass = .388 # 1
-colsample_bylevel_pbp_pass = .534 # 1
-colsample_bytree_pbp_pass = .894 # 1
+dtrain_pass_all_dfs_weather = xgb.DMatrix(data = as.matrix(X_train_pass_all_dfs_weather), label = y_train_pass_all_dfs_weather)
+dtest_pass_all_dfs_weather = xgb.DMatrix(data =as.matrix(X_test_pass_all_dfs_weather), label = y_test_pass_all_dfs_weather)
 
-xgb_pbp_pass <- xgboost(data = dtrain_pass_all_dfs, 
-                        label = y_train_pass_all_dfs, 
-                        eta = eta_pbp_pass,
-                        max_depth = max_depth_pbp_pass, 
-                        alpha = alpha_pbp_pass,
-                        lambda = lambda_pbp_pass,
-                        min_child_weight = min_child_weight_pbp_pass,
-                        colsample_bynode = colsample_bynode_pbp_pass,
-                        colsample_bytree = colsample_bytree_pbp_pass,
-                        colsample_bylevel = colsample_bylevel_pbp_pass,
+d_xpass_all_weather = xgboost_pbp_nfl_weather %>% select(-td_side)
+d_ypass_all_weather = xgboost_pbp_nfl_weather$td_side
+d_all_pass_all_weather = xgb.DMatrix(data = as.matrix(d_xpass_all_weather), label = d_ypass_all_weather)
+
+watchlist_pass_all_dfs_weather = list(train=dtrain_pass_all_dfs_weather, test=dtest_pass_all_dfs_weather)
+
+
+eta_pbp_pass_weather = .007 # .064
+gamma_pbp_pass_weather = 4.782 # 4.25
+max_depth_pbp_pass_weather = 3 # 6
+min_child_weight_pbp_pass_weather = 12.869 # 0
+alpha_pbp_pass_weather = .926 # 0
+lambda_pbp_pass_weather = .939 # .75
+colsample_bynode_pbp_pass_weather = .388 # 1
+colsample_bylevel_pbp_pass_weather = .534 # 1
+colsample_bytree_pbp_pass_weather = .894 # 1
+
+xgb_pbp_pass_weather <- xgboost(data = dtrain_pass_all_dfs_weather, 
+                        label = y_train_pass_all_dfs_weather, 
+                        eta = eta_pbp_pass_weather,
+                        max_depth = max_depth_pbp_pass_weather, 
+                        alpha = alpha_pbp_pass_weather,
+                        lambda = lambda_pbp_pass_weather,
+                        min_child_weight = min_child_weight_pbp_pass_weather,
+                        colsample_bynode = colsample_bynode_pbp_pass_weather,
+                        colsample_bytree = colsample_bytree_pbp_pass_weather,
+                        colsample_bylevel = colsample_bylevel_pbp_pass_weather,
                         nround = 1788, # 325
                         objective = "binary:logistic",
                         nthread = 2,
-                        gamma = gamma_pbp_pass,
+                        gamma = gamma_pbp_pass_weather,
                         early_stopping_rounds = 50
 )
 
@@ -427,35 +427,80 @@ breaks <- seq(0, 1, by = 0.04)
 
 labels <- sprintf("%.3f", head(breaks, -1))
 
-test_preds = predict(xgb_pbp_pass, newdata = dtest_pass_all_dfs)
+test_preds_weather = predict(xgb_pbp_pass_weather, newdata = dtest_pass_all_dfs_weather)
 
-resultant_df_pbp_pass = cbind(test_preds, y_test_pass_all_dfs) %>% as.data.frame()
-colnames(resultant_df_pbp_pass) = c("Preds", "Vals")
+resultant_df_pbp_pass_weather = cbind(test_preds_weather, y_test_pass_all_dfs_weather) %>% as.data.frame()
+colnames(resultant_df_pbp_pass_weather) = c("Preds", "Vals")
 
-resultant_df_pbp_pass$buckets <- cut(resultant_df_pbp_pass$Preds, breaks, labels = labels, include.lowest = TRUE, right = FALSE)
+resultant_df_pbp_pass_weather$buckets <- cut(resultant_df_pbp_pass_weather$Preds, breaks, labels = labels, include.lowest = TRUE, right = FALSE)
 
-resultant_df_pbp_pass %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
+resultant_df_pbp_pass_weather %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
 
-summary(xgb_pbp_pass)
+summary(xgb_pbp_pass_weather)
 
-names_pbp_pass = colnames(dtrain_pass_all_dfs)
+names_pbp_pass_weather = colnames(dtrain_pass_all_dfs_weather)
 
-importance_matrix_before_all <- xgb.importance(names_pbp_pass, model = xgb_pbp_pass)
-importance_matrix_before_all
+importance_matrix_before_all_weather <- xgb.importance(names_pbp_pass_weather, model = xgb_pbp_pass_weather)
+importance_matrix_before_all_weather
 
-predictions <- predict(xgb_pbp_pass, newdata = dtest_pass_all_dfs, type = "response")
-predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+predictions_weather <- predict(xgb_pbp_pass_weather, newdata = dtest_pass_all_dfs_weather, type = "response")
+predicted_classes_weather <- ifelse(predictions_weather > 0.5, 1, 0)
 
 # Calculate confusion matrix and performance metrics
-confusionMatrix(factor(predicted_classes), factor(y_test_pass_all_dfs))
+confusionMatrix(factor(predicted_classes_weather), factor(y_test_pass_all_dfs_weather))
 
 # .9566
 # .143
 
 
-View(resultant_df_pbp_pass %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
+View(resultant_df_pbp_pass_weather %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
 )
 
 
 ## TEMP, WIND --> MID AT BEST, NONE NEEDED
 
+
+####
+####
+
+
+xgboost_pbp_nfl_comp <- pbp_nfl %>% filter(two_point_attempt == 0 & qb_kneel == 0 & qb_spike == 0 & play_type %in% c("pass", "run")) %>% select(td_side, yardline_100, half_seconds_remaining, mod_ydstogo, posteam_ind, down, shotgun, no_huddle, qb_dropback, score_differential, half_ind, posteam_timeouts_remaining, defteam_timeouts_remaining)
+
+xgboost_pbp_nfl_comp$td_side <- as.integer(as.factor(xgboost_pbp_nfl_comp$td_side)) - 1
+
+sample_split_pbp_comp <- sample.split(Y = xgboost_pbp_nfl_comp$td_side, SplitRatio = 0.8)
+train_set_pbp_comp <- subset(x = xgboost_pbp_nfl_comp, sample_split_pbp_comp == TRUE)
+test_set_pbp_comp <- subset(x = xgboost_pbp_nfl_comp, sample_split_pbp_comp == FALSE)
+
+train_set_pbp_comp <- train_set_pbp_comp %>% filter(!is.na(td_side))
+test_set_pbp_comp <- test_set_pbp_comp %>% filter(!is.na(td_side))
+
+X_train_pbp_comp <- train_set_pbp_comp %>% select(-td_side) %>% as.data.frame()
+X_test_pbp_comp <- test_set_pbp_comp %>% select(-td_side) %>% as.data.frame()
+y_train_pbp_comp <- train_set_pbp_comp$td_side
+y_test_pbp_comp <- test_set_pbp_comp$td_side
+
+
+dtrain_pbp_comp = xgb.DMatrix(data = as.matrix(X_train_pbp_comp), label = y_train_pbp_comp)
+dtest_pbp_comp = xgb.DMatrix(data =as.matrix(X_test_pbp_comp), label = y_test_pbp_comp)
+
+
+####
+####
+
+
+# AUC
+auc_no_temp <- auc(y_test_pbp_comp, predict(xgb_pbp_pass, newdata = dtest_pbp_comp))
+auc_temp <- auc(y_test_pass_all_dfs_weather, test_preds_weather)
+
+# Log loss
+logloss_no_temp <- logLoss(y_test_pass_all_dfs, test_preds)
+logloss_temp <- logLoss(y_test_pass_all_dfs_weather, test_preds_weather)
+
+cat("AUC - No temp:", round(auc_no_temp, 4), "\n")
+cat("AUC - With temp:", round(auc_temp, 4), "\n\n")
+
+cat("LogLoss - No temp:", round(logloss_no_temp, 4), "\n")
+cat("LogLoss - With temp:", round(logloss_temp, 4), "\n")
+
+### AFTER THIS TEST, THE temp AIN'T HELPING

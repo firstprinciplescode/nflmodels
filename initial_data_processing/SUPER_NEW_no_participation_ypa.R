@@ -37,15 +37,10 @@ library(gridExtra)
 
 
 
-### BEFORE - NO PARTICIPATION / PERSONNEL INFO
-
 pbp_nfl <- load_pbp(c(2016:2024))
 
 '%ni%' <- Negate('%in%')
 
-colnames(pbp_nfl)
-
-# LET'S KEEP THINGS SEPARATE UNTIL THE END TO AVOID CROSS-CONTAMINATION OF INFO
 
 pbp_nfl <- pbp_nfl %>% mutate(mod_ydstogo = ifelse(goal_to_go == 1, yardline_100, ydstogo))
 pbp_nfl <- pbp_nfl %>% mutate(lead_timeout = lag(timeout_team, 1), last_timeout_ind = case_when(lead_timeout == posteam ~ 1, is.na(lead_timeout) ~ 0, (lead_timeout != posteam & !is.na(lead_timeout)) ~ -1))
@@ -125,11 +120,6 @@ pbp_nfl$outside_ind = ifelse(pbp_nfl$pass_location == 2, 1, 0)
 pbp_nfl <- pbp_nfl %>% filter(qb_spike == 0 & qb_kneel == 0)
 pbp_nfl <- pbp_nfl %>% filter(play_type %in% c("run", "pass"))
 
-pbp_nfl$down_one_ind = ifelse(pbp_nfl$down == 1, 1, 0)
-pbp_nfl$down_two_ind = ifelse(pbp_nfl$down == 2, 1, 0)
-pbp_nfl$down_three_ind = ifelse(pbp_nfl$down == 3, 1, 0)
-pbp_nfl$down_four_ind = ifelse(pbp_nfl$down == 4, 1, 0)
-
 
 pbp_nfl <- pbp_nfl %>% filter(play_type %in% c("run", "pass") & two_point_attempt == 0)
 
@@ -153,106 +143,90 @@ pbp_nfl <- pbp_nfl %>% filter(play_type %in% c("run", "pass") & two_point_attemp
 # defteam_timeouts_remaining
 
 
-pbp_nfl_pass_no_temp <- pbp_nfl %>% filter(play_type == "pass" & qb_spike == 0 & qb_kneel == 0 & sack == 0 & pass_attempt == 1 & qb_scramble == 0 & !is.na(air_yards)) %>% select(td_side, yardline_100, half_seconds_remaining, shotgun, no_huddle, mod_ydstogo, qb_dropback, air_yards, pass_length, middle_ind, outside_ind, score_differential, qb_hit, roof, surface, posteam_timeouts_remaining, defteam_timeouts_remaining)
+pbp_nfl_pass_no_temp <- pbp_nfl %>% filter(play_type == "pass" & qb_spike == 0 & qb_kneel == 0 & sack == 0 & pass_attempt == 1 & qb_scramble == 0 & !is.na(air_yards)) %>% select(yards_gained, yardline_100, half_seconds_remaining, shotgun, no_huddle, mod_ydstogo, qb_dropback, air_yards, pass_length, middle_ind, outside_ind, score_differential, qb_hit, roof, surface, posteam_timeouts_remaining, defteam_timeouts_remaining)
 
-pbp_nfl_pass_temp <- pbp_nfl %>% filter(play_type == "pass" & qb_spike == 0 & qb_kneel == 0 & sack == 0 & pass_attempt == 1 & !is.na(temp) & qb_scramble == 0 & !is.na(air_yards)) %>% select(td_side, yardline_100, half_seconds_remaining, shotgun, no_huddle, mod_ydstogo, qb_dropback, air_yards, pass_length, middle_ind, outside_ind, score_differential, qb_hit, roof, surface, posteam_timeouts_remaining, defteam_timeouts_remaining, temp, wind)
-
-
-pbp_nfl_pass_no_temp$td_side <- as.factor(pbp_nfl_pass_no_temp$td_side)
-pbp_nfl_pass_temp$td_side <- as.factor(pbp_nfl_pass_temp$td_side)
+pbp_nfl_pass_temp <- pbp_nfl %>% filter(play_type == "pass" & qb_spike == 0 & qb_kneel == 0 & sack == 0 & pass_attempt == 1 & !is.na(temp) & qb_scramble == 0 & !is.na(air_yards)) %>% select(yards_gained, yardline_100, half_seconds_remaining, shotgun, no_huddle, mod_ydstogo, qb_dropback, air_yards, pass_length, middle_ind, outside_ind, score_differential, qb_hit, roof, surface, posteam_timeouts_remaining, defteam_timeouts_remaining, temp, wind)
 
 
-# Define task
-task_pbp_pass_no_temp <- TaskClassif$new(
-  id = "pbp_pass_no_temp_task",
-  backend = pbp_nfl_pass_no_temp,
-  target = "td_side"
+###
+###
+
+
+task_pbp_run_ypa <- TaskRegr$new(
+  id = "pbp_run_yac_task",
+  backend = pbp_nfl_pass_no_temp,  # same data, but make sure `yards_after_catch` is present and numeric
+  target = "yards_gained"
 )
 
-# Define binary classification learner
-learner_pbp_pass_no_temp <- lrn("classif.xgboost", predict_type = "prob")
+learner_pbp_run_ypa <- lrn("regr.xgboost")
 
 # Define parameter search space
 param_set <- ps(
-  eta = p_dbl(lower = 0.001, upper = 0.12),
-  gamma = p_dbl(lower = 0, upper = 7),
-  max_depth = p_int(lower = 2, upper = 10),
-  min_child_weight = p_dbl(lower = 0, upper = 12),
+  eta = p_dbl(lower = 0.001, upper = 0.16),
+  gamma = p_dbl(lower = 0, upper = 8),
+  max_depth = p_int(lower = 2, upper = 12),
+  min_child_weight = p_dbl(lower = 0, upper = 17),
   alpha = p_dbl(lower = 0, upper = 1),
   lambda = p_dbl(lower = 0, upper = 1),
   colsample_bynode = p_dbl(lower = 0, upper = 1),
   colsample_bylevel = p_dbl(lower = 0, upper = 1),
   colsample_bytree = p_dbl(lower = 0, upper = 1),
-  nrounds = p_int(lower = 100, upper = 2500)
+  nrounds = p_int(lower = 100, upper = 2400)
 )
 
-# Define tuning instance (optional standalone)
-instance <- TuningInstanceBatchSingleCrit$new(
-  task = task_pbp_pass_no_temp,  # should be TaskClassif
-  learner = learner_pbp_pass_no_temp,
-  resampling = rsmp("holdout"),
-  measure = msr("classif.auc"),  # or msr("classif.logloss")
-  search_space = param_set,
-  terminator = trm("evals", n_evals = 40)
-)
 
-# Run Bayesian optimization with auto_tuner
+measure = msr("regr.rmse")  # or "regr.mae", "regr.rsq", etc.
+
 at <- auto_tuner(
   tuner = tnr("mbo"),
-  learner = learner_pbp_pass_no_temp,
+  learner = learner_pbp_run_ypa,
   resampling = rsmp("holdout"),
-  measure = msr("classif.auc"),
+  measure = msr("regr.rmse"),
   search_space = param_set,
   terminator = trm("evals", n_evals = 29)
 )
 
-# Train the tuning instance
-at$train(task_pbp_pass_no_temp)
+at$train(task_pbp_run_ypa)
 
-# View best hyperparameters
 at$archive$best()
 
 
-###
-###
-###
-
-# Make sure it's a factor, then use as.integer() - 1
-pbp_nfl_pass_no_temp$td_side <- as.integer(as.factor(pbp_nfl_pass_no_temp$td_side)) - 1
+####
+####
 
 
-sample_split_all_dfs_pass <- sample.split(Y = pbp_nfl_pass_no_temp$td_side, SplitRatio = 0.8)
+sample_split_all_dfs_pass <- sample.split(Y = pbp_nfl_pass_no_temp$yards_gained, SplitRatio = 0.8)
 train_set_pass_all_dfs <- subset(x = pbp_nfl_pass_no_temp, sample_split_all_dfs_pass == TRUE)
 test_set_pass_all_dfs <- subset(x = pbp_nfl_pass_no_temp, sample_split_all_dfs_pass == FALSE)
 
-train_set_pass_all_dfs <- train_set_pass_all_dfs %>% filter(!is.na(td_side)) %>% filter(!is.na(score_differential))
-test_set_pass_all_dfs <- test_set_pass_all_dfs %>% filter(!is.na(td_side)) %>% filter(!is.na(score_differential))
+train_set_pass_all_dfs <- train_set_pass_all_dfs %>% filter(!is.na(yards_gained)) %>% filter(!is.na(score_differential))
+test_set_pass_all_dfs <- test_set_pass_all_dfs %>% filter(!is.na(yards_gained)) %>% filter(!is.na(score_differential))
 
-X_train_pass_all_dfs <- train_set_pass_all_dfs %>% select(-td_side) %>% as.data.frame()
-X_test_pass_all_dfs <- test_set_pass_all_dfs %>% select(-td_side) %>% as.data.frame()
-y_train_pass_all_dfs <- train_set_pass_all_dfs$td_side
-y_test_pass_all_dfs <- test_set_pass_all_dfs$td_side
+X_train_pass_all_dfs <- train_set_pass_all_dfs %>% select(-yards_gained) %>% as.data.frame()
+X_test_pass_all_dfs <- test_set_pass_all_dfs %>% select(-yards_gained) %>% as.data.frame()
+y_train_pass_all_dfs <- train_set_pass_all_dfs$yards_gained
+y_test_pass_all_dfs <- test_set_pass_all_dfs$yards_gained
 
 
 dtrain_pass_all_dfs = xgb.DMatrix(data = as.matrix(X_train_pass_all_dfs), label = y_train_pass_all_dfs)
 dtest_pass_all_dfs = xgb.DMatrix(data =as.matrix(X_test_pass_all_dfs), label = y_test_pass_all_dfs)
 
-d_xpass_all = pbp_nfl_pass_no_temp %>% select(-td_side)
-d_ypass_all = pbp_nfl_pass_no_temp$td_side
+d_xpass_all = pbp_nfl_pass_no_temp %>% select(-yards_gained)
+d_ypass_all = pbp_nfl_pass_no_temp$yards_gained
 d_all_pass_all = xgb.DMatrix(data = as.matrix(d_xpass_all), label = d_ypass_all)
 
 watchlist_pass_all_dfs = list(train=dtrain_pass_all_dfs, test=dtest_pass_all_dfs)
 
 
-eta_pbp_pass = .046 # .064
-gamma_pbp_pass = 3.51 # 4.25
-max_depth_pbp_pass = 3 # 6
-min_child_weight_pbp_pass = 2.347 # 0
-alpha_pbp_pass = .154 # 0
-lambda_pbp_pass = .121 # .75
-colsample_bynode_pbp_pass = .459 # 1
-colsample_bylevel_pbp_pass = .668 # 1
-colsample_bytree_pbp_pass = .704 # 1
+eta_pbp_pass = .009 # .027
+gamma_pbp_pass = 2.501 # 2.25
+max_depth_pbp_pass = 4 # 4
+min_child_weight_pbp_pass = 15.39 # 5.25
+alpha_pbp_pass = .862 # .2
+lambda_pbp_pass = .495 # .35
+colsample_bynode_pbp_pass = .974 # .8
+colsample_bylevel_pbp_pass = .862 # 1
+colsample_bytree_pbp_pass = .459 # 1
 
 xgb_pbp_pass <- xgboost(data = dtrain_pass_all_dfs, 
                         label = y_train_pass_all_dfs, 
@@ -264,151 +238,133 @@ xgb_pbp_pass <- xgboost(data = dtrain_pass_all_dfs,
                         colsample_bynode = colsample_bynode_pbp_pass,
                         colsample_bytree = colsample_bytree_pbp_pass,
                         colsample_bylevel = colsample_bylevel_pbp_pass,
-                        nround = 943, # 325
-                        objective = "binary:logistic",
+                        nround = 2306, # 675
+                        objective = "reg:squarederror",
                         nthread = 2,
                         gamma = gamma_pbp_pass,
                         early_stopping_rounds = 50
 )
 
-breaks <- seq(0, 1, by = 0.04)
+
+breaks <- seq(-3, 16, by = 0.5)
 
 labels <- sprintf("%.3f", head(breaks, -1))
 
 test_preds = predict(xgb_pbp_pass, newdata = dtest_pass_all_dfs)
 
-resultant_df_pbp_pass = cbind(test_preds, y_test_pass_all_dfs) %>% as.data.frame()
-colnames(resultant_df_pbp_pass) = c("Preds", "Vals")
+resultant_df_part_pass = cbind(test_preds, y_test_pass_all_dfs) %>% as.data.frame()
+colnames(resultant_df_part_pass) = c("Preds", "Vals")
 
-resultant_df_pbp_pass$buckets <- cut(resultant_df_pbp_pass$Preds, breaks, labels = labels, include.lowest = TRUE, right = FALSE)
+resultant_df_part_pass$buckets <- cut(resultant_df_part_pass$Preds, breaks, labels = labels, include.lowest = TRUE, right = FALSE)
 
-resultant_df_pbp_pass %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
+resultant_df_part_pass %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
 
-summary(xgb_pbp_pass)
+View(resultant_df_part_pass %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
+)
 
-names_pbp_pass = colnames(dtrain_pass_all_dfs)
 
-importance_matrix_before_all <- xgb.importance(names_pbp_pass, model = xgb_pbp_pass)
+names_part_pass = colnames(dtrain_pass_all_dfs)
+
+importance_matrix_before_all <- xgb.importance(names_part_pass, model = xgb_pbp_pass)
 importance_matrix_before_all
 
 predictions <- predict(xgb_pbp_pass, newdata = dtest_pass_all_dfs, type = "response")
 predicted_classes <- ifelse(predictions > 0.5, 1, 0)
 
-# Calculate confusion matrix and performance metrics
-confusionMatrix(factor(predicted_classes), factor(y_test_pass_all_dfs))
 
-# .9566
-# .143
-
-
-View(resultant_df_pbp_pass %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
+# Convert predictions and actual values to a dataframe
+resultant_df_part_pass <- data.frame(
+  Preds = test_preds,
+  Actuals = y_test_pass_all_dfs
 )
 
+# Calculate RMSE
+rmse_value <- sqrt(mean((resultant_df_part_pass$Preds - resultant_df_part_pass$Actuals)^2))
+print(paste("RMSE:", rmse_value))
+# 9.109
 
-xgb.save(xgb_pbp_pass, 'C:/Users/AndLi/Downloads/Blank Model/xgb_no_part_after_xtd_pass.model')
-
-
-
-#####
-#####
-#####
+xgb.save(xgb_pbp_pass, 'xgb_pbp_ypa.model')
 
 
+###
+###
 
-# Define task
-task_pbp_pass_temp <- TaskClassif$new(
-  id = "pbp_pass_temp_task",
-  backend = pbp_nfl_pass_temp,
-  target = "td_side"
+
+task_pbp_run_ypa_temp <- TaskRegr$new(
+  id = "pbp_run_ypa_weather_task",
+  backend = pbp_nfl_pass_temp,  # same data, but make sure `yards_after_catch` is present and numeric
+  target = "yards_gained"
 )
 
-# Define binary classification learner
-learner_pbp_pass_temp <- lrn("classif.xgboost", predict_type = "prob")
+learner_pbp_run_ypa <- lrn("regr.xgboost")
 
 # Define parameter search space
 param_set <- ps(
-  eta = p_dbl(lower = 0.001, upper = 0.12),
-  gamma = p_dbl(lower = 0, upper = 7),
-  max_depth = p_int(lower = 2, upper = 10),
-  min_child_weight = p_dbl(lower = 0, upper = 12),
+  eta = p_dbl(lower = 0.001, upper = 0.16),
+  gamma = p_dbl(lower = 0, upper = 8),
+  max_depth = p_int(lower = 2, upper = 12),
+  min_child_weight = p_dbl(lower = 0, upper = 17),
   alpha = p_dbl(lower = 0, upper = 1),
   lambda = p_dbl(lower = 0, upper = 1),
   colsample_bynode = p_dbl(lower = 0, upper = 1),
   colsample_bylevel = p_dbl(lower = 0, upper = 1),
   colsample_bytree = p_dbl(lower = 0, upper = 1),
-  nrounds = p_int(lower = 100, upper = 2500)
+  nrounds = p_int(lower = 100, upper = 2400)
 )
 
-# Define tuning instance (optional standalone)
-instance <- TuningInstanceBatchSingleCrit$new(
-  task = task_pbp_pass_temp,  # should be TaskClassif
-  learner = learner_pbp_pass_temp,
-  resampling = rsmp("holdout"),
-  measure = msr("classif.auc"),  # or msr("classif.logloss")
-  search_space = param_set,
-  terminator = trm("evals", n_evals = 40)
-)
 
-# Run Bayesian optimization with auto_tuner
+measure = msr("regr.rmse")  # or "regr.mae", "regr.rsq", etc.
+
 at <- auto_tuner(
   tuner = tnr("mbo"),
-  learner = learner_pbp_pass_temp,
+  learner = learner_pbp_run_ypa,
   resampling = rsmp("holdout"),
-  measure = msr("classif.auc"),
+  measure = msr("regr.rmse"),
   search_space = param_set,
   terminator = trm("evals", n_evals = 29)
 )
 
-# Train the tuning instance
-at$train(task_pbp_pass_temp)
+at$train(task_pbp_run_ypa_temp)
 
-# View best hyperparameters
 at$archive$best()
 
 
-
 ####
 ####
-####
 
 
-
-# Make sure it's a factor, then use as.integer() - 1
-pbp_nfl_pass_temp$td_side <- as.integer(as.factor(pbp_nfl_pass_temp$td_side)) - 1
-
-
-sample_split_all_dfs_pass_temp <- sample.split(Y = pbp_nfl_pass_temp$td_side, SplitRatio = 0.8)
+sample_split_all_dfs_pass_temp <- sample.split(Y = pbp_nfl_pass_temp$yards_gained, SplitRatio = 0.8)
 train_set_pass_all_dfs_temp <- subset(x = pbp_nfl_pass_temp, sample_split_all_dfs_pass_temp == TRUE)
 test_set_pass_all_dfs_temp <- subset(x = pbp_nfl_pass_temp, sample_split_all_dfs_pass_temp == FALSE)
 
-train_set_pass_all_dfs_temp <- train_set_pass_all_dfs_temp %>% filter(!is.na(td_side)) %>% filter(!is.na(score_differential))
-test_set_pass_all_dfs_temp <- test_set_pass_all_dfs_temp %>% filter(!is.na(td_side)) %>% filter(!is.na(score_differential))
+train_set_pass_all_dfs_temp <- train_set_pass_all_dfs_temp %>% filter(!is.na(yards_gained)) %>% filter(!is.na(score_differential))
+test_set_pass_all_dfs_temp <- test_set_pass_all_dfs_temp %>% filter(!is.na(yards_gained)) %>% filter(!is.na(score_differential))
 
-X_train_pass_all_dfs_temp <- train_set_pass_all_dfs_temp %>% select(-td_side) %>% as.data.frame()
-X_test_pass_all_dfs_temp <- test_set_pass_all_dfs_temp %>% select(-td_side) %>% as.data.frame()
-y_train_pass_all_dfs_temp <- train_set_pass_all_dfs_temp$td_side
-y_test_pass_all_dfs_temp <- test_set_pass_all_dfs_temp$td_side
+X_train_pass_all_dfs_temp <- train_set_pass_all_dfs_temp %>% select(-yards_gained) %>% as.data.frame()
+X_test_pass_all_dfs_temp <- test_set_pass_all_dfs_temp %>% select(-yards_gained) %>% as.data.frame()
+y_train_pass_all_dfs_temp <- train_set_pass_all_dfs_temp$yards_gained
+y_test_pass_all_dfs_temp <- test_set_pass_all_dfs_temp$yards_gained
 
 
 dtrain_pass_all_dfs_temp = xgb.DMatrix(data = as.matrix(X_train_pass_all_dfs_temp), label = y_train_pass_all_dfs_temp)
 dtest_pass_all_dfs_temp = xgb.DMatrix(data =as.matrix(X_test_pass_all_dfs_temp), label = y_test_pass_all_dfs_temp)
 
-d_xpass_all_temp = pbp_nfl_pass_temp %>% select(-td_side)
-d_ypass_all_temp = pbp_nfl_pass_temp$td_side
+d_xpass_all_temp = pbp_nfl_pass_temp %>% select(-yards_gained)
+d_ypass_all_temp = pbp_nfl_pass_temp$yards_gained
 d_all_pass_all_temp = xgb.DMatrix(data = as.matrix(d_xpass_all_temp), label = d_ypass_all_temp)
 
 watchlist_pass_all_dfs_temp = list(train=dtrain_pass_all_dfs_temp, test=dtest_pass_all_dfs_temp)
 
 
-eta_pbp_pass_temp = .046 # .064
-gamma_pbp_pass_temp = .107 # 4.25
-max_depth_pbp_pass_temp = 3 # 6
-min_child_weight_pbp_pass_temp = 11.286 # 0
-alpha_pbp_pass_temp = .839 # 0
-lambda_pbp_pass_temp = .356 # .75
-colsample_bynode_pbp_pass_temp = .87 # 1
-colsample_bylevel_pbp_pass_temp = .719 # 1
-colsample_bytree_pbp_pass_temp = .919 # 1
+eta_pbp_pass_temp = .044 # .027
+gamma_pbp_pass_temp = 3.914 # 2.25
+max_depth_pbp_pass_temp = 2 # 4
+min_child_weight_pbp_pass_temp = 3.313 # 5.25
+alpha_pbp_pass_temp = .854 # .2
+lambda_pbp_pass_temp = .73 # .35
+colsample_bynode_pbp_pass_temp = .78 # .8
+colsample_bylevel_pbp_pass_temp = .869 # 1
+colsample_bytree_pbp_pass_temp = .994 # 1
 
 xgb_pbp_pass_temp <- xgboost(data = dtrain_pass_all_dfs_temp, 
                         label = y_train_pass_all_dfs_temp, 
@@ -420,90 +376,75 @@ xgb_pbp_pass_temp <- xgboost(data = dtrain_pass_all_dfs_temp,
                         colsample_bynode = colsample_bynode_pbp_pass_temp,
                         colsample_bytree = colsample_bytree_pbp_pass_temp,
                         colsample_bylevel = colsample_bylevel_pbp_pass_temp,
-                        nround = 264, # 325
-                        objective = "binary:logistic",
+                        nround = 600, # 675
+                        objective = "reg:squarederror",
                         nthread = 2,
                         gamma = gamma_pbp_pass_temp,
                         early_stopping_rounds = 50
 )
 
-breaks <- seq(0, 1, by = 0.04)
+
+breaks <- seq(-3, 13, by = 0.5)
 
 labels <- sprintf("%.3f", head(breaks, -1))
 
 test_preds_temp = predict(xgb_pbp_pass_temp, newdata = dtest_pass_all_dfs_temp)
 
-resultant_df_pbp_pass_temp = cbind(test_preds_temp, y_test_pass_all_dfs_temp) %>% as.data.frame()
-colnames(resultant_df_pbp_pass_temp) = c("Preds", "Vals")
+resultant_df_part_pass_temp = cbind(test_preds, y_test_pass_all_dfs_temp) %>% as.data.frame()
+colnames(resultant_df_part_pass_temp) = c("Preds", "Vals")
 
-resultant_df_pbp_pass_temp$buckets <- cut(resultant_df_pbp_pass_temp$Preds, breaks, labels = labels, include.lowest = TRUE, right = FALSE)
+resultant_df_part_pass_temp$buckets <- cut(resultant_df_part_pass_temp$Preds, breaks, labels = labels, include.lowest = TRUE, right = FALSE)
 
-resultant_df_pbp_pass_temp %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
+resultant_df_part_pass_temp %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
 
-summary(xgb_pbp_pass_temp)
-
-names_pbp_pass_temp = colnames(dtrain_pass_all_dfs_temp)
-
-importance_matrix_temp_all <- xgb.importance(names_pbp_pass_temp, model = xgb_pbp_pass_temp)
-importance_matrix_temp_all
-
-predictions_temp <- predict(xgb_pbp_pass_temp, newdata = dtest_pass_all_dfs_temp, type = "response")
-predicted_classes_temp <- ifelse(predictions_temp > 0.5, 1, 0)
-
-# Calculate confusion matrix and performance metrics
-confusionMatrix(factor(predicted_classes_temp), factor(y_test_pass_all_dfs_temp))
-
-# .9566
-# .143
-
-
-View(resultant_df_pbp_pass_temp %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
+View(resultant_df_part_pass_temp %>% group_by(buckets) %>% dplyr::summarize(n = n(), mean = mean(Vals))
 )
 
-# TEMP, WIND --> .5% COMBINED GAIN. 
+
+names_part_pass_temp = colnames(dtrain_pass_all_dfs_temp)
+
+importance_matrix_before_all_temp <- xgb.importance(names_part_pass_temp, model = xgb_pbp_pass_temp)
+importance_matrix_before_all_temp
+
+predictions_temp <- predict(xgb_pbp_pass_temp, newdata = dtest_pass_all_dfs_temp, type = "response")
 
 
-####
-####
+# Convert predictions and actual values to a dataframe
+resultant_df_part_pass <- data.frame(
+  Preds = test_preds_temp,
+  Actuals = y_test_pass_all_dfs_temp
+)
+
+# Calculate RMSE
+rmse_value_temp <- rmse(test_preds_temp, y_test_pass_all_dfs_temp)
+print(paste("RMSE:", rmse_value_temp))
+# 9.04
 
 
-pbp_nfl_pass_comp <- pbp_nfl %>% filter(play_type == "pass" & qb_spike == 0 & qb_kneel == 0 & sack == 0 & pass_attempt == 1 & qb_scramble == 0 & !is.na(air_yards) & !is.na(temp)) %>% select(td_side, yardline_100, half_seconds_remaining, shotgun, no_huddle, mod_ydstogo, qb_dropback, air_yards, pass_length, middle_ind, outside_ind, score_differential, qb_hit, roof, surface, posteam_timeouts_remaining, defteam_timeouts_remaining)
+###
+###
 
-pbp_nfl_pass_comp$td_side <- as.integer(as.factor(pbp_nfl_pass_comp$td_side)) - 1
 
-sample_split_pbp_comp <- sample.split(Y = pbp_nfl_pass_comp$td_side, SplitRatio = 0.8)
+pbp_nfl_pass_comp <- pbp_nfl %>% filter(play_type == "pass" & qb_spike == 0 & qb_kneel == 0 & sack == 0 & pass_attempt == 1 & qb_scramble == 0 & !is.na(air_yards) & !is.na(temp)) %>% select(yards_gained, yardline_100, half_seconds_remaining, shotgun, no_huddle, mod_ydstogo, qb_dropback, air_yards, pass_length, middle_ind, outside_ind, score_differential, qb_hit, roof, surface, posteam_timeouts_remaining, defteam_timeouts_remaining)
+
+sample_split_pbp_comp <- sample.split(Y = pbp_nfl_pass_comp$yards_gained, SplitRatio = 0.8)
 train_set_pbp_comp <- subset(x = pbp_nfl_pass_comp, sample_split_pbp_comp == TRUE)
 test_set_pbp_comp <- subset(x = pbp_nfl_pass_comp, sample_split_pbp_comp == FALSE)
 
-train_set_pbp_comp <- train_set_pbp_comp %>% filter(!is.na(td_side))
-test_set_pbp_comp <- test_set_pbp_comp %>% filter(!is.na(td_side))
+train_set_pbp_comp <- train_set_pbp_comp %>% filter(!is.na(yards_gained))
+test_set_pbp_comp <- test_set_pbp_comp %>% filter(!is.na(yards_gained))
 
-X_train_pbp_comp <- train_set_pbp_comp %>% select(-td_side) %>% as.data.frame()
-X_test_pbp_comp <- test_set_pbp_comp %>% select(-td_side) %>% as.data.frame()
-y_train_pbp_comp <- train_set_pbp_comp$td_side
-y_test_pbp_comp <- test_set_pbp_comp$td_side
-
+X_train_pbp_comp <- train_set_pbp_comp %>% select(-yards_gained) %>% as.data.frame()
+X_test_pbp_comp <- test_set_pbp_comp %>% select(-yards_gained) %>% as.data.frame()
+y_train_pbp_comp <- train_set_pbp_comp$yards_gained
+y_test_pbp_comp <- test_set_pbp_comp$yards_gained
 
 dtrain_pbp_comp = xgb.DMatrix(data = as.matrix(X_train_pbp_comp), label = y_train_pbp_comp)
 dtest_pbp_comp = xgb.DMatrix(data =as.matrix(X_test_pbp_comp), label = y_test_pbp_comp)
 
+test_preds_comp = predict(xgb_pbp_pass, newdata = dtest_pbp_comp)
 
-####
-####
+rmse(test_preds_comp, y_test_pbp_comp)
 
 
-# AUC
-auc_no_temp <- auc(y_test_pbp_comp, predict(xgb_pbp_pass, newdata = dtest_pbp_comp))
-auc_temp <- auc(y_test_pass_all_dfs_temp, test_preds_temp)
-
-# Log loss
-logloss_no_temp <- logLoss(y_test_pass_all_dfs, test_preds)
-logloss_temp <- logLoss(y_test_pass_all_dfs_temp, test_preds_temp)
-
-cat("AUC - No temp:", round(auc_no_temp, 4), "\n")
-cat("AUC - With temp:", round(auc_temp, 4), "\n\n")
-
-cat("LogLoss - No temp:", round(logloss_no_temp, 4), "\n")
-cat("LogLoss - With temp:", round(logloss_temp, 4), "\n")
-
-### AUC BETTER, LOGLOSS WORSE, LET'S JUST GO WITH NO
+# WE'RE BACK TO JUST NO TEMP
