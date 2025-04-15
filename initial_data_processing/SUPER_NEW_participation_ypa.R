@@ -220,7 +220,23 @@ part_nfl$ngs_air_yards <- ifelse(!is.na(part_nfl$air_yards) & is.na(part_nfl$ngs
 
 part_nfl$pressure_ind <- ifelse(is.na(part_nfl$pressure_ind), part_nfl$sack, part_nfl$pressure_ind)
 
-xgboost_part_nfl_throw <- part_nfl %>% filter((play_type == "pass") & qb_spike == 0 & qb_kneel == 0 & two_point_attempt == 0 & !is.na(yards_gained) & pass_attempt == 1 & rush_attempt == 0 & sack == 0) %>% select(yards_gained, yardline_100, season_type, half_seconds_remaining, down, down_one_ind, down_two_ind, down_three_ind, defenders_in_box, number_of_pass_rushers, mod_ydstogo, shotgun, no_huddle, score_differential, surface, posteam_ind, n_ol, n_te, n_rb, n_wr, n_dl, n_lb, n_db, ngs_air_yards, pressure_ind, qb_hit)
+part_nfl <- part_nfl %>% 
+  mutate(
+    flat_route_ind = as.integer(route == "FLAT"),
+    angle_route_ind = as.integer(route == "ANGLE"),
+    screen_route_ind = as.integer(route == "SCREEN"),
+    hitch_route_ind = as.integer(route == "HITCH"),
+    go_route_ind = as.integer(route == "GO"),
+    out_route_ind = as.integer(route == "OUT"),
+    slant_route_ind = as.integer(route == "SLANT"),
+    cross_route_ind = as.integer(route == "CROSS"),
+    post_route_ind = as.integer(route == "POST"),
+    corner_route_ind = as.integer(route == "CORNER"),
+    in_route_ind = as.integer(route == "IN"),
+    wheel_route_ind = as.integer(route == "WHEEL"))
+
+
+xgboost_part_nfl_throw <- part_nfl %>% filter((play_type == "pass") & qb_spike == 0 & qb_kneel == 0 & two_point_attempt == 0 & !is.na(yards_gained) & pass_attempt == 1 & rush_attempt == 0 & sack == 0) %>% select(yards_gained, yardline_100, season_type, half_seconds_remaining, down, down_one_ind, down_two_ind, down_three_ind, defenders_in_box, number_of_pass_rushers, mod_ydstogo, shotgun, no_huddle, score_differential, surface, posteam_ind, n_ol, n_te, n_rb, n_wr, n_dl, n_lb, n_db, ngs_air_yards, pressure_ind, qb_hit, flat_route_ind:wheel_route_ind)
 
 
 ###
@@ -294,15 +310,15 @@ d_all_pass_all = xgb.DMatrix(data = as.matrix(d_xpass_all), label = d_ypass_all)
 watchlist_pass_all_dfs = list(train=dtrain_pass_all_dfs, test=dtest_pass_all_dfs)
 
 
-eta_part_pass = .021 # .05
-gamma_part_pass = 5.751 # 0
-max_depth_part_pass = 6 # 4
-min_child_weight_part_pass = 8.359 # 4
-alpha_part_pass = .661 # 0
-lambda_part_pass = .103 # .15
-colsample_bynode_part_pass = .838 # .2
-colsample_bylevel_part_pass = .681 # 1
-colsample_bytree_part_pass = .277 # 1
+eta_part_pass = .067 # .05
+gamma_part_pass = 7.703 # 0
+max_depth_part_pass = 4 # 4
+min_child_weight_part_pass = 7.675 # 4
+alpha_part_pass = .518 # 0
+lambda_part_pass = .913 # .15
+colsample_bynode_part_pass = .872 # .2
+colsample_bylevel_part_pass = .728 # 1
+colsample_bytree_part_pass = .968 # 1
 
 xgb_part_pass <- xgboost(data = dtrain_pass_all_dfs, 
                          label = y_train_pass_all_dfs, 
@@ -314,7 +330,7 @@ xgb_part_pass <- xgboost(data = dtrain_pass_all_dfs,
                          colsample_bynode = colsample_bynode_part_pass,
                          colsample_bytree = colsample_bytree_part_pass,
                          colsample_bylevel = colsample_bylevel_part_pass,
-                         nround = 689, # 925
+                         nround = 200, # 925
                          objective = "reg:squarederror",
                          nthread = 2,
                          gamma = gamma_part_pass,
