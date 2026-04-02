@@ -1,3 +1,26 @@
-*.RData
-play_by_play/*.RData
-personnel_by_play/*.RData
+# Credentials - NEVER commit
+credentials/
+amazon_web_credentials.R
+.Renviron
+
+# R artifacts
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# Data files - too big for git
+*.rds
+*.model
+*.xlsx
+*.csv
+*.parquet
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db

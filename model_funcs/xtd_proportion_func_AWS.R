@@ -1,0 +1,590 @@
+library(aws.s3)
+
+bucket <- "nfl-pff-data-lucas"
+
+# Option 1: Specify what to KEEP, remove everything else
+keep_objects <- c("qb_stats_df_final", "con", "bucket", "combined_pbp")
+rm(list = setdiff(ls(), keep_objects))
+
+'%ni%' <- Negate('%in%')
+
+conflicts_prefer(dplyr::filter, dplyr::select, dplyr::lag, dplyr::arrange, dplyr::summarise, dplyr::mutate)
+
+
+# qbgrp_def_functions/ - all files
+tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_blitz_func.rds", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_depth_func.rds", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_less_func.rds", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_pa_func.rds", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_pressure_func.rds", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_blitz.RData", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_depth.RData", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_less.RData", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_pa.RData", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_pressure.RData", bucket = bucket, file = tmp); load(tmp)
+
+# def_functions/ - all files
+tmp <- tempfile(); save_object("def_functions/comparison_blitz_def_func.rds", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("def_functions/comparison_depth_def_func.rds", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("def_functions/comparison_less_def_func.rds", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("def_functions/comparison_pa_def_func.rds", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("def_functions/comparison_pressure_def_func.rds", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("def_functions/list_dependencies_blitz_def.RData", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("def_functions/list_dependencies_depth_def.RData", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("def_functions/list_dependencies_less_def.RData", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("def_functions/list_dependencies_pa_def.RData", bucket = bucket, file = tmp); load(tmp)
+tmp <- tempfile(); save_object("def_functions/list_dependencies_pressure_def.RData", bucket = bucket, file = tmp); load(tmp)
+
+
+importance_matrix_blitz <- list_dependencies_blitz[[2]]
+df_blitz_scaled_z <- list_dependencies_blitz[[1]]
+
+importance_matrix_blitz_def <- list_dependencies_blitz_def[[2]]
+df_blitz_def_scaled_z <- list_dependencies_blitz_def[[1]]
+
+importance_matrix_depth <- list_dependencies_depth[[2]]
+df_depth_scaled_z <- list_dependencies_depth[[1]]
+
+importance_matrix_depth_def <- list_dependencies_depth_def[[2]]
+df_depth_def_scaled_z <- list_dependencies_depth_def[[1]]
+
+importance_matrix_less <- list_dependencies_less[[2]]
+df_less_scaled_z <- list_dependencies_less[[1]]
+
+importance_matrix_less_def <- list_dependencies_less_def[[2]]
+df_less_def_scaled_z <- list_dependencies_less_def[[1]]
+
+importance_matrix_pa <- list_dependencies_pa[[2]]
+df_pa_scaled_z <- list_dependencies_pa[[1]]
+
+importance_matrix_pa_def <- list_dependencies_pa_def[[2]]
+df_pa_def_scaled_z <- list_dependencies_pa_def[[1]]
+
+importance_matrix_pressure <- list_dependencies_pressure[[2]]
+df_pressure_scaled_z <- list_dependencies_pressure[[1]]
+
+importance_matrix_pressure_def <- list_dependencies_pressure_def[[2]]
+df_pressure_def_scaled_z <- list_dependencies_pressure_def[[1]]
+
+
+comparison_blitz_func("JAXLawrence-2025", .92) # 92
+comparison_depth_func("JAXLawrence-2025", 1.02) # 55
+comparison_less_func("JAXLawrence-2025", .95) # 82
+comparison_pa_func("JAXLawrence-2025", .96) # 78
+comparison_pressure_func("JAXLawrence-2025", .93) # 100
+
+comparison_blitz_def_func("TEN2025", .97) # 84
+comparison_depth_def_func("TEN2025", 1.06) # 37
+comparison_less_def_func("TEN2025", .95) # 91
+comparison_pa_def_func("TEN2025", 1) # 72
+comparison_pressure_def_func("TEN2025", 1) # 65
+
+
+xtd_proportion <- 
+sqldf("SELECT qbgrp_ssn, def_ssn, posteam, defteam, week, season, temp, wind, rain_ind, snow_ind, 
+              COALESCE(SUM(CASE WHEN play_type == 'pass' AND qb_scramble == 0 THEN pbp_after_new_xtd END), 0) AS pbp_pass_xtd,
+              COALESCE(SUM(CASE WHEN qb_scramble == 1 THEN pbp_after_new_xtd END), 0) AS pbp_qb_scramble_xtd,
+              COALESCE(SUM(CASE WHEN play_type == 'run' AND qb_scramble == 0 THEN pbp_after_new_xtd END), 0) AS pbp_run_xtd,
+              COALESCE(SUM(CASE WHEN play_type == 'pass' AND qb_scramble == 0 THEN part_after_new_xtd END), 0) AS part_pass_xtd,
+              COALESCE(SUM(CASE WHEN qb_scramble == 1 THEN part_after_new_xtd END), 0) AS part_qb_scramble_xtd,
+              COALESCE(SUM(CASE WHEN play_type == 'run' AND qb_scramble == 0 THEN part_after_new_xtd END), 0) AS part_run_xtd              
+      FROM    combined_pbp
+      GROUP BY  qbgrp_ssn, def_ssn, posteam, defteam, week, season, temp, wind, rain_ind, snow_ind")
+
+
+xtd_proportion$pbp_pass_prop = xtd_proportion$pbp_pass_xtd / (xtd_proportion$pbp_pass_xtd + xtd_proportion$pbp_qb_scramble_xtd + xtd_proportion$pbp_run_xtd)
+xtd_proportion$pbp_qb_scramble_prop = xtd_proportion$pbp_qb_scramble_xtd / (xtd_proportion$pbp_pass_xtd + xtd_proportion$pbp_qb_scramble_xtd + xtd_proportion$pbp_run_xtd)
+xtd_proportion$pbp_run_prop = xtd_proportion$pbp_run_xtd / (xtd_proportion$pbp_pass_xtd + xtd_proportion$pbp_qb_scramble_xtd + xtd_proportion$pbp_run_xtd)
+
+
+xtd_proportion$part_pass_prop = xtd_proportion$part_pass_xtd / (xtd_proportion$part_pass_xtd + xtd_proportion$part_qb_scramble_xtd + xtd_proportion$part_run_xtd)
+xtd_proportion$part_qb_scramble_prop = xtd_proportion$part_qb_scramble_xtd / (xtd_proportion$part_pass_xtd + xtd_proportion$part_qb_scramble_xtd + xtd_proportion$part_run_xtd)
+xtd_proportion$part_run_prop = xtd_proportion$part_run_xtd / (xtd_proportion$part_pass_xtd + xtd_proportion$part_qb_scramble_xtd + xtd_proportion$part_run_xtd)
+
+xtd_proportion
+
+xtd_proportion <- xtd_proportion %>%
+  group_by(qbgrp_ssn) %>%
+  mutate(
+    pbp_pass_prop_rank = (rank(pbp_pass_prop, ties.method = "average") - 1) / (n() - 1),
+    pbp_qb_scramble_prop_rank = (rank(pbp_qb_scramble_prop, ties.method = "average") - 1) / (n() - 1),
+    pbp_run_xtd_rank = (rank(pbp_run_xtd, ties.method = "average") - 1) / (n() - 1),
+    part_pass_prop_rank = (rank(part_pass_prop, ties.method = "average") - 1) / (n() - 1),
+    part_qb_scramble_prop_rank = (rank(part_qb_scramble_prop, ties.method = "average") - 1) / (n() - 1),
+    part_run_xtd_rank = (rank(part_run_xtd, ties.method = "average") - 1) / (n() - 1))
+
+
+xtd_proportion <- xtd_proportion %>%
+  group_by(def_ssn) %>%
+  mutate(
+    pbp_pass_prop_rank_def = (rank(pbp_pass_prop, ties.method = "average") - 1) / (n() - 1),
+    pbp_qb_scramble_prop_rank_def = (rank(pbp_qb_scramble_prop, ties.method = "average") - 1) / (n() - 1),
+    pbp_run_xtd_rank_def = (rank(pbp_run_xtd, ties.method = "average") - 1) / (n() - 1),
+    part_pass_prop_rank_def = (rank(part_pass_prop, ties.method = "average") - 1) / (n() - 1),
+    part_qb_scramble_prop_rank_def = (rank(part_qb_scramble_prop, ties.method = "average") - 1) / (n() - 1),
+    part_run_xtd_rank_def = (rank(part_run_xtd, ties.method = "average") - 1) / (n() - 1))
+
+
+xtd_proportion$part_pass_prop[which(xtd_proportion$season == 2025)] <- NA
+xtd_proportion$part_qb_scramble_prop_rank[which(xtd_proportion$season == 2025)] <- NA
+xtd_proportion$part_run_xtd_rank[which(xtd_proportion$season == 2025)] <- NA
+xtd_proportion$part_pass_prop_rank_def[which(xtd_proportion$season == 2025)] <- NA
+xtd_proportion$part_qb_scramble_prop_rank_def[which(xtd_proportion$season == 2025)] <- NA
+xtd_proportion$part_run_xtd_rank_def[which(xtd_proportion$season == 2025)] <- NA
+
+
+xtd_proportion_func <- function(qbgrp_one, defgrp_one) {
+  wb_tds <- createWorkbook()
+  
+  # Define categories with updated thresholds
+  categories <- list(
+    blitz    = list(qb_threshold = 1.035, def_threshold = .975,  qb_func = comparison_blitz_func,    def_func = comparison_blitz_def_func),
+    depth    = list(qb_threshold = 1.025, def_threshold = .975,  qb_func = comparison_depth_func,    def_func = comparison_depth_def_func),
+    less     = list(qb_threshold = .96,   def_threshold = .92,  qb_func = comparison_less_func,     def_func = comparison_less_def_func),
+    pa       = list(qb_threshold = 1.025,   def_threshold = .945,  qb_func = comparison_pa_func,       def_func = comparison_pa_def_func),
+    pressure = list(qb_threshold = .98, def_threshold = .95, qb_func = comparison_pressure_func, def_func = comparison_pressure_def_func)
+  )
+  
+  # Helper function to process each category
+  process_category <- function(qbgrp_one, defgrp_one, qb_threshold, def_threshold, qb_func, def_func) {
+    qb_teams <- c(qb_func(qbgrp_one, qb_threshold)$QB, qbgrp_one)
+    def_teams <- c(def_func(defgrp_one, def_threshold)$QB, defgrp_one)
+    
+    return(rbind(
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %in% qb_teams & def_ssn %in% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank, pbp_qb_scramble_prop, part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, pbp_run_prop, part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank), mean, na.rm = TRUE)),
+      
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %in% qb_teams & def_ssn %ni% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank, pbp_qb_scramble_prop, part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, pbp_run_prop, part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank), mean, na.rm = TRUE)),
+      
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %ni% qb_teams & def_ssn %in% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank, pbp_qb_scramble_prop, part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, pbp_run_prop, part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank), mean, na.rm = TRUE))
+    ))
+  }
+  
+  # Process each category
+  category_results <- lapply(categories, function(cat) {
+    process_category(qbgrp_one, defgrp_one, cat$qb_threshold, cat$def_threshold, cat$qb_func, cat$def_func)
+  })
+  
+  # Define sheet name
+  sheet_name <- substr(paste0("XTD_Prop - ", qbgrp_one, " vs ", defgrp_one), 1, 31)
+  addWorksheet(wb_tds, sheet_name)
+  
+  # Write data at specified row positions
+  start_rows <- c(1, 6, 11, 16, 21)
+  names(category_results) <- names(categories)
+  
+  for (i in seq_along(category_results)) {
+    writeData(wb_tds, sheet = sheet_name, x = data.frame(category_results[[i]]), startRow = start_rows[i])
+  }
+  
+  # Save to S3
+  tmp <- tempfile(fileext = ".xlsx")
+  saveWorkbook(wb_tds, tmp)
+  put_object(tmp, bucket = "nfl-pff-data-lucas", object = paste0("outputs/", sheet_name, ".xlsx"))
+  
+  return(paste0("Saved to s3://nfl-pff-data-lucas/outputs/", sheet_name, ".xlsx"))
+}
+
+xtd_proportion_func("CARYoung-2025", "LA2025")
+
+weather_xtd_proportion_func <- function(qbgrp_one, defgrp_one) {
+  
+  wb <- createWorkbook()
+  
+  categories <- list(
+    blitz    = list(qb_threshold = 1.035, def_threshold = .975,  qb_func = comparison_blitz_func,    def_func = comparison_blitz_def_func),
+    depth    = list(qb_threshold = 1.025, def_threshold = .975,  qb_func = comparison_depth_func,    def_func = comparison_depth_def_func),
+    less     = list(qb_threshold = .96,   def_threshold = .92,   qb_func = comparison_less_func,     def_func = comparison_less_def_func),
+    pa       = list(qb_threshold = 1.025, def_threshold = .945,  qb_func = comparison_pa_func,       def_func = comparison_pa_def_func),
+    pressure = list(qb_threshold = .98,   def_threshold = .95,   qb_func = comparison_pressure_func, def_func = comparison_pressure_def_func)
+  )
+  
+  selected_columns <- c("pbp_pass_prop", "part_pass_prop", "pbp_pass_prop_rank", "part_pass_prop_rank",
+                        "pbp_qb_scramble_prop", "part_qb_scramble_prop", "pbp_qb_scramble_prop_rank", "part_qb_scramble_prop_rank",
+                        "pbp_run_prop", "part_run_prop", "pbp_run_xtd_rank", "part_run_xtd_rank")
+  
+  process_weather_category <- function(qbgrp_one, defgrp_one, qb_threshold, def_threshold, qb_func, def_func) {
+    
+    qb_teams <- c(qb_func(qbgrp_one, qb_threshold)$QB, qbgrp_one)
+    def_teams <- c(def_func(defgrp_one, def_threshold)$QB, defgrp_one)
+    
+    comp_weather_df <- xtd_proportion %>%
+      ungroup() %>%
+      mutate(
+        wind_na = ifelse(is.na(wind), 0, wind),
+        weather = case_when(
+          wind_na >= 10 & temp <= 50 ~ "1_Both",
+          wind_na >= 10 & temp > 50 ~ "2_Wind",
+          wind_na < 10 & temp <= 50 ~ "3_Cold",
+          TRUE ~ "4_Good"
+        ),
+        comp_bucket = case_when(
+          qbgrp_ssn %in% qb_teams & def_ssn %in% def_teams ~ "1_Both",
+          qbgrp_ssn %in% qb_teams & def_ssn %ni% def_teams ~ "2_Off_only",
+          qbgrp_ssn %ni% qb_teams & def_ssn %in% def_teams ~ "3_Def_only",
+          TRUE ~ "Neither"
+        )
+      ) %>%
+      filter(comp_bucket != "Neither")
+    
+    result <- comp_weather_df %>%
+      pivot_longer(cols = all_of(selected_columns), names_to = "metric", values_to = "value") %>%
+      group_by(comp_bucket, metric) %>%
+      summarise(
+        n_1_Both = sum(weather == "1_Both"),
+        n_2_Wind = sum(weather == "2_Wind"),
+        n_3_Cold = sum(weather == "3_Cold"),
+        n_4_Good = sum(weather == "4_Good"),
+        n_5_All = n(),
+        
+        mean_1_Both = mean(value[weather == "1_Both"], na.rm = T),
+        mean_2_Wind = mean(value[weather == "2_Wind"], na.rm = T),
+        mean_3_Cold = mean(value[weather == "3_Cold"], na.rm = T),
+        mean_4_Good = mean(value[weather == "4_Good"], na.rm = T),
+        mean_5_All = mean(value, na.rm = T),
+        
+        overall_sd = sd(value, na.rm = T),
+        
+        anova_pval = tryCatch({
+          aov_fit <- aov(value ~ weather)
+          summary(aov_fit)[[1]][["Pr(>F)"]][1]
+        }, error = function(e) NA),
+        
+        eta_sq = tryCatch({
+          aov_fit <- aov(value ~ weather)
+          ss <- summary(aov_fit)[[1]][["Sum Sq"]]
+          ss[1] / sum(ss)
+        }, error = function(e) NA),
+        
+        .groups = "drop"
+      ) %>%
+      mutate(
+        diff_Both_vs_All = mean_1_Both - mean_5_All,
+        diff_Wind_vs_All = mean_2_Wind - mean_5_All,
+        diff_Cold_vs_All = mean_3_Cold - mean_5_All,
+        diff_Good_vs_All = mean_4_Good - mean_5_All,
+        
+        d_Both_vs_All = diff_Both_vs_All / overall_sd,
+        d_Wind_vs_All = diff_Wind_vs_All / overall_sd,
+        d_Cold_vs_All = diff_Cold_vs_All / overall_sd,
+        d_Good_vs_All = diff_Good_vs_All / overall_sd,
+        
+        anova_sig = case_when(
+          anova_pval < 0.01 ~ "***",
+          anova_pval < 0.05 ~ "**",
+          anova_pval < 0.10 ~ "*",
+          TRUE ~ ""
+        ),
+        effect_size = case_when(
+          eta_sq >= 0.14 ~ "large",
+          eta_sq >= 0.06 ~ "medium",
+          eta_sq >= 0.01 ~ "small",
+          TRUE ~ "negligible"
+        )
+      ) %>%
+      arrange(comp_bucket, metric)
+    
+    return(result)
+  }
+  
+  category_results <- lapply(categories, function(cat) {
+    process_weather_category(qbgrp_one, defgrp_one, cat$qb_threshold, cat$def_threshold, 
+                             cat$qb_func, cat$def_func)
+  })
+  
+  for (cat_name in names(category_results)) {
+    addWorksheet(wb, cat_name)
+    writeData(wb, sheet = cat_name, x = data.frame(category_results[[cat_name]]))
+  }
+  
+  sheet_name <- substr(paste0("WeatherXTDProp - ", qbgrp_one, " vs ", defgrp_one), 1, 31)
+  tmp <- tempfile(fileext = ".xlsx")
+  saveWorkbook(wb, tmp)
+  put_object(tmp, bucket = bucket, object = paste0("outputs/", sheet_name, ".xlsx"))
+  
+  return(list(
+    file = paste0("Saved to s3://nfl-pff-data-lucas/outputs/", sheet_name, ".xlsx"),
+    results = category_results
+  ))
+}
+
+weather_xtd_proportion_func("CARYoung-2025", "LA2025")
+
+
+xtd_proportion %>%
+  filter(qbgrp_ssn == "CARYoung-2025")
+
+xtd_proportion %>%
+  filter(def_ssn == "LA2025")
+
+
+####
+####
+
+
+xtd_proportion_func <- function(qbgrp_one, defgrp_one) {
+  wb_tds <- createWorkbook()
+  
+  # Define categories with updated thresholds
+  categories <- list(
+    blitz    = list(qb_threshold = 1, def_threshold = .98,  qb_func = comparison_blitz_func,    def_func = comparison_blitz_def_func),
+    depth    = list(qb_threshold = .99, def_threshold = 1.05,  qb_func = comparison_depth_func,    def_func = comparison_depth_def_func),
+    less     = list(qb_threshold = .97,   def_threshold = .92,  qb_func = comparison_less_func,     def_func = comparison_less_def_func),
+    pa       = list(qb_threshold = 1.04,   def_threshold = 1.29,  qb_func = comparison_pa_func,       def_func = comparison_pa_def_func),
+    pressure = list(qb_threshold = 1, def_threshold = .96, qb_func = comparison_pressure_func, def_func = comparison_pressure_def_func)
+  )
+  
+  # Helper function to process each category
+  process_category <- function(qbgrp_one, defgrp_one, qb_threshold, def_threshold, qb_func, def_func) {
+    qb_teams <- c(qb_func(qbgrp_one, qb_threshold)$QB, qbgrp_one)
+    def_teams <- c(def_func(defgrp_one, def_threshold)$QB, defgrp_one)
+    
+    return(rbind(
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %in% qb_teams & def_ssn %in% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(
+          pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank,
+          pbp_pass_prop_rank_def, part_pass_prop_rank_def, pbp_qb_scramble_prop, 
+          part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, 
+          pbp_qb_scramble_prop_rank_def, part_qb_scramble_prop_rank_def, pbp_run_prop, 
+          part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank, pbp_run_xtd_rank_def, 
+          part_run_xtd_rank_def), mean, na.rm = TRUE)),
+      
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %in% qb_teams & def_ssn %ni% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(
+          pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank,
+          pbp_pass_prop_rank_def, part_pass_prop_rank_def, pbp_qb_scramble_prop, 
+          part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, 
+          pbp_qb_scramble_prop_rank_def, part_qb_scramble_prop_rank_def, pbp_run_prop, 
+          part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank, pbp_run_xtd_rank_def, 
+          part_run_xtd_rank_def), mean, na.rm = TRUE)),
+      
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %ni% qb_teams & def_ssn %in% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(
+          pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank,
+          pbp_pass_prop_rank_def, part_pass_prop_rank_def, pbp_qb_scramble_prop, 
+          part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, 
+          pbp_qb_scramble_prop_rank_def, part_qb_scramble_prop_rank_def, pbp_run_prop, 
+          part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank, pbp_run_xtd_rank_def, 
+          part_run_xtd_rank_def), mean, na.rm = TRUE))
+    ))
+  }
+  
+  # Process each category
+  category_results <- lapply(categories, function(cat) {
+    process_category(qbgrp_one, defgrp_one, cat$qb_threshold, cat$def_threshold, cat$qb_func, cat$def_func)
+  })
+  
+  # Define sheet name
+  sheet_name <- substr(paste0("XTD_Prop - ", qbgrp_one, " vs ", defgrp_one), 1, 31)
+  addWorksheet(wb_tds, sheet_name)
+  
+  # Write data at specified row positions
+  start_rows <- c(1, 6, 11, 16, 21)
+  names(category_results) <- names(categories)
+  
+  for (i in seq_along(category_results)) {
+    writeData(wb_tds, sheet = sheet_name, x = data.frame(category_results[[i]]), startRow = start_rows[i])
+  }
+  
+  # Save to S3
+  tmp <- tempfile(fileext = ".xlsx")
+  saveWorkbook(wb_tds, tmp)
+  put_object(tmp, bucket = "nfl-pff-data-lucas", object = paste0("outputs/", sheet_name, ".xlsx"))
+  
+  return(paste0("Saved to s3://nfl-pff-data-lucas/outputs/", sheet_name, ".xlsx"))
+}
+
+xtd_proportion_func("TENWard-2025", "JAX2025")
+
+
+xtd_proportion %>%
+  filter(qbgrp_ssn == "TENWard-2025")
+
+xtd_proportion %>%
+  filter(def_ssn == "JAX2025")
+
+
+####
+####
+
+
+xtd_proportion_func <- function(qbgrp_one, defgrp_one) {
+  wb_tds <- createWorkbook()
+  
+  # Define categories with updated thresholds
+  categories <- list(
+    blitz    = list(qb_threshold = .92, def_threshold = .91,  qb_func = comparison_blitz_func,    def_func = comparison_blitz_def_func),
+    depth    = list(qb_threshold = 1.05, def_threshold = 1.04,  qb_func = comparison_depth_func,    def_func = comparison_depth_def_func),
+    less     = list(qb_threshold = .9,   def_threshold = .96,  qb_func = comparison_less_func,     def_func = comparison_less_def_func),
+    pa       = list(qb_threshold = .92,   def_threshold = 1,  qb_func = comparison_pa_func,       def_func = comparison_pa_def_func),
+    pressure = list(qb_threshold = .92, def_threshold = .99, qb_func = comparison_pressure_func, def_func = comparison_pressure_def_func)
+  )
+  
+  # Helper function to process each category
+  process_category <- function(qbgrp_one, defgrp_one, qb_threshold, def_threshold, qb_func, def_func) {
+    qb_teams <- c(qb_func(qbgrp_one, qb_threshold)$QB, qbgrp_one)
+    def_teams <- c(def_func(defgrp_one, def_threshold)$QB, defgrp_one)
+    
+    return(rbind(
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %in% qb_teams & def_ssn %in% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(
+          pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank,
+          pbp_pass_prop_rank_def, part_pass_prop_rank_def, pbp_qb_scramble_prop, 
+          part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, 
+          pbp_qb_scramble_prop_rank_def, part_qb_scramble_prop_rank_def, pbp_run_prop, 
+          part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank, pbp_run_xtd_rank_def, 
+          part_run_xtd_rank_def), mean, na.rm = TRUE)),
+      
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %in% qb_teams & def_ssn %ni% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(
+          pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank,
+          pbp_pass_prop_rank_def, part_pass_prop_rank_def, pbp_qb_scramble_prop, 
+          part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, 
+          pbp_qb_scramble_prop_rank_def, part_qb_scramble_prop_rank_def, pbp_run_prop, 
+          part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank, pbp_run_xtd_rank_def, 
+          part_run_xtd_rank_def), mean, na.rm = TRUE)),
+      
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %ni% qb_teams & def_ssn %in% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(
+          pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank,
+          pbp_pass_prop_rank_def, part_pass_prop_rank_def, pbp_qb_scramble_prop, 
+          part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, 
+          pbp_qb_scramble_prop_rank_def, part_qb_scramble_prop_rank_def, pbp_run_prop, 
+          part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank, pbp_run_xtd_rank_def, 
+          part_run_xtd_rank_def), mean, na.rm = TRUE))
+    ))
+  }
+  
+  # Process each category
+  category_results <- lapply(categories, function(cat) {
+    process_category(qbgrp_one, defgrp_one, cat$qb_threshold, cat$def_threshold, cat$qb_func, cat$def_func)
+  })
+  
+  # Define sheet name
+  sheet_name <- substr(paste0("XTD_Prop - ", qbgrp_one, " vs ", defgrp_one), 1, 31)
+  addWorksheet(wb_tds, sheet_name)
+  
+  # Write data at specified row positions
+  start_rows <- c(1, 6, 11, 16, 21)
+  names(category_results) <- names(categories)
+  
+  for (i in seq_along(category_results)) {
+    writeData(wb_tds, sheet = sheet_name, x = data.frame(category_results[[i]]), startRow = start_rows[i])
+  }
+  
+  # Save to S3
+  tmp <- tempfile(fileext = ".xlsx")
+  saveWorkbook(wb_tds, tmp)
+  put_object(tmp, bucket = "nfl-pff-data-lucas", object = paste0("outputs/", sheet_name, ".xlsx"))
+  
+  return(paste0("Saved to s3://nfl-pff-data-lucas/outputs/", sheet_name, ".xlsx"))
+}
+
+xtd_proportion_func("TBMayfield-2025", "CAR2025")
+
+
+xtd_proportion %>%
+  filter(qbgrp_ssn == "TBMayfield-2025")
+
+xtd_proportion %>%
+  filter(def_ssn == "CAR2025")
+
+
+####
+####
+
+
+xtd_proportion_func <- function(qbgrp_one, defgrp_one) {
+  wb_tds <- createWorkbook()
+  
+  # Define categories with updated thresholds
+  categories <- list(
+    blitz    = list(qb_threshold = .93, def_threshold = .89,  qb_func = comparison_blitz_func,    def_func = comparison_blitz_def_func),
+    depth    = list(qb_threshold = 1.095, def_threshold = 1.045,  qb_func = comparison_depth_func,    def_func = comparison_depth_def_func),
+    less     = list(qb_threshold = .96,   def_threshold = .96,  qb_func = comparison_less_func,     def_func = comparison_less_def_func),
+    pa       = list(qb_threshold = 1,   def_threshold = 1.01,  qb_func = comparison_pa_func,       def_func = comparison_pa_def_func),
+    pressure = list(qb_threshold = 1.01, def_threshold = 1, qb_func = comparison_pressure_func, def_func = comparison_pressure_def_func)
+  )
+  
+  # Helper function to process each category
+  process_category <- function(qbgrp_one, defgrp_one, qb_threshold, def_threshold, qb_func, def_func) {
+    qb_teams <- c(qb_func(qbgrp_one, qb_threshold)$QB, qbgrp_one)
+    def_teams <- c(def_func(defgrp_one, def_threshold)$QB, defgrp_one)
+    
+    return(rbind(
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %in% qb_teams & def_ssn %in% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(
+          pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank,
+          pbp_pass_prop_rank_def, part_pass_prop_rank_def, pbp_qb_scramble_prop, 
+          part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, 
+          pbp_qb_scramble_prop_rank_def, part_qb_scramble_prop_rank_def, pbp_run_prop, 
+          part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank, pbp_run_xtd_rank_def, 
+          part_run_xtd_rank_def), mean, na.rm = TRUE)),
+      
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %in% qb_teams & def_ssn %ni% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(
+          pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank,
+          pbp_pass_prop_rank_def, part_pass_prop_rank_def, pbp_qb_scramble_prop, 
+          part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, 
+          pbp_qb_scramble_prop_rank_def, part_qb_scramble_prop_rank_def, pbp_run_prop, 
+          part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank, pbp_run_xtd_rank_def, 
+          part_run_xtd_rank_def), mean, na.rm = TRUE)),
+      
+      xtd_proportion %>% ungroup() %>%
+        dplyr::filter(qbgrp_ssn %ni% qb_teams & def_ssn %in% def_teams) %>%
+        dplyr::summarise(n = n(), across(c(
+          pbp_pass_prop, part_pass_prop, pbp_pass_prop_rank, part_pass_prop_rank,
+          pbp_pass_prop_rank_def, part_pass_prop_rank_def, pbp_qb_scramble_prop, 
+          part_qb_scramble_prop, pbp_qb_scramble_prop_rank, part_qb_scramble_prop_rank, 
+          pbp_qb_scramble_prop_rank_def, part_qb_scramble_prop_rank_def, pbp_run_prop, 
+          part_run_prop, pbp_run_xtd_rank, part_run_xtd_rank, pbp_run_xtd_rank_def, 
+          part_run_xtd_rank_def), mean, na.rm = TRUE))
+    ))
+  }
+  
+  # Process each category
+  category_results <- lapply(categories, function(cat) {
+    process_category(qbgrp_one, defgrp_one, cat$qb_threshold, cat$def_threshold, cat$qb_func, cat$def_func)
+  })
+  
+  # Define sheet name
+  sheet_name <- substr(paste0("XTD_Prop - ", qbgrp_one, " vs ", defgrp_one), 1, 31)
+  addWorksheet(wb_tds, sheet_name)
+  
+  # Write data at specified row positions
+  start_rows <- c(1, 6, 11, 16, 21)
+  names(category_results) <- names(categories)
+  
+  for (i in seq_along(category_results)) {
+    writeData(wb_tds, sheet = sheet_name, x = data.frame(category_results[[i]]), startRow = start_rows[i])
+  }
+  
+  # Save to S3
+  tmp <- tempfile(fileext = ".xlsx")
+  saveWorkbook(wb_tds, tmp)
+  put_object(tmp, bucket = "nfl-pff-data-lucas", object = paste0("outputs/", sheet_name, ".xlsx"))
+  
+  return(paste0("Saved to s3://nfl-pff-data-lucas/outputs/", sheet_name, ".xlsx"))
+}
+
+xtd_proportion_func("TBMayfield-2024", "CAR2025")
+
+
+xtd_proportion %>%
+  filter(qbgrp_ssn == "TBMayfield-2024")
+
+xtd_proportion %>%
+  filter(def_ssn == "CAR2025")
