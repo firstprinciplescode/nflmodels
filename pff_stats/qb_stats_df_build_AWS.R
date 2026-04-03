@@ -95,6 +95,9 @@ real_scores <- pbp_base %>% group_by(posteam, week, season) %>%
 
 rm(pbp_base)
 
+# combined_pbp <- combined_pbp[,-c(513:514)]
+# colnames(combined_pbp)[c(511:512)] <- c("qbgrp_ssn", "def_ssn")
+
 
 qb_stats_df_base <- combined_pbp %>% 
   group_by(qbgrp_ssn, def_ssn, posteam, defteam, week, season, wind, temp, rain_ind, snow_ind) %>% 
@@ -280,7 +283,7 @@ query_pressure <- run_athena_query("
 
 
 qb_stats_df_intermediary <- left_join(qb_stats_df_base, 
-                              query_blitz %>% dplyr::select(team_name:season, blitz_rate, blitz_grade, no_blitz_grade, blitz_qbr, no_blitz_qbr), 
+                              query_blitz %>% dplyr::select(team_name:season, blitz_rate, blitz_pressure_rate, no_blitz_pressure_rate, blitz_grade, no_blitz_grade, blitz_qbr, no_blitz_qbr), 
                               by = c("posteam" = "team_name", "week" = "week", "season" = "season"))
 
 qb_stats_df_intermediary <- left_join(qb_stats_df_intermediary, 
@@ -288,11 +291,11 @@ qb_stats_df_intermediary <- left_join(qb_stats_df_intermediary,
                               by = c("posteam" = "team_name", "week" = "week", "season" = "season"))
 
 qb_stats_df_intermediary <- left_join(qb_stats_df_intermediary, 
-                              query_less %>% dplyr::select(team_name:season, less_rate, less_grade, more_grade, less_qbr, more_qbr), 
+                              query_less %>% dplyr::select(team_name:season, less_rate, less_pressure_rate, more_pressure_rate, less_grade, more_grade, less_qbr, more_qbr), 
                               by = c("posteam" = "team_name", "week" = "week", "season" = "season"))
 
 qb_stats_df_intermediary <- left_join(qb_stats_df_intermediary, 
-                              query_pa %>% dplyr::select(team_name:season, pa_rate, npa_grade, pa_grade, npa_qbr, pa_qbr), 
+                              query_pa %>% dplyr::select(team_name:season, pa_rate, pa_pressure_rate, npa_pressure_rate, npa_grade, pa_grade, npa_qbr, pa_qbr), 
                               by = c("posteam" = "team_name", "week" = "week", "season" = "season"))
 
 qb_stats_df_final <- left_join(qb_stats_df_intermediary, 
@@ -363,6 +366,8 @@ qb_stats_df_final <- qb_stats_df_final %>%
     part_xtds_rank = (rank(part_xtds, ties.method = "average") - 1) / (n() - 1),
     
     blitz_rate_rank = (rank(blitz_rate, ties.method = "average") - 1) / (n() - 1),
+    blitz_pressure_rate_rank = (n() - rank(blitz_pressure_rate, ties.method = "average")) / (n() - 1),
+    no_blitz_pressure_rate_rank = (n() - rank(no_blitz_pressure_rate, ties.method = "average")) / (n() - 1),    
     no_blitz_gr_rank = (rank(no_blitz_grade, ties.method = "average") - 1) / (n() - 1),
     blitz_gr_rank = (rank(blitz_grade, ties.method = "average") - 1) / (n() - 1),
     no_blitz_qbr_rank = (rank(no_blitz_qbr, ties.method = "average") - 1) / (n() - 1),
@@ -383,12 +388,16 @@ qb_stats_df_final <- qb_stats_df_final %>%
     deep_qbr_rank = (rank(deep_qbr, ties.method = "average") - 1) / (n() - 1),
     
     less_rate_rank = (rank(less_rate, ties.method = "average")) / (n() - 1),
+    less_pressure_rate_rank = (n() - rank(less_pressure_rate, ties.method = "average")) / (n() - 1),
+    more_pressure_rate_rank = (n() - rank(more_pressure_rate, ties.method = "average")) / (n() - 1),
     less_gr_rank = (rank(less_grade, ties.method = "average") - 1) / (n() - 1),
     more_gr_rank = (rank(more_grade, ties.method = "average") - 1) / (n() - 1),
     less_qbr_rank = (rank(less_qbr, ties.method = "average") - 1) / (n() - 1),
     more_qbr_rank = (rank(more_qbr, ties.method = "average") - 1) / (n() - 1),    
     
     pa_rate_rank = (rank(pa_rate, ties.method = "average") - 1) / (n() - 1),
+    npa_pressure_rate_rank = (n() - rank(npa_pressure_rate, ties.method = "average")) / (n() - 1),
+    pa_pressure_rate_rank = (n() - rank(pa_pressure_rate, ties.method = "average")) / (n() - 1),
     npa_gr_rank = (rank(npa_grade, ties.method = "average") - 1) / (n() - 1),
     pa_gr_rank = (rank(pa_grade, ties.method = "average") - 1) / (n() - 1),
     npa_qbr_rank = (rank(npa_qbr, ties.method = "average") - 1) / (n() - 1),
@@ -444,6 +453,8 @@ qb_stats_df_final <- qb_stats_df_final %>%
     part_xtds_rank_def = (rank(part_xtds, ties.method = "average") - 1) / (n() - 1),
     
     blitz_rate_rank_def = (rank(blitz_rate, ties.method = "average") - 1) / (n() - 1),
+    blitz_pressure_rate_rank_def = (rank(blitz_pressure_rate, ties.method = "average")) / (n() - 1),
+    no_blitz_pressure_rate_rank_def = (rank(no_blitz_pressure_rate, ties.method = "average")) / (n() - 1),    
     no_blitz_gr_rank_def = (rank(no_blitz_grade, ties.method = "average") - 1) / (n() - 1),
     blitz_gr_rank_def = (rank(blitz_grade, ties.method = "average") - 1) / (n() - 1),
     no_blitz_qbr_rank_def = (rank(no_blitz_qbr, ties.method = "average") - 1) / (n() - 1),
@@ -464,12 +475,16 @@ qb_stats_df_final <- qb_stats_df_final %>%
     deep_qbr_rank_def = (rank(deep_qbr, ties.method = "average") - 1) / (n() - 1),
     
     less_rate_rank_def = (rank(less_rate, ties.method = "average")) / (n() - 1),
+    less_pressure_rate_rank_def = (rank(less_pressure_rate, ties.method = "average")) / (n() - 1),
+    more_pressure_rate_rank_def = (rank(more_pressure_rate, ties.method = "average")) / (n() - 1),    
     less_gr_rank_def = (rank(less_grade, ties.method = "average") - 1) / (n() - 1),
     more_gr_rank_def = (rank(more_grade, ties.method = "average") - 1) / (n() - 1),
     less_qbr_rank_def = (rank(less_qbr, ties.method = "average") - 1) / (n() - 1),
     more_qbr_rank_def = (rank(more_qbr, ties.method = "average") - 1) / (n() - 1),    
     
     pa_rate_rank_def = (rank(pa_rate, ties.method = "average") - 1) / (n() - 1),
+    npa_pressure_rate_rank_def = rank(npa_pressure_rate, ties.method = "average") / (n() - 1),
+    pa_pressure_rate_rank_def = rank(pa_pressure_rate, ties.method = "average") / (n() - 1),    
     npa_gr_rank_def = (rank(npa_grade, ties.method = "average") - 1) / (n() - 1),
     pa_gr_rank_def = (rank(pa_grade, ties.method = "average") - 1) / (n() - 1),
     npa_qbr_rank_def = (rank(npa_qbr, ties.method = "average") - 1) / (n() - 1),
@@ -487,28 +502,28 @@ qb_stats_df_final <- qb_stats_df_final %>%
   ungroup()
 
 
-qb_stats_df_final$part_xpass_rate_rank[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_scr_xypc_rank[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_cp_rank[which(qb_stats_df_final$season == 2025)] <- NA
+qb_stats_df_final$part_xpass_rate_rank[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_scr_xypc_rank[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_cp_rank[which(qb_stats_df_final$season == 2026)] <- NA
 
-qb_stats_df_final$part_pressure_after_rank_def[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_pressure_after_rank[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_pressure_before_rank_def[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_pressure_before_rank[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_sack_rate_rank[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_xypa_rank[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_xypc_rank[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_yac_rank[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_xtds_rank[which(qb_stats_df_final$season == 2025)] <- NA
+qb_stats_df_final$part_pressure_after_rank_def[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_pressure_after_rank[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_pressure_before_rank_def[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_pressure_before_rank[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_sack_rate_rank[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_xypa_rank[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_xypc_rank[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_yac_rank[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_xtds_rank[which(qb_stats_df_final$season == 2026)] <- NA
 
-qb_stats_df_final$part_xpass_rate_rank_def[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_scr_xypc_rank_def[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_cp_rank_def[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_sack_rate_rank_def[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_xypc_rank_def[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_xypa_rank_def[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_yac_rank_def[which(qb_stats_df_final$season == 2025)] <- NA
-qb_stats_df_final$part_xtds_rank_def[which(qb_stats_df_final$season == 2025)] <- NA
+qb_stats_df_final$part_xpass_rate_rank_def[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_scr_xypc_rank_def[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_cp_rank_def[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_sack_rate_rank_def[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_xypc_rank_def[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_xypa_rank_def[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_yac_rank_def[which(qb_stats_df_final$season == 2026)] <- NA
+qb_stats_df_final$part_xtds_rank_def[which(qb_stats_df_final$season == 2026)] <- NA
 
 View(qb_stats_df_final)
 
