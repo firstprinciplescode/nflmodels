@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: vw_allowed_pressure
+    description: "Intermediate layer - feeds downstream views"
+  - name: vw_passing_pressure_agg
+    description: "Intermediate layer - feeds downstream views"
+  - name: vw_play_counts_enriched
+    description: "Intermediate layer - feeds downstream views"
+  - name: vw_receiving
+    description: "Intermediate layer - feeds downstream views"
+  - name: vw_receiving_enriched
+    description: "Intermediate layer - feeds downstream views"

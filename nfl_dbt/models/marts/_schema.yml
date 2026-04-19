@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: vw_combined_blitz
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_combined_depth
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_combined_pa
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_combined_pressure
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_opponents
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_passing_tip
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_players_with_routes
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_players_with_routes_no_targets
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_receiving_clustering_base
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_receiving_depth_weekly
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_receiving_depth_weekly_agg
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_receiving_enriched_scheme
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_receiving_enriched_scheme_agg
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_team_passing_summary
+    description: "Mart - terminal output for analysis/ML"
+  - name: vw_total_snaps
+    description: "Mart - terminal output for analysis/ML"

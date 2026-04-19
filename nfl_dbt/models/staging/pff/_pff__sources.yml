@@ -1,0 +1,754 @@
+version: 2
+
+sources:
+  - name: pff_raw
+    database: awsdatacatalog
+    schema: nfl_data
+    description: "Raw PFF data ingested via Lambda scrapers"
+    
+    tables:
+      - name: align_centroids
+        description: "Source: s3://nfl-pff-data-lucas/clustering/centroids/alignment"
+        columns:
+          - name: cluster
+            description: "int"
+          - name: name
+            description: "string"
+          - name: count
+            description: "int"
+          - name: wide_rate
+            description: "double"
+          - name: slot_rate
+            description: "double"
+          - name: inline_rate
+            description: "double"
+          - name: behind_rate
+            description: "double"
+
+      - name: allowed_pressure
+        description: "Source: s3://nfl-pff-data-lucas/data/allowed_pressure"
+        columns:
+          - name: player_id
+            description: "double"
+          - name: franchise_id
+            description: "double"
+          - name: week
+            description: "double"
+          - name: player_game_count
+            description: "double"
+          - name: draft_season
+            description: "double"
+          - name: eligible_season
+            description: "double"
+          - name: penalties
+            description: "double"
+          - name: declined_penalties
+            description: "double"
+          - name: allowed_pressure_dropbacks
+            description: "double"
+          - name: pressures_allowed
+            description: "double"
+          # ... and 28 more columns
+
+      - name: combined_grade_epa_summary
+        description: "Source: s3://nfl-pff-data-lucas/data/combined_grade_epa_summary"
+        columns:
+          - name: posteam
+            description: "string"
+          - name: week
+            description: "int"
+          - name: season
+            description: "bigint"
+          - name: epa_run
+            description: "double"
+          - name: epa_pass
+            description: "double"
+          - name: opp
+            description: "string"
+          - name: passing_grade
+            description: "double"
+          - name: starting_qb
+            description: "string"
+          - name: starting_qb_id
+            description: "bigint"
+          - name: good_off_ind
+            description: "string"
+          # ... and 13 more columns
+
+      - name: coverage_scheme
+        description: "Source: s3://nfl-pff-data-lucas/data/coverage_scheme"
+        columns:
+          - name: man_touchdowns
+            description: "double"
+          - name: man_interceptions
+            description: "double"
+          - name: zone_snap_counts_coverage_percent
+            description: "double"
+          - name: man_avg_depth_of_target
+            description: "double"
+          - name: man_dropped_ints
+            description: "double"
+          - name: draft_season
+            description: "double"
+          - name: zone_coverage_snaps_per_target
+            description: "double"
+          - name: man_yards_per_reception
+            description: "double"
+          - name: team_name
+            description: "string"
+          - name: jersey_number
+            description: "string"
+          # ... and 61 more columns
+
+      - name: coverage_summary
+        description: "Source: s3://nfl-pff-data-lucas/data/coverage_summary"
+        columns:
+          - name: targets
+            description: "double"
+          - name: yards_per_coverage_snap
+            description: "double"
+          - name: draft_season
+            description: "double"
+          - name: missed_tackles
+            description: "double"
+          - name: catch_rate
+            description: "double"
+          - name: team_name
+            description: "string"
+          - name: tackles
+            description: "double"
+          - name: coverage_percent
+            description: "double"
+          - name: jersey_number
+            description: "string"
+          - name: dropped_ints
+            description: "double"
+          # ... and 36 more columns
+
+      - name: coverage_summary_by_game
+        description: "Source: s3://nfl-pff-data-lucas/data/coverage_by_game"
+        columns:
+          - name: player_id
+            description: "double"
+          - name: game_id
+            description: "double"
+          - name: week
+            description: "double"
+          - name: franchise_id
+            description: "double"
+          - name: player
+            description: "string"
+          - name: position
+            description: "string"
+          - name: status
+            description: "string"
+          - name: jersey_number
+            description: "string"
+          - name: targets
+            description: "double"
+          - name: receptions
+            description: "double"
+          # ... and 33 more columns
+
+      - name: games
+        description: "Source: s3://nfl-pff-data-lucas/data/games"
+        columns:
+          - name: id
+            description: "bigint"
+          - name: season
+            description: "bigint"
+          - name: week
+            description: "bigint"
+          - name: away_abbreviation
+            description: "string"
+          - name: away_franchise_id
+            description: "bigint"
+          - name: home_abbreviation
+            description: "string"
+          - name: home_franchise_id
+            description: "bigint"
+          - name: away_score
+            description: "bigint"
+          - name: home_score
+            description: "bigint"
+          - name: scraped_at
+            description: "string"
+
+      - name: pass_block_summary
+        description: "Source: s3://nfl-pff-data-lucas/data/pass_block_summary"
+        columns:
+          - name: true_pass_set_non_spike_pass_block_percentage
+            description: "double"
+          - name: true_pass_set_pressures_allowed
+            description: "double"
+          - name: grades_pass_block
+            description: "double"
+          - name: true_pass_set_pass_block_percent
+            description: "double"
+          - name: pbe
+            description: "double"
+          - name: non_spike_pass_block_percentage
+            description: "double"
+          - name: draft_season
+            description: "double"
+          - name: team_name
+            description: "string"
+          - name: jersey_number
+            description: "string"
+          - name: hits_allowed
+            description: "double"
+          # ... and 26 more columns
+
+      - name: pass_rush_kpis
+        description: "Source: s3://nfl-pff-data-lucas/data/pass_rush_kpis"
+        columns:
+          - name: player_id
+            description: "double"
+          - name: player
+            description: "string"
+          - name: team
+            description: "string"
+          - name: team_name
+            description: "string"
+          - name: position
+            description: "string"
+          - name: jersey_number
+            description: "string"
+          - name: franchise_id
+            description: "double"
+          - name: draft_season
+            description: "double"
+          - name: eligible_season
+            description: "double"
+          - name: player_game_count
+            description: "double"
+          # ... and 36 more columns
+
+      - name: pass_rush_summary
+        description: "Source: s3://nfl-pff-data-lucas/data/pass_rush_summary"
+        columns:
+          - name: true_pass_set_total_pressures
+            description: "double"
+          - name: draft_season
+            description: "double"
+          - name: true_pass_set_prp
+            description: "double"
+          - name: true_pass_set_hurries
+            description: "double"
+          - name: team_name
+            description: "string"
+          - name: prp
+            description: "double"
+          - name: true_pass_set_sacks
+            description: "double"
+          - name: pass_rush_win_rate
+            description: "double"
+          - name: jersey_number
+            description: "string"
+          - name: sacks
+            description: "double"
+          # ... and 30 more columns
+
+      - name: passing_concept
+        description: "Source: s3://nfl-pff-data-lucas/data/passing_concept"
+        columns:
+          - name: player_id
+            description: "bigint"
+          - name: franchise_id
+            description: "bigint"
+          - name: week
+            description: "bigint"
+          - name: player_game_count
+            description: "bigint"
+          - name: draft_season
+            description: "bigint"
+          - name: eligible_season
+            description: "bigint"
+          - name: penalties
+            description: "bigint"
+          - name: declined_penalties
+            description: "bigint"
+          - name: dropbacks
+            description: "bigint"
+          - name: pa_passing_snaps
+            description: "bigint"
+          # ... and 155 more columns
+
+      - name: passing_depth
+        description: "Source: s3://nfl-pff-data-lucas/data/passing_depth"
+        columns:
+          - name: player_id
+            description: "bigint"
+          - name: franchise_id
+            description: "bigint"
+          - name: week
+            description: "bigint"
+          - name: player_game_count
+            description: "bigint"
+          - name: draft_season
+            description: "bigint"
+          - name: eligible_season
+            description: "bigint"
+          - name: dropbacks
+            description: "bigint"
+          - name: deep_passing_snaps
+            description: "bigint"
+          - name: deep_dropbacks
+            description: "bigint"
+          - name: deep_aimed_passes
+            description: "bigint"
+          # ... and 359 more columns
+
+      - name: passing_pressure
+        description: "Source: s3://nfl-pff-data-lucas/data/passing_pressure"
+        columns:
+          - name: player_id
+            description: "bigint"
+          - name: franchise_id
+            description: "bigint"
+          - name: week
+            description: "bigint"
+          - name: player_game_count
+            description: "bigint"
+          - name: draft_season
+            description: "bigint"
+          - name: eligible_season
+            description: "bigint"
+          - name: penalties
+            description: "bigint"
+          - name: declined_penalties
+            description: "bigint"
+          - name: pressure_passing_snaps
+            description: "bigint"
+          - name: pressure_dropbacks
+            description: "bigint"
+          # ... and 153 more columns
+
+      - name: passing_tip
+        description: "Source: s3://nfl-pff-data-lucas/data/time_in_pocket"
+        columns:
+          - name: player_id
+            description: "bigint"
+          - name: franchise_id
+            description: "bigint"
+          - name: week
+            description: "bigint"
+          - name: player_game_count
+            description: "bigint"
+          - name: draft_season
+            description: "bigint"
+          - name: eligible_season
+            description: "bigint"
+          - name: dropbacks
+            description: "bigint"
+          - name: more_passing_snaps
+            description: "bigint"
+          - name: more_dropbacks
+            description: "bigint"
+          - name: more_aimed_passes
+            description: "bigint"
+          # ... and 81 more columns
+
+      - name: play_counts
+        description: "Source: s3://nfl-pff-data-lucas/data/play_counts/"
+        columns:
+          - name: declined_penalties
+            description: "bigint"
+          - name: franchise_id
+            description: "bigint"
+          - name: grades_hands_fumble
+            description: "double"
+          - name: grades_offense
+            description: "double"
+          - name: grades_offense_penalty
+            description: "double"
+          - name: grades_pass_block
+            description: "double"
+          - name: grades_pass_route
+            description: "double"
+          - name: grades_run_block
+            description: "double"
+          - name: jersey_number
+            description: "string"
+          - name: penalties
+            description: "bigint"
+          # ... and 16 more columns
+
+      - name: receiver_scheme
+        description: "Source: s3://nfl-pff-data-lucas/data/receiver_scheme"
+        columns:
+          - name: player_id
+            description: "bigint"
+          - name: player
+            description: "string"
+          - name: position
+            description: "string"
+          - name: team
+            description: "string"
+          - name: team_name
+            description: "string"
+          - name: jersey_number
+            description: "string"
+          - name: player_game_count
+            description: "bigint"
+          - name: franchise_id
+            description: "bigint"
+          - name: draft_season
+            description: "bigint"
+          - name: eligible_season
+            description: "bigint"
+          # ... and 62 more columns
+
+      - name: receivers_alignment_cluster_raw
+        description: "Source: s3://nfl-pff-data-lucas/clustering/player_clusters/alignment"
+        columns:
+          - name: player_id
+            description: "double"
+          - name: player
+            description: "string"
+          - name: team_abbreviation
+            description: "string"
+          - name: season
+            description: "double"
+          - name: cluster_name
+            description: "string"
+
+      - name: receiving_coverage_versus
+        description: "Source: s3://nfl-pff-data-lucas/data/receiving_coverage_versus"
+        columns:
+          - name: player_id
+            description: "double"
+          - name: coverage_player_id
+            description: "double"
+          - name: game_id
+            description: "double"
+          - name: week
+            description: "double"
+          - name: targets
+            description: "double"
+          - name: receptions
+            description: "double"
+          - name: yards
+            description: "double"
+          - name: yards_after_catch
+            description: "double"
+          - name: yards_per_reception
+            description: "double"
+          - name: touchdowns
+            description: "double"
+          # ... and 6 more columns
+
+      - name: receiving_depth_weekly_no_targets
+        description: "Source: s3://nfl-pff-data-lucas/data/receiving_depth_weekly_no_targets_clean/"
+        columns:
+          - name: left_deep_route_rate
+            description: "double"
+          - name: center_short_first_downs
+            description: "double"
+          - name: center_short_routes
+            description: "double"
+          - name: left_behind_los_yards_after_catch
+            description: "double"
+          - name: center_behind_los_contested_targets
+            description: "double"
+          - name: right_short_routes
+            description: "double"
+          - name: targets
+            description: "double"
+          - name: grades_pass_block
+            description: "double"
+          - name: grades_offense
+            description: "double"
+          - name: right_deep_pass_block_rate
+            description: "double"
+          # ... and 498 more columns
+
+      - name: receiving_depth_weekly_no_targets_temp
+        description: "Source: s3://nfl-pff-data-lucas/data/receiving_depth_weekly_no_targets"
+        columns:
+          - name: left_deep_route_rate
+            description: "double"
+          - name: center_short_first_downs
+            description: "double"
+          - name: center_short_routes
+            description: "double"
+          - name: left_behind_los_yards_after_catch
+            description: "double"
+          - name: center_behind_los_contested_targets
+            description: "double"
+          - name: right_short_routes
+            description: "double"
+          - name: targets
+            description: "double"
+          - name: grades_pass_block
+            description: "double"
+          - name: grades_offense
+            description: "double"
+          - name: right_deep_pass_block_rate
+            description: "double"
+          # ... and 497 more columns
+
+      - name: receiving_depth_weekly_no_targets_v2_raw
+        description: "Append-only raw scrapes - multiple files per (player_id, week, season) expected, stg model dedupes via ROW_NUMBER ORDER BY scraped_at DESC. S3 prefix receiving_depth_weekly_no_targets_v2_raw"
+        columns:
+          - name: player_id
+            description: "double"
+          - name: week
+            description: "int (partition)"
+          - name: season
+            description: "int (partition)"
+          - name: scraped_at
+            description: "string - ISO timestamp used for dedup tie-breaking"
+          - name: access_level
+            description: "string - full or partial. NULL in files scraped before restriction tracking was added"
+          - name: restricted_field_count
+            description: "double - number of fields PFF withheld. 0 = full access. NULL in older files"
+
+      - name: receiving_depth_weekly_with_targets
+        description: "Source: s3://nfl-pff-data-lucas/data/receiving_depth_weekly_targets"
+        columns:
+          - name: left_deep_route_rate
+            description: "double"
+          - name: center_short_first_downs
+            description: "double"
+          - name: center_short_routes
+            description: "double"
+          - name: left_behind_los_yards_after_catch
+            description: "double"
+          - name: center_behind_los_contested_targets
+            description: "double"
+          - name: right_short_routes
+            description: "double"
+          - name: targets
+            description: "double"
+          - name: grades_pass_block
+            description: "double"
+          - name: grades_offense
+            description: "double"
+          - name: right_deep_pass_block_rate
+            description: "double"
+          # ... and 498 more columns
+
+      - name: receiving_no_targets
+        description: "Source: s3://nfl-pff-data-lucas/data/receiving_summary_no_targets"
+        columns:
+          - name: targets
+            description: "double"
+          - name: grades_offense
+            description: "double"
+          - name: game_id
+            description: "double"
+          - name: yards_after_catch_per_reception
+            description: "double"
+          - name: grades_pass_route
+            description: "double"
+          - name: week
+            description: "double"
+          - name: status
+            description: "string"
+          - name: yprr
+            description: "double"
+          - name: wide_snaps
+            description: "double"
+          - name: fumbles
+            description: "double"
+          # ... and 51 more columns
+
+      - name: receiving_rte_cluster_raw
+        description: "Source: s3://nfl-pff-data-lucas/clustering/player_clusters/rte_cluster"
+        columns:
+          - name: player_id
+            description: "double"
+          - name: team
+            description: "string"
+          - name: season
+            description: "double"
+          - name: rte_cluster
+            description: "int"
+          - name: rte_cluster_name
+            description: "string"
+
+      - name: receiving_tgt_cluster_raw
+        description: "Source: s3://nfl-pff-data-lucas/clustering/player_clusters/tgt_cluster"
+        columns:
+          - name: player_id
+            description: "double"
+          - name: team
+            description: "string"
+          - name: season
+            description: "double"
+          - name: tgt_cluster
+            description: "int"
+          - name: tgt_cluster_name
+            description: "string"
+
+      - name: receiving_with_targets
+        description: "Source: s3://nfl-pff-data-lucas/data/receiving_summary_with_targets"
+        columns:
+          - name: targets
+            description: "double"
+          - name: grades_offense
+            description: "double"
+          - name: yards_after_catch_per_reception
+            description: "double"
+          - name: grades_pass_route
+            description: "double"
+          - name: draft_season
+            description: "double"
+          - name: team_name
+            description: "string"
+          - name: yprr
+            description: "double"
+          - name: wide_snaps
+            description: "double"
+          - name: fumbles
+            description: "double"
+          - name: first_downs
+            description: "double"
+          # ... and 41 more columns
+
+      - name: rte_centroids
+        description: "Source: s3://nfl-pff-data-lucas/clustering/centroids/rte_cluster"
+        columns:
+          - name: cluster
+            description: "int"
+          - name: name
+            description: "string"
+          - name: count
+            description: "int"
+          - name: deep_rte_rate
+            description: "double"
+          - name: medium_rte_rate
+            description: "double"
+          - name: short_rte_rate
+            description: "double"
+          - name: behind_los_rte_rate
+            description: "double"
+
+      - name: run_block_summary
+        description: "Source: s3://nfl-pff-data-lucas/data/run_blocking"
+        columns:
+          - name: declined_penalties
+            description: "double"
+          - name: draft_season
+            description: "double"
+          - name: eligible_season
+            description: "double"
+          - name: franchise_id
+            description: "double"
+          - name: gap_grades_run_block
+            description: "double"
+          - name: gap_run_block_percent
+            description: "double"
+          - name: gap_snap_counts_run_block
+            description: "double"
+          - name: gap_snap_counts_run_block_percent
+            description: "double"
+          - name: gap_snap_counts_run_play
+            description: "double"
+          - name: grades_run_block
+            description: "double"
+          # ... and 18 more columns
+
+      - name: run_defense_summary
+        description: "Source: s3://nfl-pff-data-lucas/data/run_defense_summary"
+        columns:
+          - name: assists
+            description: "double"
+          - name: avg_depth_of_tackle
+            description: "double"
+          - name: declined_penalties
+            description: "double"
+          - name: draft_season
+            description: "double"
+          - name: eligible_season
+            description: "double"
+          - name: forced_fumbles
+            description: "double"
+          - name: franchise_id
+            description: "double"
+          - name: grades_defense
+            description: "double"
+          - name: grades_defense_penalty
+            description: "double"
+          - name: grades_pass_rush_defense
+            description: "double"
+          # ... and 20 more columns
+
+      - name: rushing_summary
+        description: "Source: s3://nfl-pff-data-lucas/data/rushing_summary"
+        columns:
+          - name: targets
+            description: "double"
+          - name: grades_pass_block
+            description: "double"
+          - name: grades_offense
+            description: "double"
+          - name: yards_after_contact
+            description: "double"
+          - name: explosive
+            description: "double"
+          - name: grades_pass_route
+            description: "double"
+          - name: draft_season
+            description: "double"
+          - name: elu_rush_mtf
+            description: "double"
+          - name: breakaway_attempts
+            description: "double"
+          - name: designed_yards
+            description: "double"
+          # ... and 43 more columns
+
+      - name: slot_coverage
+        description: "Source: s3://nfl-pff-data-lucas/data/slot_coverage"
+        columns:
+          - name: coverage_snaps
+            description: "double"
+          - name: coverage_snaps_per_reception
+            description: "double"
+          - name: coverage_snaps_per_target
+            description: "double"
+          - name: draft_season
+            description: "double"
+          - name: eligible_season
+            description: "double"
+          - name: franchise_id
+            description: "double"
+          - name: interceptions
+            description: "double"
+          - name: jersey_number
+            description: "string"
+          - name: player
+            description: "string"
+          - name: player_game_count
+            description: "double"
+          # ... and 13 more columns
+
+      - name: team_ids_tbl
+        description: "Source: s3://nfl-pff-data-lucas/data/team_ids/"
+        columns:
+          - name: season
+            description: "int"
+          - name: abbreviation
+            description: "string"
+          - name: teamid
+            description: "int"
+
+      - name: tgt_centroids
+        description: "Source: s3://nfl-pff-data-lucas/clustering/centroids/tgt_cluster"
+        columns:
+          - name: cluster
+            description: "int"
+          - name: name
+            description: "string"
+          - name: count
+            description: "int"
+          - name: deep_tgt_rate
+            description: "double"
+          - name: medium_tgt_rate
+            description: "double"
+          - name: short_tgt_rate
+            description: "double"
+          - name: behind_los_tgt_rate
+            description: "double"
