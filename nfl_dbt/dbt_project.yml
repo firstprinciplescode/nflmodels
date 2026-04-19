@@ -24,3 +24,21 @@ models:
       +materialized: view
     marts:
       +materialized: table
+
+on-run-start:
+  - "MSCK REPAIR TABLE nfl_data.play_counts"
+  - "MSCK REPAIR TABLE nfl_data.receiving_depth_weekly_with_targets"
+  - "MSCK REPAIR TABLE nfl_data.receiving_with_targets"
+  - "MSCK REPAIR TABLE nfl_data.receiver_scheme"
+  - "MSCK REPAIR TABLE nfl_data.receiving_depth_weekly_no_targets"
+  - "MSCK REPAIR TABLE nfl_data.receiving_no_targets"
+  - "MSCK REPAIR TABLE nfl_data.allowed_pressure"
+  - "MSCK REPAIR TABLE nfl_data.passing_pressure"
+  - "MSCK REPAIR TABLE nfl_data.rushing_summary"
+  - "MSCK REPAIR TABLE nfl_data.run_defense_summary"
+  - "MSCK REPAIR TABLE nfl_data.coverage_summary"
+  - "MSCK REPAIR TABLE nfl_data.slot_coverage"
+  - "MSCK REPAIR TABLE nfl_data.run_block_summary"
+  - "MSCK REPAIR TABLE nfl_data.coverage_summary_by_game"
+  - "MSCK REPAIR TABLE nfl_data.pass_rush_kpis"
+  - "MSCK REPAIR TABLE nfl_data.receiving_depth_weekly_no_targets_v2_raw"
