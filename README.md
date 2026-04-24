@@ -2,6 +2,21 @@
 
 NFL analytics and prediction system for betting/projection analysis. Combines play-by-play data (nflreadr/nflfastR), PFF participation data, and PFF player-level statistics.
 
+## Architecture
+
+```mermaid
+flowchart TD
+    A[Raw Sources<br/>nflfastR · PFF Premium · Weather APIs] --> B[Lambda Scrapers<br/>lambdas/]
+    B --> C[S3 + Athena<br/>nfl-pff-data-lucas]
+    C --> D[Base Tables<br/>data_build/<br/>pbp_base · part_nfl · combined_pbp]
+    D --> E[Feature Stores<br/>pff_stats/<br/>qb_stats_df_final · receiving_func_base · rush_stats_final]
+    E --> F[Model Wrappers<br/>model_funcs/<br/>11 XGBoost models]
+```
+
+See [`Lineage One.Rmd`](./Lineage%20One.Rmd) for per-dataframe lineage with verified joins and transforms.
+
+---
+
 ## Structure
 
 - `data_build/` — Base data pipelines: pbp_nfl_base, part_nfl_base, combined joins, IDs
