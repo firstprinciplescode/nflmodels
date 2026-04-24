@@ -27,6 +27,23 @@ model_funcs/  ->  11 XGBoost wrappers (cp, plays, rec, rush, sack, scr,
 - **Created in:** `pff_stats/qb_stats_df_build_AWS.R`
 - **Feeds into (11 model funcs):** `cp_func_AWS.R`, `plays_func_AWS.R`, `rec_func_AWS.R`, `rush_func_AWS.R`, `sack_func_AWS.R`, `scr_func_AWS.R`, `tds_func_AWS.R`, `twp_func_AWS.R`, `xpass_func_AWS.R`, `xtd_proportion_func_AWS.R`, `ypa_func_AWS.R`
 
+**Upstream Inputs (verified from code scan):**
+
+```mermaid
+flowchart LR
+    PBP["nflfastR load_pbp(2016:2025)"] --> BASE["pbp_base<br/>(in-script)"]
+    VPA["Athena: vw_passing_tip"] --> INT["qb_stats_df_intermediary"]
+    VCPA["Athena: vw_combined_pa"] --> INT
+    VDEPTH["Athena: vw_combined_depth"] --> INT
+    VBLITZ["Athena: vw_combined_blitz"] --> INT
+    VPRESS["Athena: vw_combined_pressure"] --> INT
+    S3A["S3 CSV: real_scores<br/>aws s3 cp pipe"] --> BASE2["qb_stats_df_base"]
+    S3B["S3 CSV: (2nd load)<br/>aws s3 cp pipe"] --> BASE2
+    BASE --> BASE2
+    BASE2 --> INT
+    INT --> FINAL["qb_stats_df_final"]
+```
+
 **Verified Joins:**
 
 ```r
@@ -74,6 +91,19 @@ read.csv(pipe(sprintf('aws s3 cp %s -', s3_path)))
 - **Created in:** `pff_stats/receiving_stats_build_AWS.R`
 - **Feeds into:** `rec_func_AWS.R`
 
+**Upstream Inputs (verified from code scan):**
+
+```mermaid
+flowchart LR
+    VREC["Athena: vw_receiving_enriched"] --> PBPREC["pbp_receiver_stats"]
+    VSNAP["Athena: vw_total_snaps"] --> SNAPJOIN["pbp_receiver_stats_snap_join"]
+    VCOUNTS["Athena: vw_play_counts_enriched"] --> PCOUNTS["play_counts_receiving_stats_two"]
+    S3CSV["S3 CSV<br/>aws s3 cp pipe"] --> PCOUNTS
+    PBPREC --> SNAPJOIN
+    SNAPJOIN --> FINAL["receiving_func_base"]
+    PCOUNTS --> FINAL
+```
+
 **Verified Joins:**
 
 ```r
@@ -110,6 +140,26 @@ read.csv(pipe(sprintf('aws s3 cp %s -', s3_path)))
 - **Created in:** `pff_stats/pff_rushing_stats_build_six_final.R`
 - **Feeds into:** `rush_func_AWS.R`
 
+**Upstream Inputs (verified from code scan):**
+
+```mermaid
+flowchart LR
+    PBPRUSH["pbp_rush<br/>(upstream session)"] --> PRS["pbp_rush_statistics"]
+    RSR["rushing_summary_rank<br/>(upstream session)"] --> CS["contact_statistics"]
+    PRS --> D1["rush_stats_draft_one"]
+    CS --> D1
+    SIT["situation_cluster_df<br/>(upstream session)"] --> D2["rush_stats_draft_two"]
+    D1 --> D2
+    GAP["gap_cluster_df<br/>(upstream session)"] --> D3["rush_stats_draft_three"]
+    D2 --> D3
+    XTD["rusher_xtd_final<br/>(upstream session)"] --> D4["rush_stats_draft_four"]
+    D3 --> D4
+    PZG["player_zone_gap_zscore<br/>(upstream session)"] --> FINAL["rush_stats_final"]
+    D4 --> FINAL
+```
+
+> Note: This script operates on DFs loaded into the R session by upstream build scripts (clustering + base PBP pipelines). See corresponding build scripts in `df_builds/` and `data_build/`.
+
 **Verified Joins (5-stage chain):**
 
 ```r
@@ -141,6 +191,16 @@ mutate(yards_before_contact = yards - yards_after_contact)
 - **Created in:** `model_funcs/xtd_proportion_func_AWS.R`
 - **Feeds into:** Scoring wrappers
 
+**Upstream Inputs (verified from code scan):**
+
+```mermaid
+flowchart LR
+    PBP["combined_pbp<br/>(upstream session)"] --> AGG["xtd_proportion<br/>(aggregation by qbgrp_ssn/def_ssn)"]
+    AGG --> PROPS["Proportion cols<br/>pbp_pass_prop · pbp_run_prop · pbp_qb_scramble_prop<br/>part_pass_prop · part_run_prop · part_qb_scramble_prop"]
+    PROPS --> RANKS["Rank cols<br/>_rank · _rank_def"]
+    RANKS --> FINAL["xtd_proportion (final)"]
+```
+
 **Verified Joins:** None detected in scan (operates on pre-joined input).
 
 **Verified Transforms:**
@@ -167,3 +227,8 @@ anova_sig   = case_when(...)
 - Change logic -> re-run the PowerShell extraction scan -> update the affected section here -> commit.
 - Never document a transform that is not in the extracted output.
 - When a new `case_when` / join / data load shows up in a scan, add it under the correct DF; do not infer intent.
+
+
+# nflmodels
+
+NFL play-level modeling pipeline. Ingests play-by-play and PFF data, engineers features, and trains 11 XGBoost models used as inputs to manual, team-specific prediction work.
