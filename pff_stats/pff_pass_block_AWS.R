@@ -193,7 +193,7 @@ tps_pass_block_summary %>%
 
 
 all_pass_block_player_season_summary <- all_pass_block_summary %>%
-  group_by(player, player_id, det_position, qbgrp_ssn, season) %>%
+  group_by(player, player_id, det_position, team_name, qbgrp_ssn, season) %>%
   summarise(
     grade_perc = mean(player_grade_def_ssn_perc),
     pressure_perc = mean(player_pressure_def_ssn_perc),
@@ -209,7 +209,7 @@ all_pass_block_player_season_summary <- all_pass_block_summary %>%
   ungroup()
 
 tps_pass_block_player_season_summary <- tps_pass_block_summary %>%
-  group_by(player, player_id, det_position, qbgrp_ssn, season) %>%
+  group_by(player, player_id, det_position, team_name, qbgrp_ssn, season) %>%
   summarise(
     grade_perc = mean(player_tps_grade_def_ssn_perc),
     pressure_perc = mean(player_tps_pressure_def_ssn_perc),
@@ -225,8 +225,123 @@ tps_pass_block_player_season_summary <- tps_pass_block_summary %>%
   ungroup()
 
 
-View(all_pass_block_player_season_summary %>% filter(player_id == 83018))
+View(all_pass_block_player_season_summary %>% filter(player_id == 124034))
 View(tps_pass_block_player_season_summary %>% filter(player_id == 83018))
 
-View(all_pass_block_opp_position_percentile %>% filter(def_ssn == 'DET2025'))
-View(tps_pass_block_opp_position_percentile %>% filter(def_ssn == 'DET2025'))
+View(pass_rush_tps_opp_percentile %>% filter(qbgrp_ssn == "DETGoff-2025"))
+View(pass_rush_all_opp_percentile %>% filter(qbgrp_ssn == "DETGoff-2024"))
+
+View(qb_stats_df_final %>% filter(qbgrp_ssn == "DETGoff-2025") %>% select(pressure_rate_rank_def, sack_rate_rank_def))
+
+
+plot_ol_pass_block <- function(player_ids,
+                               data = all_pass_block_player_season_summary,
+                               metric = "grade_season_pctl",
+                               title = NULL,
+                               cache_dir = file.path(tempdir(), "pff_headshots")) {
+  
+  dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
+  
+  get_headshot <- function(pid) {
+    dest <- file.path(cache_dir, paste0(pid, ".png"))
+    if (!file.exists(dest)) {
+      url <- paste0("https://media.pff.com/player-photos/nfl/", pid, ".png")
+      try(download.file(url, dest, mode = "wb", quiet = TRUE), silent = TRUE)
+    }
+    if (!file.exists(dest) || file.size(dest) < 100) return(NA_character_)
+    con <- file(dest, "rb"); bytes <- readBin(con, "raw", 8); close(con)
+    png_magic <- as.raw(c(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))
+    if (identical(bytes, png_magic)) gsub("\\\\", "/", dest) else NA_character_
+  }
+  
+  pos_colors <- c(
+    LT = "#08519c", LG = "#6baed6", C  = "#525252",
+    RG = "#fd8d3c", RT = "#a63603"
+  )
+  
+  pd <- data %>%
+    filter(player_id %in% player_ids) %>%
+    mutate(
+      val = .data[[metric]],
+      det_position = factor(det_position, levels = c("LT","LG","C","RG","RT"))
+    )
+  
+  bg_df <- build_bg_df(pd)
+  
+  hs_map <- pd %>%
+    distinct(player_id, player) %>%
+    rowwise() %>%
+    mutate(headshot_path = get_headshot(player_id)) %>%
+    ungroup() %>%
+    mutate(
+      strip_label = ifelse(
+        is.na(headshot_path),
+        paste0("<span style='vertical-align:middle;'>", player, "</span>"),
+        paste0(
+          "<img src='", headshot_path, "' width='38' ",
+          "style='vertical-align:middle; margin-right:6px;'/>",
+          "<span style='vertical-align:middle;'>", player, "</span>"
+        )
+      )
+    )
+  
+  pd    <- pd    %>% left_join(hs_map %>% select(player_id, strip_label), by = "player_id")
+  bg_df <- bg_df %>% left_join(hs_map %>% select(player_id, strip_label), by = "player_id")
+  
+  x_min <- min(pd$season); x_max <- max(pd$season)
+  
+  ggplot() +
+    geom_rect(
+      data = bg_df,
+      aes(xmin = season - 0.5, xmax = season + 0.5,
+          ymin = 0, ymax = 1.15, fill = I(bg_color)),
+      inherit.aes = FALSE
+    ) +
+    geom_col(
+      data = pd,
+      aes(season, val, fill = det_position),
+      position = position_dodge2(width = 0.85, preserve = "single", padding = 0),
+      width = 0.8
+    ) +
+    geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey50", linewidth = 0.3) +
+    geom_text(
+      data = pd,
+      aes(season, val, label = scales::percent(val, accuracy = 1),
+          group = det_position),
+      position = position_dodge2(width = 0.85, preserve = "single", padding = 0),
+      vjust = -0.4, size = 2.5, color = "grey25"
+    ) +
+    scale_fill_manual(values = pos_colors, drop = FALSE, name = "Position") +
+    scale_y_continuous(limits = c(0, 1.15), breaks = c(0, 0.5, 1), labels = scales::percent) +
+    scale_x_continuous(breaks = seq(x_min, x_max, 1),
+                       expand = expansion(add = 0.5)) +
+    facet_wrap(~ strip_label, ncol = 3) +
+    labs(title = title, x = NULL, y = NULL) +
+    theme_minimal(base_size = 11) +
+    theme(
+      plot.title         = element_text(face = "bold", size = 16),
+      strip.text         = ggtext::element_markdown(face = "bold", size = 11, hjust = 0.5),
+      strip.background   = element_rect(fill = "grey95", color = NA),
+      axis.text.x        = element_text(angle = 45, hjust = 1),
+      panel.grid.minor   = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.spacing      = unit(1.2, "lines"),
+      legend.position    = "bottom"
+    )
+}
+
+ol_ids <- c(124034, 81788, 10650, 10729, 98261, 44909, 39137, 7032, 37070)
+
+# All pass block snaps
+plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "grade_season_pctl",    "DET — Pass Block Grade Pctl")
+plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "pressure_season_pctl", "DET — Pass Block Pressure Pctl")
+
+# True pass set only
+plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "grade_season_pctl",    "DET — True Pass Set Grade Pctl")
+plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "pressure_season_pctl", "DET — True Pass Set Pressure Pctl")
+
+
+
+
+
+

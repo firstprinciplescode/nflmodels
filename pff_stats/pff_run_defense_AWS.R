@@ -221,3 +221,32 @@ run_defense_player_season_summary <- run_defense_summary_qbgrp %>%
 
 View(run_defense_player_season_summary %>% filter(player_id == 8982))
 
+# Defense version — same idea, def_ssn filter, no _def suffix on cols
+plot_ybc_yac_quadrants_def <- function(team_season, data = rush_stats_high) {
+  ssn <- as.numeric(sub("^[A-Z]+", "", team_season))
+  pd <- data %>%
+    filter(def_ssn == team_season) %>%
+    mutate(opp = sub(as.character(ssn), "", off_ssn))
+  
+  ggplot(pd, aes(ybc_rank, yac_rank)) +
+    annotate("rect", xmin = 0.5, xmax = 1, ymin = 0.5, ymax = 1, fill = "#a63603", alpha = 0.06) +
+    annotate("rect", xmin = 0,   xmax = 0.5, ymin = 0,   ymax = 0.5, fill = "#08519c", alpha = 0.06) +
+    geom_vline(xintercept = 0.5, linetype = "dashed", color = "grey50") +
+    geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey50") +
+    geom_point(aes(size = attempts), color = "#08519c", alpha = 0.75) +
+    ggrepel::geom_text_repel(aes(label = paste0("W", week, " ", opp)),
+                             size = 3, seed = 1, max.overlaps = Inf) +
+    scale_x_continuous(limits = c(0, 1), labels = scales::percent) +
+    scale_y_continuous(limits = c(0, 1), labels = scales::percent) +
+    labs(title = paste0(team_season, " — Run defense quadrants"),
+         subtitle = "Top-right: got gashed both phases. Bottom-left: shut it down.",
+         x = "YBC rank allowed", y = "YAC rank allowed", size = "Attempts") +
+    theme_minimal(base_size = 11) +
+    theme(
+      plot.title    = element_text(face = "bold", size = 16),
+      plot.subtitle = element_text(color = "grey40", size = 10)
+    )
+}
+
+plot_ybc_yac_quadrants_def("DET2025")
+plot_ybc_yac_quadrants_def("BLT2025")

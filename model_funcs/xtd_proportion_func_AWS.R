@@ -315,6 +315,128 @@ weather_xtd_proportion_func <- function(qbgrp_one, defgrp_one) {
 
 weather_xtd_proportion_func("CARYoung-2025", "LA2025")
 
+precip_xtd_proportion_func <- function(qbgrp_one, defgrp_one) {
+  
+  wb <- createWorkbook()
+  
+  categories <- list(
+    blitz    = list(qb_threshold = 1.035, def_threshold = .975,  qb_func = comparison_blitz_func,    def_func = comparison_blitz_def_func),
+    depth    = list(qb_threshold = 1.025, def_threshold = .975,  qb_func = comparison_depth_func,    def_func = comparison_depth_def_func),
+    less     = list(qb_threshold = .96,   def_threshold = .92,   qb_func = comparison_less_func,     def_func = comparison_less_def_func),
+    pa       = list(qb_threshold = 1.025, def_threshold = .945,  qb_func = comparison_pa_func,       def_func = comparison_pa_def_func),
+    pressure = list(qb_threshold = .98,   def_threshold = .95,   qb_func = comparison_pressure_func, def_func = comparison_pressure_def_func)
+  )
+  
+  selected_columns <- c("pbp_pass_prop", "part_pass_prop", "pbp_pass_prop_rank", "part_pass_prop_rank",
+                        "pbp_qb_scramble_prop", "part_qb_scramble_prop", "pbp_qb_scramble_prop_rank", "part_qb_scramble_prop_rank",
+                        "pbp_run_prop", "part_run_prop", "pbp_run_xtd_rank", "part_run_xtd_rank")
+  
+  process_precip_category <- function(qbgrp_one, defgrp_one, qb_threshold, def_threshold, qb_func, def_func) {
+    
+    qb_teams <- c(qb_func(qbgrp_one, qb_threshold)$QB, qbgrp_one)
+    def_teams <- c(def_func(defgrp_one, def_threshold)$QB, defgrp_one)
+    
+    comp_precip_df <- xtd_proportion %>%
+      ungroup() %>%
+      mutate(
+        precip = case_when(
+          snow_ind == 1 ~ "1_Snow",
+          rain_ind == 1 ~ "2_Rain",
+          TRUE ~ "3_Clear"
+        ),
+        comp_bucket = case_when(
+          qbgrp_ssn %in% qb_teams & def_ssn %in% def_teams ~ "1_Both",
+          qbgrp_ssn %in% qb_teams & def_ssn %ni% def_teams ~ "2_Off_only",
+          qbgrp_ssn %ni% qb_teams & def_ssn %in% def_teams ~ "3_Def_only",
+          TRUE ~ "Neither"
+        )
+      ) %>%
+      filter(comp_bucket != "Neither")
+    
+    result <- comp_precip_df %>%
+      pivot_longer(cols = all_of(selected_columns), names_to = "metric", values_to = "value") %>%
+      group_by(comp_bucket, metric) %>%
+      summarise(
+        n_1_Snow = sum(precip == "1_Snow"),
+        n_2_Rain = sum(precip == "2_Rain"),
+        n_3_Clear = sum(precip == "3_Clear"),
+        n_4_All = n(),
+        
+        mean_1_Snow = mean(value[precip == "1_Snow"], na.rm = T),
+        mean_2_Rain = mean(value[precip == "2_Rain"], na.rm = T),
+        mean_3_Clear = mean(value[precip == "3_Clear"], na.rm = T),
+        mean_4_All = mean(value, na.rm = T),
+        
+        overall_sd = sd(value, na.rm = T),
+        
+        anova_pval = tryCatch({
+          aov_fit <- aov(value ~ precip)
+          summary(aov_fit)[[1]][["Pr(>F)"]][1]
+        }, error = function(e) NA),
+        
+        eta_sq = tryCatch({
+          aov_fit <- aov(value ~ precip)
+          ss <- summary(aov_fit)[[1]][["Sum Sq"]]
+          ss[1] / sum(ss)
+        }, error = function(e) NA),
+        
+        .groups = "drop"
+      ) %>%
+      mutate(
+        diff_Snow_vs_All = mean_1_Snow - mean_4_All,
+        diff_Rain_vs_All = mean_2_Rain - mean_4_All,
+        diff_Clear_vs_All = mean_3_Clear - mean_4_All,
+        
+        d_Snow_vs_All = diff_Snow_vs_All / overall_sd,
+        d_Rain_vs_All = diff_Rain_vs_All / overall_sd,
+        d_Clear_vs_All = diff_Clear_vs_All / overall_sd,
+        
+        diff_Snow_vs_Clear = mean_1_Snow - mean_3_Clear,
+        diff_Rain_vs_Clear = mean_2_Rain - mean_3_Clear,
+        d_Snow_vs_Clear = diff_Snow_vs_Clear / overall_sd,
+        d_Rain_vs_Clear = diff_Rain_vs_Clear / overall_sd,
+        
+        anova_sig = case_when(
+          anova_pval < 0.01 ~ "***",
+          anova_pval < 0.05 ~ "**",
+          anova_pval < 0.10 ~ "*",
+          TRUE ~ ""
+        ),
+        effect_size = case_when(
+          eta_sq >= 0.14 ~ "large",
+          eta_sq >= 0.06 ~ "medium",
+          eta_sq >= 0.01 ~ "small",
+          TRUE ~ "negligible"
+        )
+      ) %>%
+      arrange(comp_bucket, metric)
+    
+    return(result)
+  }
+  
+  category_results <- lapply(categories, function(cat) {
+    process_precip_category(qbgrp_one, defgrp_one, cat$qb_threshold, cat$def_threshold, 
+                            cat$qb_func, cat$def_func)
+  })
+  
+  for (cat_name in names(category_results)) {
+    addWorksheet(wb, cat_name)
+    writeData(wb, sheet = cat_name, x = data.frame(category_results[[cat_name]]))
+  }
+  
+  sheet_name <- substr(paste0("PrecipXTDProp - ", qbgrp_one, " vs ", defgrp_one), 1, 31)
+  tmp <- tempfile(fileext = ".xlsx")
+  saveWorkbook(wb, tmp)
+  put_object(tmp, bucket = bucket, object = paste0("outputs/", sheet_name, ".xlsx"))
+  
+  return(list(
+    file = paste0("Saved to s3://nfl-pff-data-lucas/outputs/", sheet_name, ".xlsx"),
+    results = category_results
+  ))
+}
+
+precip_xtd_proportion_func("CARYoung-2025", "LA2025")
+
 
 xtd_proportion %>%
   filter(qbgrp_ssn == "CARYoung-2025")

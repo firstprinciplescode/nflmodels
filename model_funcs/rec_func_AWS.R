@@ -301,6 +301,292 @@ rec_func(qbgrp_one = "TENWard-2025",
          xtd_vec_input = c(0,100),
          player_name = "Bryce Oliver")
 
+
+weather_rec_func <- function(qbgrp_one, defgrp_one, tgt_cluster_input, rte_cluster_input, align_cluster_input, position_group_input, pos_rank_vec, team_rank_vec, man_zone_grp_input, man_z_vec_input, xpass_na, xpass_vec_input, xtd_grp_input, xtd_grp_na, xtd_vec_input, player_name) {
+  wb_tds <- createWorkbook()
+  
+  categories <- list(
+    blitz    = list(qb_threshold = 1.065, def_threshold = 1.005, qb_func = comparison_blitz_func,    def_func = comparison_blitz_def_func),
+    depth    = list(qb_threshold = 1.055, def_threshold = .995,  qb_func = comparison_depth_func,    def_func = comparison_depth_def_func),
+    less     = list(qb_threshold = .99,   def_threshold = .95,   qb_func = comparison_less_func,     def_func = comparison_less_def_func),
+    pa       = list(qb_threshold = 1.055, def_threshold = .975,  qb_func = comparison_pa_func,       def_func = comparison_pa_def_func),
+    pressure = list(qb_threshold = 1.01,  def_threshold = .98,   qb_func = comparison_pressure_func, def_func = comparison_pressure_def_func)
+  )
+  
+  process_category <- function(category, qbgrp_one, defgrp_one) {
+    qb_teams <- c(category$qb_func(qbgrp_one, category$qb_threshold)$QB, qbgrp_one)
+    def_teams <- c(category$def_func(defgrp_one, category$def_threshold)$QB, defgrp_one)
+    
+    game_level <- receiving_func_base %>%
+      ungroup() %>%
+      dplyr::filter(qbgrp_ssn %in% qb_teams) %>%
+      mutate(
+        wind_na = ifelse(is.na(wind), 0, wind),
+        weather = ifelse(wind_na >= 10 | temp <= 50, "1_Bad", "2_Good"),
+        ind = ifelse(def_ssn %in% def_teams, "In", "Out"),
+        rec_ind = ifelse(
+          tgt_cluster_name %in% tgt_cluster_input & 
+            rte_cluster_name %in% rte_cluster_input & 
+            align_cluster_name %in% align_cluster_input & 
+            final_position_group %in% position_group_input & 
+            pos_rank >= pos_rank_vec[1] & pos_rank <= pos_rank_vec[2] & 
+            team_rank >= team_rank_vec[1] & team_rank <= team_rank_vec[2] & 
+            man_zone_grp_cluster %in% man_zone_grp_input & 
+            z_score_percentile >= man_z_vec_input[1] & z_score_percentile <= man_z_vec_input[2] & 
+            (
+              (xpass_percentile >= xpass_vec_input[1] & xpass_percentile <= xpass_vec_input[2]) |
+                (xpass_na & is.na(xpass_percentile))
+            ) &
+            td_grp_cluster %in% xtd_grp_input & 
+            (
+              (xtd_percentile >= xtd_vec_input[1] & xtd_percentile <= xtd_vec_input[2]) |
+                (xtd_grp_na & is.na(xtd_percentile))
+            ),
+          "In", "Out"
+        )
+      ) %>%
+      mutate(has_rel_recs = any(rec_ind == "In")) %>%
+      dplyr::filter(has_rel_recs) %>%
+      group_by(qbgrp_ssn, def_ssn, week, season, ind, weather) %>%
+      dplyr::filter(sum(ifelse(rec_ind == "In", 1, 0), na.rm = TRUE) > 0) %>%
+      dplyr::summarise(
+        rel_players = sum(ifelse(rec_ind == "In", 1, 0), na.rm = TRUE),
+        notrel_players = sum(ifelse(rec_ind != "In", 1, 0), na.rm = TRUE),   
+        rel_targets = sum(ifelse(rec_ind == "In", targets, 0), na.rm = TRUE),
+        notrel_targets = sum(ifelse(rec_ind != "In", targets, 0), na.rm = TRUE),
+        rel_routes = sum(ifelse(rec_ind == "In", routes, 0), na.rm = TRUE),
+        notrel_routes = sum(ifelse(rec_ind != "In", routes, 0), na.rm = TRUE),
+        rel_pbp_xtds = sum(ifelse(rec_ind == "In", pbp_rec_xtds, 0), na.rm = TRUE),
+        notrel_pbp_xtds = sum(ifelse(rec_ind != "In", pbp_rec_xtds, 0), na.rm = TRUE),     
+        rel_part_xtds = sum(ifelse(rec_ind == "In", part_rec_xtds, 0), na.rm = TRUE),
+        notrel_part_xtds = sum(ifelse(rec_ind != "In", part_rec_xtds, 0), na.rm = TRUE),  
+        rel_ypa = mean(ifelse(rec_ind == "In", ypa, NA), na.rm = TRUE),
+        rel_pbp_xypa = mean(ifelse(rec_ind == "In", pbp_xypa, NA), na.rm = TRUE),
+        rel_part_xypa = mean(ifelse(rec_ind == "In", part_xypa, NA), na.rm = TRUE),
+        rel_acc_rate = mean(ifelse(rec_ind == "In", acc_rate, NA), na.rm = TRUE),
+        rel_fastr_cp = mean(ifelse(rec_ind == "In", fastr_cp, NA), na.rm = TRUE),
+        rel_pbp_cp = mean(ifelse(rec_ind == "In", pbp_cp, NA), na.rm = TRUE),
+        rel_part_cp = mean(ifelse(rec_ind == "In", part_cp, NA), na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      mutate(
+        tgt_shr = (rel_targets / (rel_targets + notrel_targets)) / rel_players,
+        rte_shr = (rel_routes / (rel_routes + notrel_routes)) / rel_players,
+        pbp_xtd_shr = (rel_pbp_xtds / (rel_pbp_xtds + notrel_pbp_xtds)) / rel_players,
+        part_xtd_shr = (rel_part_xtds / (rel_part_xtds + notrel_part_xtds)) / rel_players
+      ) %>%
+      ungroup()
+    
+    selected_metrics <- c("tgt_shr", "rte_shr", "pbp_xtd_shr", "part_xtd_shr", 
+                          "rel_ypa", "rel_acc_rate")
+    
+    result <- game_level %>%
+      pivot_longer(cols = all_of(selected_metrics), names_to = "metric", values_to = "value") %>%
+      group_by(ind, metric) %>%
+      summarise(
+        n_Bad = sum(weather == "1_Bad", na.rm = TRUE),
+        n_Good = sum(weather == "2_Good", na.rm = TRUE),
+        n_All = n(),
+        
+        mean_Bad = mean(value[weather == "1_Bad"], na.rm = TRUE),
+        mean_Good = mean(value[weather == "2_Good"], na.rm = TRUE),
+        mean_All = mean(value, na.rm = TRUE),
+        
+        overall_sd = sd(value, na.rm = TRUE),
+        
+        wilcox_pval = tryCatch({
+          wilcox.test(value ~ weather, exact = FALSE)$p.value
+        }, error = function(e) NA),
+        
+        .groups = "drop"
+      ) %>%
+      mutate(
+        diff_Bad_vs_Good = mean_Bad - mean_Good,
+        diff_Bad_vs_All = mean_Bad - mean_All,
+        diff_Good_vs_All = mean_Good - mean_All,
+        
+        d_Bad_vs_Good = diff_Bad_vs_Good / overall_sd,
+        d_Bad_vs_All = diff_Bad_vs_All / overall_sd,
+        d_Good_vs_All = diff_Good_vs_All / overall_sd,
+        
+        sig = case_when(
+          wilcox_pval < 0.01 ~ "***",
+          wilcox_pval < 0.05 ~ "**",
+          wilcox_pval < 0.10 ~ "*",
+          TRUE ~ ""
+        ),
+        effect_size = case_when(
+          abs(d_Bad_vs_Good) >= 0.8 ~ "large",
+          abs(d_Bad_vs_Good) >= 0.5 ~ "medium",
+          abs(d_Bad_vs_Good) >= 0.2 ~ "small",
+          TRUE ~ "negligible"
+        )
+      ) %>%
+      arrange(ind, metric)
+    
+    return(result)
+  }
+  
+  category_results <- lapply(categories, function(cat) {
+    process_category(cat, qbgrp_one, defgrp_one)
+  })
+  
+  for (cat_name in names(category_results)) {
+    addWorksheet(wb_tds, cat_name)
+    writeData(wb_tds, sheet = cat_name, x = data.frame(category_results[[cat_name]]))
+  }
+  
+  sheet_name <- substr(paste0("WeatherRec - ", player_name), 1, 31)
+  tmp <- tempfile(fileext = ".xlsx")
+  saveWorkbook(wb_tds, tmp, overwrite = TRUE)
+  put_object(file = tmp, object = paste0("outputs/", sheet_name, ".xlsx"), bucket = "nfl-pff-data-lucas")
+  
+  return(paste0("Saved to s3://nfl-pff-data-lucas/outputs/", sheet_name, ".xlsx"))
+}
+
+
+precip_rec_func <- function(qbgrp_one, defgrp_one, tgt_cluster_input, rte_cluster_input, align_cluster_input, position_group_input, pos_rank_vec, team_rank_vec, man_zone_grp_input, man_z_vec_input, xpass_na, xpass_vec_input, xtd_grp_input, xtd_grp_na, xtd_vec_input, player_name) {
+  wb_tds <- createWorkbook()
+  
+  categories <- list(
+    blitz    = list(qb_threshold = 1.065, def_threshold = 1.005, qb_func = comparison_blitz_func,    def_func = comparison_blitz_def_func),
+    depth    = list(qb_threshold = 1.055, def_threshold = .995,  qb_func = comparison_depth_func,    def_func = comparison_depth_def_func),
+    less     = list(qb_threshold = .99,   def_threshold = .95,   qb_func = comparison_less_func,     def_func = comparison_less_def_func),
+    pa       = list(qb_threshold = 1.055, def_threshold = .975,  qb_func = comparison_pa_func,       def_func = comparison_pa_def_func),
+    pressure = list(qb_threshold = 1.01,  def_threshold = .98,   qb_func = comparison_pressure_func, def_func = comparison_pressure_def_func)
+  )
+  
+  process_category <- function(category, qbgrp_one, defgrp_one) {
+    qb_teams <- c(category$qb_func(qbgrp_one, category$qb_threshold)$QB, qbgrp_one)
+    def_teams <- c(category$def_func(defgrp_one, category$def_threshold)$QB, defgrp_one)
+    
+    game_level <- receiving_func_base %>%
+      ungroup() %>%
+      dplyr::filter(qbgrp_ssn %in% qb_teams) %>%
+      mutate(
+        precip = ifelse(snow_ind == 1 | rain_ind == 1, "1_Precip", "2_Clear"),
+        ind = ifelse(def_ssn %in% def_teams, "In", "Out"),
+        rec_ind = ifelse(
+          tgt_cluster_name %in% tgt_cluster_input & 
+            rte_cluster_name %in% rte_cluster_input & 
+            align_cluster_name %in% align_cluster_input & 
+            final_position_group %in% position_group_input & 
+            pos_rank >= pos_rank_vec[1] & pos_rank <= pos_rank_vec[2] & 
+            team_rank >= team_rank_vec[1] & team_rank <= team_rank_vec[2] & 
+            man_zone_grp_cluster %in% man_zone_grp_input & 
+            z_score_percentile >= man_z_vec_input[1] & z_score_percentile <= man_z_vec_input[2] & 
+            (
+              (xpass_percentile >= xpass_vec_input[1] & xpass_percentile <= xpass_vec_input[2]) |
+                (xpass_na & is.na(xpass_percentile))
+            ) &
+            td_grp_cluster %in% xtd_grp_input & 
+            (
+              (xtd_percentile >= xtd_vec_input[1] & xtd_percentile <= xtd_vec_input[2]) |
+                (xtd_grp_na & is.na(xtd_percentile))
+            ),
+          "In", "Out"
+        )
+      ) %>%
+      mutate(has_rel_recs = any(rec_ind == "In")) %>%
+      dplyr::filter(has_rel_recs) %>%
+      group_by(qbgrp_ssn, def_ssn, week, season, ind, precip) %>%
+      dplyr::filter(sum(ifelse(rec_ind == "In", 1, 0), na.rm = TRUE) > 0) %>%
+      dplyr::summarise(
+        rel_players = sum(ifelse(rec_ind == "In", 1, 0), na.rm = TRUE),
+        notrel_players = sum(ifelse(rec_ind != "In", 1, 0), na.rm = TRUE),   
+        rel_targets = sum(ifelse(rec_ind == "In", targets, 0), na.rm = TRUE),
+        notrel_targets = sum(ifelse(rec_ind != "In", targets, 0), na.rm = TRUE),
+        rel_routes = sum(ifelse(rec_ind == "In", routes, 0), na.rm = TRUE),
+        notrel_routes = sum(ifelse(rec_ind != "In", routes, 0), na.rm = TRUE),
+        rel_pbp_xtds = sum(ifelse(rec_ind == "In", pbp_rec_xtds, 0), na.rm = TRUE),
+        notrel_pbp_xtds = sum(ifelse(rec_ind != "In", pbp_rec_xtds, 0), na.rm = TRUE),     
+        rel_part_xtds = sum(ifelse(rec_ind == "In", part_rec_xtds, 0), na.rm = TRUE),
+        notrel_part_xtds = sum(ifelse(rec_ind != "In", part_rec_xtds, 0), na.rm = TRUE),  
+        rel_ypa = mean(ifelse(rec_ind == "In", ypa, NA), na.rm = TRUE),
+        rel_pbp_xypa = mean(ifelse(rec_ind == "In", pbp_xypa, NA), na.rm = TRUE),
+        rel_part_xypa = mean(ifelse(rec_ind == "In", part_xypa, NA), na.rm = TRUE),
+        rel_acc_rate = mean(ifelse(rec_ind == "In", acc_rate, NA), na.rm = TRUE),
+        rel_fastr_cp = mean(ifelse(rec_ind == "In", fastr_cp, NA), na.rm = TRUE),
+        rel_pbp_cp = mean(ifelse(rec_ind == "In", pbp_cp, NA), na.rm = TRUE),
+        rel_part_cp = mean(ifelse(rec_ind == "In", part_cp, NA), na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      mutate(
+        tgt_shr = (rel_targets / (rel_targets + notrel_targets)) / rel_players,
+        rte_shr = (rel_routes / (rel_routes + notrel_routes)) / rel_players,
+        pbp_xtd_shr = (rel_pbp_xtds / (rel_pbp_xtds + notrel_pbp_xtds)) / rel_players,
+        part_xtd_shr = (rel_part_xtds / (rel_part_xtds + notrel_part_xtds)) / rel_players
+      ) %>%
+      ungroup()
+    
+    selected_metrics <- c("tgt_shr", "rte_shr", "pbp_xtd_shr", "part_xtd_shr", 
+                          "rel_ypa", "rel_acc_rate")
+    
+    result <- game_level %>%
+      pivot_longer(cols = all_of(selected_metrics), names_to = "metric", values_to = "value") %>%
+      group_by(ind, metric) %>%
+      summarise(
+        n_Precip = sum(precip == "1_Precip", na.rm = TRUE),
+        n_Clear = sum(precip == "2_Clear", na.rm = TRUE),
+        n_All = n(),
+        
+        mean_Precip = mean(value[precip == "1_Precip"], na.rm = TRUE),
+        mean_Clear = mean(value[precip == "2_Clear"], na.rm = TRUE),
+        mean_All = mean(value, na.rm = TRUE),
+        
+        overall_sd = sd(value, na.rm = TRUE),
+        
+        wilcox_pval = tryCatch({
+          wilcox.test(value ~ precip, exact = FALSE)$p.value
+        }, error = function(e) NA),
+        
+        .groups = "drop"
+      ) %>%
+      mutate(
+        diff_Precip_vs_Clear = mean_Precip - mean_Clear,
+        diff_Precip_vs_All = mean_Precip - mean_All,
+        diff_Clear_vs_All = mean_Clear - mean_All,
+        
+        d_Precip_vs_Clear = diff_Precip_vs_Clear / overall_sd,
+        d_Precip_vs_All = diff_Precip_vs_All / overall_sd,
+        d_Clear_vs_All = diff_Clear_vs_All / overall_sd,
+        
+        sig = case_when(
+          wilcox_pval < 0.01 ~ "***",
+          wilcox_pval < 0.05 ~ "**",
+          wilcox_pval < 0.10 ~ "*",
+          TRUE ~ ""
+        ),
+        effect_size = case_when(
+          abs(d_Precip_vs_Clear) >= 0.8 ~ "large",
+          abs(d_Precip_vs_Clear) >= 0.5 ~ "medium",
+          abs(d_Precip_vs_Clear) >= 0.2 ~ "small",
+          TRUE ~ "negligible"
+        )
+      ) %>%
+      arrange(ind, metric)
+    
+    return(result)
+  }
+  
+  category_results <- lapply(categories, function(cat) {
+    process_category(cat, qbgrp_one, defgrp_one)
+  })
+  
+  for (cat_name in names(category_results)) {
+    addWorksheet(wb_tds, cat_name)
+    writeData(wb_tds, sheet = cat_name, x = data.frame(category_results[[cat_name]]))
+  }
+  
+  sheet_name <- substr(paste0("PrecipRec - ", player_name), 1, 31)
+  tmp <- tempfile(fileext = ".xlsx")
+  saveWorkbook(wb_tds, tmp, overwrite = TRUE)
+  put_object(file = tmp, object = paste0("outputs/", sheet_name, ".xlsx"), bucket = "nfl-pff-data-lucas")
+  
+  return(paste0("Saved to s3://nfl-pff-data-lucas/outputs/", sheet_name, ".xlsx"))
+}
+
+
 # Route clusters - input order: c(behind_los, short, medium, deep)
 rte_closest_func <- function(counts, centroids = rte_centroids) {
   pcts <- 100 * counts / sum(counts)
