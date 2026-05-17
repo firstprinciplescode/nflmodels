@@ -1,4 +1,10 @@
 
+colnames(pbp_rush)
+colnames(pbp_rush)[511] <- "qbgrp_ssn"
+colnames(pbp_rush)[512] <- "def_ssn"
+
+pbp_rush <- pbp_rush %>% select(-c(qbgrp_ssn.y, def_ssn.y))
+
 pbp_rush_statistics <- 
   pbp_rush %>%
     group_by(rusher_player_id, week, season, qbgrp_ssn, def_ssn) %>%
@@ -73,11 +79,13 @@ rush_stats_final <- rush_stats_final %>%
 # KNOW THAT FOR THE GAP_Z STUFF --> GONNA HAVE TO TAKE NA AS AN INPUT TOO
 
 
-rm(combined_ids)
+#rm(combined_ids)
 rm(combined_pbp)
-rm(pbp_rush)
+#rm(pbp_rush)
 
 rm(first_down)
 rm(second_down)
 rm(third_down)
 rm(fourth_down)
+
+
