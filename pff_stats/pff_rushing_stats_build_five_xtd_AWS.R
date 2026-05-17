@@ -7,16 +7,19 @@ pbp_rush <- left_join(pbp_rush,
           by = c("rusher_player_id", "posteam", "season", "rank_grp")
           )
 
+colnames(pbp_rush)
 # WATCH THIS BELOW - MAY HAVE TO CHANGE INDEX
-colnames(pbp_rush)[525] <- "sit_cluster"
+colnames(pbp_rush)[529] <- "sit_cluster"
 
 pbp_rush <- left_join(pbp_rush, 
                       gap_cluster_df %>%
                         dplyr::select(rusher_player_id:rank_grp, cluster), 
                       by = c("rusher_player_id", "posteam", "season", "rank_grp")
                       )
+
+colnames(pbp_rush)
 # WATCH THIS BELOW - MAY HAVE TO CHANGE INDEX
-colnames(pbp_rush)[526] <- "gap_cluster"
+colnames(pbp_rush)[530] <- "gap_cluster"
 
 
 rusher_xtd_diff_df <- pbp_rush %>%
@@ -135,4 +138,4 @@ rusher_xtd_final <- rusher_xtd_diff_df %>%
   )
 
 
-View(rusher_xtd_final %>% filter(posteam == "PHI", season == 2025))
+View(rusher_xtd_final %>% filter(posteam == "DET", season == 2025))
