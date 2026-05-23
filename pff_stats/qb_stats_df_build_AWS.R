@@ -11,49 +11,6 @@ rm(list = setdiff(ls(), keep_objects))
 
 '%ni%' <- Negate('%in%')
 
-run_athena_query <- function(sql, max_wait = 120) {
-  # Start query
-  start_cmd <- sprintf(
-    'aws athena start-query-execution --query-string "%s" --result-configuration OutputLocation=s3://nfl-pff-data-lucas/athena-results/ --query-execution-context Database=nfl_data --output text',
-    gsub('"', '\\"', sql)
-  )
-  query_id <- system(start_cmd, intern = TRUE)
-  
-  # Poll for completion
-  status <- "RUNNING"
-  elapsed <- 0
-  while (status %in% c("RUNNING", "QUEUED") && elapsed < max_wait) {
-    Sys.sleep(2)
-    elapsed <- elapsed + 2
-    
-    status_cmd <- sprintf(
-      'aws athena get-query-execution --query-execution-id %s --query "QueryExecution.Status.State" --output text',
-      query_id
-    )
-    status <- trimws(system(status_cmd, intern = TRUE))
-  }
-  
-  if (status != "SUCCEEDED") {
-    # Get error message
-    error_cmd <- sprintf(
-      'aws athena get-query-execution --query-execution-id %s --query "QueryExecution.Status.StateChangeReason" --output text',
-      query_id
-    )
-    error_msg <- system(error_cmd, intern = TRUE)
-    stop(sprintf("Query failed with status %s: %s", status, error_msg))
-  }
-  
-  # Get results location
-  result_cmd <- sprintf(
-    'aws athena get-query-execution --query-execution-id %s --query "QueryExecution.ResultConfiguration.OutputLocation" --output text',
-    query_id
-  )
-  s3_path <- system(result_cmd, intern = TRUE)
-  
-  # Read CSV result
-  read.csv(pipe(sprintf('aws s3 cp %s -', s3_path)))
-}
-
 pbp_base <- load_pbp(c(2016:2025))
 
 pbp_base$posteam[which(pbp_base$posteam == "ARI")] = "ARZ"
@@ -345,7 +302,7 @@ qb_stats_df_final <- qb_stats_df_final %>%
     part_cp_rank = (rank(part_cp, ties.method = "average") - 1) / (n() - 1),
     pbp_pressure_rank = (n() - rank(pbp_pressure, ties.method = "average")) / (n() - 1),
     part_pressure_before_rank = (n() - rank(part_pressure_before, ties.method = "average")) / (n() - 1),
-    part_pressure_after_rank = (n() - rank(part_pressure_after, ties.method = "average") - 1) / (n() - 1),
+    part_pressure_after_rank = (n() - rank(part_pressure_after, ties.method = "average")) / (n() - 1),
     
     sack_rate_rank = (n() - rank(sack_rate, ties.method = "average")) / (n() - 1),
     pbp_sack_rate_rank = (n() - rank(pbp_sack_rate, ties.method = "average")) / (n() - 1),
@@ -387,7 +344,7 @@ qb_stats_df_final <- qb_stats_df_final %>%
     medium_qbr_rank = (rank(medium_qbr, ties.method = "average") - 1) / (n() - 1),
     deep_qbr_rank = (rank(deep_qbr, ties.method = "average") - 1) / (n() - 1),
     
-    less_rate_rank = (rank(less_rate, ties.method = "average")) / (n() - 1),
+    less_rate_rank = (rank(less_rate, ties.method = "average") - 1) / (n() - 1),
     less_pressure_rate_rank = (n() - rank(less_pressure_rate, ties.method = "average")) / (n() - 1),
     more_pressure_rate_rank = (n() - rank(more_pressure_rate, ties.method = "average")) / (n() - 1),
     less_gr_rank = (rank(less_grade, ties.method = "average") - 1) / (n() - 1),
@@ -453,8 +410,8 @@ qb_stats_df_final <- qb_stats_df_final %>%
     part_xtds_rank_def = (rank(part_xtds, ties.method = "average") - 1) / (n() - 1),
     
     blitz_rate_rank_def = (rank(blitz_rate, ties.method = "average") - 1) / (n() - 1),
-    blitz_pressure_rate_rank_def = (rank(blitz_pressure_rate, ties.method = "average")) / (n() - 1),
-    no_blitz_pressure_rate_rank_def = (rank(no_blitz_pressure_rate, ties.method = "average")) / (n() - 1),    
+    blitz_pressure_rate_rank_def    = (n() - rank(blitz_pressure_rate, ties.method = "average"))    / (n() - 1),
+    no_blitz_pressure_rate_rank_def = (n() - rank(no_blitz_pressure_rate, ties.method = "average")) / (n() - 1),    
     no_blitz_gr_rank_def = (rank(no_blitz_grade, ties.method = "average") - 1) / (n() - 1),
     blitz_gr_rank_def = (rank(blitz_grade, ties.method = "average") - 1) / (n() - 1),
     no_blitz_qbr_rank_def = (rank(no_blitz_qbr, ties.method = "average") - 1) / (n() - 1),
@@ -475,16 +432,16 @@ qb_stats_df_final <- qb_stats_df_final %>%
     deep_qbr_rank_def = (rank(deep_qbr, ties.method = "average") - 1) / (n() - 1),
     
     less_rate_rank_def = (rank(less_rate, ties.method = "average")) / (n() - 1),
-    less_pressure_rate_rank_def = (rank(less_pressure_rate, ties.method = "average")) / (n() - 1),
-    more_pressure_rate_rank_def = (rank(more_pressure_rate, ties.method = "average")) / (n() - 1),    
+    less_pressure_rate_rank_def     = (n() - rank(less_pressure_rate, ties.method = "average"))     / (n() - 1),
+    more_pressure_rate_rank_def     = (n() - rank(more_pressure_rate, ties.method = "average"))     / (n() - 1),
     less_gr_rank_def = (rank(less_grade, ties.method = "average") - 1) / (n() - 1),
     more_gr_rank_def = (rank(more_grade, ties.method = "average") - 1) / (n() - 1),
     less_qbr_rank_def = (rank(less_qbr, ties.method = "average") - 1) / (n() - 1),
     more_qbr_rank_def = (rank(more_qbr, ties.method = "average") - 1) / (n() - 1),    
     
     pa_rate_rank_def = (rank(pa_rate, ties.method = "average") - 1) / (n() - 1),
-    npa_pressure_rate_rank_def = rank(npa_pressure_rate, ties.method = "average") / (n() - 1),
-    pa_pressure_rate_rank_def = rank(pa_pressure_rate, ties.method = "average") / (n() - 1),    
+    npa_pressure_rate_rank_def      = (n() - rank(npa_pressure_rate, ties.method = "average"))      / (n() - 1),
+    pa_pressure_rate_rank_def       = (n() - rank(pa_pressure_rate, ties.method = "average"))       / (n() - 1),  
     npa_gr_rank_def = (rank(npa_grade, ties.method = "average") - 1) / (n() - 1),
     pa_gr_rank_def = (rank(pa_grade, ties.method = "average") - 1) / (n() - 1),
     npa_qbr_rank_def = (rank(npa_qbr, ties.method = "average") - 1) / (n() - 1),

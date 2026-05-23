@@ -624,9 +624,18 @@ coverage_slot_player_season_summary <- final_coverage_df_qbgrp %>%
   ) %>%
   ungroup()
 
+
+View(coverage_man_player_season_summary %>% filter(def_ssn == "DET2025"))
+View(coverage_zone_player_season_summary %>% filter(def_ssn == "DET2025"))
+View(coverage_combined_player_season_summary %>% filter(def_ssn == "DET2025"))
+
 View(coverage_man_player_season_summary %>% filter(player_id == 8000))
 View(coverage_zone_player_season_summary %>% filter(player_id == 8000))
 View(coverage_combined_player_season_summary %>% filter(player_id == 8000))
+
+
+receiving_func_base %>% 
+  filter(def_ssn == 'DET2025')
 
 
 put_object(
