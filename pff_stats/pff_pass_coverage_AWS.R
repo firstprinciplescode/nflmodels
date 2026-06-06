@@ -68,6 +68,11 @@ slot_coverage <- run_athena_query("
     FROM    nfl_data.slot_coverage
 ")
 
+receiving_coverage_versus <- run_athena_query("
+    SELECT  *
+    FROM    nfl_data.receiving_coverage_versus
+")
+
 
 coverage_intermediary_df <- 
   full_join(coverage_summary %>% select(-scraped_at), 
@@ -117,7 +122,7 @@ final_coverage_df %>%
 # 8+ - SLOT
 
 final_coverage_df <- 
-  final_coverage_df %>% filter(snap_counts_coverage >= 20 | man_snap_counts_coverage >= 7 | zone_snap_counts_coverage >= 12 | coverage_snaps_slot >= 8)
+  final_coverage_df %>% filter(snap_counts_coverage >= 23 | man_snap_counts_coverage >= 8 | zone_snap_counts_coverage >= 13 | coverage_snaps_slot >= 8)
 
 
 final_coverage_df <- final_coverage_df %>%
@@ -128,7 +133,8 @@ final_coverage_df <- final_coverage_df %>%
       adv_position %in% c("FS", "SS")           ~ "S",
       adv_position == "SCB"                     ~ "SCB",
       str_detect(adv_position, "CB")            ~ "CB",        # anywhere “CB”
-      TRUE                                       ~ "DE"         # everything else
+      adv_position %in% c("DE","ED","DI","DT","NT","DLE","DRE","DLT","DRT") ~ "DL",
+      TRUE                                       ~ NA         # everything else
     )
   )
 
@@ -184,7 +190,7 @@ final_coverage_df_qbgrp <- left_join(final_coverage_df_qbgrp,
 colnames(final_coverage_df_qbgrp)
 
 final_coverage_df_qbgrp %>%
-  filter(snap_counts_coverage >= 20) %>%
+  filter(snap_counts_coverage >= 23) %>%
   group_by(player, player_id, final_position, def_ssn) %>%
   summarise(
     n = n(),
@@ -195,7 +201,7 @@ final_coverage_df_qbgrp %>%
 # 6 - FOR THE GENERAL STATS
 
 final_coverage_df_qbgrp %>%
-  filter(man_snap_counts_coverage >= 7) %>%
+  filter(man_snap_counts_coverage >= 8) %>%
   group_by(player, player_id, final_position, def_ssn) %>%
   summarise(
     n = n(),
@@ -203,10 +209,10 @@ final_coverage_df_qbgrp %>%
   ) %>%
   pull(n) %>%
   quantile(probs = seq(0, 1, 0.1))
-# 4 FOR THE MAN STATS
+# 5 FOR THE MAN STATS
 
 final_coverage_df_qbgrp %>%
-  filter(zone_snap_counts_coverage >= 12) %>%
+  filter(zone_snap_counts_coverage >= 13) %>%
   group_by(player, player_id, final_position, def_ssn) %>%
   summarise(
     n = n(),
@@ -228,9 +234,9 @@ final_coverage_df_qbgrp %>%
 # 4+ 
 
 # SNAPS / GAMES
-# COMBINED: 20 / 6
-# MAN: 7 / 6
-# ZONE: 12 / 6
+# COMBINED: 23 / 6
+# MAN: 8 / 5
+# ZONE: 13 / 6
 # SLOT: 8 / 4
 
 
@@ -238,7 +244,7 @@ final_coverage_df_qbgrp %>%
 # 1. COMBINED COVERAGE
 # ============================================
 coverage_combined_player_agg <- final_coverage_df_qbgrp %>%
-  filter(snap_counts_coverage >= 20) %>%
+  filter(snap_counts_coverage >= 23) %>%
   group_by(player, player_id, final_position, qbgrp_ssn, season) %>%
   mutate(
     # Higher is better
@@ -309,7 +315,7 @@ coverage_combined_opp_percentile <- coverage_combined_player_agg %>%
 
 # Player season summary
 coverage_combined_player_season_summary <- final_coverage_df_qbgrp %>%
-  filter(snap_counts_coverage >= 20) %>%
+  filter(snap_counts_coverage >= 23) %>%
   group_by(player, player_id, final_position, def_ssn, season) %>%
   summarise(
     player_grade_cov = mean(grades_coverage_defense, na.rm = TRUE),
@@ -451,7 +457,7 @@ coverage_man_player_season_summary <- final_coverage_df_qbgrp %>%
 # 3. ZONE COVERAGE
 # ============================================
 coverage_zone_player_agg <- final_coverage_df_qbgrp %>%
-  filter(zone_snap_counts_coverage >= 12) %>%
+  filter(zone_snap_counts_coverage >= 13) %>%
   group_by(player, player_id, final_position, qbgrp_ssn, season) %>%
   mutate(
     player_zone_grade_cov_perc = case_when(n() == 1 ~ 0.5, TRUE ~ percent_rank(zone_grades_coverage_defense)),
@@ -482,7 +488,7 @@ coverage_zone_player_agg <- final_coverage_df_qbgrp %>%
     zone_avg_depth_of_target_def_ssn_perc = case_when(n() == 1 ~ 0.5, TRUE ~ percent_rank(-zone_avg_depth_of_target)),
     n_zone = n()
   ) %>%
-  filter(n_zone >= 5) %>%
+  filter(n_zone >= 6) %>%
   ungroup()
 
 valid_qbgrp_zone <- coverage_zone_player_agg %>%
@@ -517,7 +523,7 @@ coverage_zone_opp_percentile <- coverage_zone_player_agg %>%
   )
 
 coverage_zone_player_season_summary <- final_coverage_df_qbgrp %>%
-  filter(zone_snap_counts_coverage >= 12) %>%
+  filter(zone_snap_counts_coverage >= 13) %>%
   group_by(player, player_id, final_position, def_ssn, season) %>%
   summarise(
     player_zone_grade_cov = mean(zone_grades_coverage_defense, na.rm = TRUE),
@@ -555,7 +561,7 @@ coverage_zone_player_season_summary <- final_coverage_df_qbgrp %>%
 # 4. SLOT COVERAGE
 # ============================================
 coverage_slot_player_agg <- final_coverage_df_qbgrp %>%
-  filter(coverage_snaps_slot >= 10) %>%
+  filter(coverage_snaps_slot >= 8) %>%
   group_by(player, player_id, final_position, qbgrp_ssn, season) %>%
   mutate(
     player_slot_cov_snaps_per_target_perc = case_when(n() == 1 ~ 0.5, TRUE ~ percent_rank(coverage_snaps_per_target_slot_cov)),
@@ -602,7 +608,7 @@ coverage_slot_opp_percentile <- coverage_slot_player_agg %>%
   )
 
 coverage_slot_player_season_summary <- final_coverage_df_qbgrp %>%
-  filter(coverage_snaps_slot >= 7) %>%
+  filter(coverage_snaps_slot >= 8) %>%
   group_by(player, player_id, final_position, def_ssn, season) %>%
   summarise(
     player_slot_cov_snaps_per_target = mean(coverage_snaps_per_target_slot_cov, na.rm = TRUE),
@@ -625,6 +631,40 @@ coverage_slot_player_season_summary <- final_coverage_df_qbgrp %>%
   ungroup()
 
 
+receiving_coverage_defense_helper <- final_coverage_df_qbgrp %>%
+  select(player_id, week, season, team_name, def_ssn, qbgrp_ssn,
+         final_position, snap_counts_coverage,
+         man_snap_counts_coverage, zone_snap_counts_coverage, coverage_snaps_slot) %>%
+  distinct()
+
+receiving_coverage_rec_helper <- receiving_func_base %>%
+  select(player_id, week, season, posteam, qbgrp_ssn, def_ssn, pos_rank, team_rank, final_position_group, align_cluster_name, rte_cluster_name, tgt_cluster_name, man_zone_grp_cluster, z_score_percentile, xpass_percentile, td_grp_cluster, xtd_percentile) %>%
+  distinct()
+
+
+receiving_coverage_versus <- left_join(receiving_coverage_versus, receiving_coverage_rec_helper, by = c("player_id", "week", "season"))
+receiving_coverage_versus <- left_join(receiving_coverage_versus, receiving_coverage_defense_helper, by = c("coverage_player_id" = "player_id", "week" = "week", "season" = "season", "qbgrp_ssn" = "qbgrp_ssn", "def_ssn" = "def_ssn"))
+
+
+add_pctl_buckets <- function(df,
+                             cols = c("z_score_percentile",
+                                      "xpass_percentile",
+                                      "xtd_percentile")) {
+  for (col in cols) {
+    if (col %in% names(df)) {
+      new_col <- sub("_percentile$", "_qrtl", col)
+      df[[new_col]] <- cut(df[[col]],
+                           breaks         = c(-Inf, 25, 50, 75, Inf),
+                           labels         = c("Q1 (≤25)", "Q2 (26-50)",
+                                              "Q3 (51-75)", "Q4 (>75)"),
+                           include.lowest = TRUE)
+    }
+  }
+  df
+}
+receiving_coverage_versus <- add_pctl_buckets(receiving_coverage_versus)
+
+
 View(coverage_man_player_season_summary %>% filter(def_ssn == "DET2025"))
 View(coverage_zone_player_season_summary %>% filter(def_ssn == "DET2025"))
 View(coverage_combined_player_season_summary %>% filter(def_ssn == "DET2025"))
@@ -643,3 +683,615 @@ put_object(
   object = "temp/pff_blocking_defense_workspace_AWS.RData",
   bucket = "nfl-pff-data-lucas"
 )
+
+passer_rating <- function(att, comp, yds, td, int) {
+  att_safe <- ifelse(att > 0, att, NA_real_)
+  a <- pmin(pmax(((comp / att_safe) - 0.3) * 5,    0), 2.375)
+  b <- pmin(pmax(((yds  / att_safe) - 3)   * 0.25, 0), 2.375)
+  c <- pmin(pmax((td    / att_safe) * 20,          0), 2.375)
+  d <- pmin(pmax(2.375 - ((int / att_safe) * 25),  0), 2.375)
+  ((a + b + c + d) / 6) * 100
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Valid `dim` values for coverage_archetype_profile():
+#
+#   Receiver archetype clusters (categorical — best for slicing by role/style):
+#     rte_cluster_name      — route-running archetype  [DEFAULT]
+#                              (e.g. DT, MT, BT, SMT, ML, ST, RB)
+#     tgt_cluster_name      — target-profile archetype
+#                              (e.g. G, SMT, MT, BT, ML)
+#     align_cluster_name    — pre-snap alignment archetype
+#                              (e.g. STE, ITE, WWR, RB)
+#     man_zone_grp_cluster  — position × depth × man/zone production class
+#                              (WR_DEEP / WR_SHORT / WR_LT,
+#                               TE_DEEP / TE_SHORT / TE_LT,
+#                               HB_DEEP / HB_SHORT / HB_LT, OTH)
+#     td_grp_cluster        — TD-production cluster
+#
+#   Depth-chart rank (numeric — pair with position_group_filter to avoid
+#   mixing WR1 / TE1 / RB1 into the same bucket):
+#     pos_rank              — depth rank within position group
+#                              (1 = top guy at position, 2 = #2, ...)
+#     team_rank             — overall team rank across receivers
+#
+#   Receiver-quality quartile buckets (categorical — derived once via
+#   `add_pctl_buckets(receiving_coverage_versus)`. Use `order_by = "arch"`
+#   in plot calls so Q1 → Q4 reads in natural order):
+#     z_score_qrtl          — man-vs-zone production tendency
+#                              (Q1 = zone-heavy, Q4 = man-heavy)
+#     xpass_qrtl            — expected pass-game value drawn
+#                              (Q1 = low-leverage, Q4 = top targets)
+#     xtd_qrtl              — expected-TD profile
+#                              (Q1 = low-TD risk, Q4 = red-zone threats)
+# ─────────────────────────────────────────────────────────────────────────────
+
+coverage_archetype_profile <- function(defender_id,
+                                       dim                   = "rte_cluster_name",
+                                       df                    = receiving_coverage_versus,
+                                       def_ssn_filter        = NULL,
+                                       position_group_filter = "all") {
+  
+  d <- df %>% filter(!is.na(.data[[dim]]))
+  if (!is.null(def_ssn_filter))                d <- d %>% filter(def_ssn == def_ssn_filter)
+  if (!identical(position_group_filter, "all")) {
+    d <- d %>% filter(final_position_group %in% position_group_filter)
+  }
+  
+  team_totals <- d %>%
+    group_by(def_ssn, season, arch = .data[[dim]]) %>%
+    summarise(team_targets    = sum(targets,          na.rm = TRUE),
+              team_receptions = sum(receptions,       na.rm = TRUE),
+              team_yards      = sum(yards,            na.rm = TRUE),
+              team_tds        = sum(touchdowns,       na.rm = TRUE),
+              team_ints       = sum(interceptions,    na.rm = TRUE),
+              .groups = "drop")
+  
+  focal <- d %>%
+    filter(coverage_player_id == defender_id) %>%
+    group_by(def_ssn, season, arch = .data[[dim]]) %>%
+    summarise(targets    = sum(targets,          na.rm = TRUE),
+              receptions = sum(receptions,       na.rm = TRUE),
+              yards      = sum(yards,            na.rm = TRUE),
+              tds        = sum(touchdowns,       na.rm = TRUE),
+              pbu        = sum(broken_up_passes, na.rm = TRUE),
+              ints       = sum(interceptions,    na.rm = TRUE),
+              .groups = "drop")
+  
+  focal %>%
+    left_join(team_totals, by = c("def_ssn", "season", "arch")) %>%
+    mutate(
+      rest_targets        = team_targets    - targets,
+      rest_receptions     = team_receptions - receptions,
+      rest_yards          = team_yards      - yards,
+      rest_tds            = team_tds        - tds,
+      rest_ints           = team_ints       - ints,
+      
+      catch_rate                = receptions / targets,
+      ypt                       = yards / targets,
+      passer_rating_vs          = passer_rating(targets, receptions, yards, tds, ints),
+      
+      teammate_catch_rate       = ifelse(rest_targets > 0, rest_receptions / rest_targets, NA_real_),
+      teammate_ypt              = ifelse(rest_targets > 0, rest_yards      / rest_targets, NA_real_),
+      teammate_passer_rating    = ifelse(rest_targets > 0,
+                                         passer_rating(rest_targets, rest_receptions,
+                                                       rest_yards, rest_tds, rest_ints),
+                                         NA_real_),
+      
+      catch_rate_oe             = catch_rate       - teammate_catch_rate,
+      ypt_oe                    = ypt              - teammate_ypt,
+      passer_rating_oe          = passer_rating_vs - teammate_passer_rating
+    ) %>%
+    group_by(def_ssn) %>%
+    mutate(tgt_share = targets / sum(targets)) %>%
+    ungroup() %>%
+    arrange(def_ssn, desc(tgt_share)) %>%
+    select(def_ssn, season, arch,
+           targets, receptions, yards, tds, pbu, ints,
+           tgt_share,
+           catch_rate, ypt, passer_rating_vs,
+           teammate_catch_rate, teammate_ypt, teammate_passer_rating,
+           rest_targets,
+           catch_rate_oe, ypt_oe, passer_rating_oe)
+}
+
+
+coverage_archetype_profile(26940, dim = "man_zone_grp_cluster")
+coverage_archetype_profile(26940, dim = "pos_rank", position_group_filter = "WR", def_ssn_filter = "DET2025")
+coverage_archetype_profile(26940, dim = "rte_cluster_name", position_group_filter = c("WR"), def_ssn_filter = "DET2025")
+
+coverage_archetype_profile(101515, dim = "man_zone_grp_cluster")
+coverage_archetype_profile(101515, dim = "rte_cluster_name", def_ssn_filter = "DET2025")
+
+# receiver baseline: how each receiver does across ALL coverage, per season
+receiving_coverage_rec_stats_base <- receiving_coverage_versus %>%
+  group_by(player_id, season) %>%
+  summarise(rec_targets    = sum(targets, na.rm = TRUE),
+            rec_catch_rate = sum(receptions, na.rm = TRUE) / sum(targets, na.rm = TRUE),
+            rec_ypt        = sum(yards,      na.rm = TRUE) / sum(targets, na.rm = TRUE),
+            .groups = "drop") %>%
+  filter(rec_targets >= 15)
+
+# defender effect = actual allowed minus what those receivers normally do
+receiving_coverage_defender_base <- receiving_coverage_versus %>%
+  inner_join(receiving_coverage_rec_stats_base, by = c("player_id", "season")) %>%
+  group_by(coverage_player_id, final_position, def_ssn, season) %>%
+  summarise(
+    n_tgt              = sum(targets, na.rm = TRUE),
+    catch_rate_actual  = sum(receptions, na.rm = TRUE) / sum(targets, na.rm = TRUE),
+    catch_rate_exp     = weighted.mean(rec_catch_rate, targets, na.rm = TRUE),
+    ypt_actual         = sum(yards, na.rm = TRUE) / sum(targets, na.rm = TRUE),
+    ypt_exp            = weighted.mean(rec_ypt, targets, na.rm = TRUE),
+    .groups = "drop") %>%
+  mutate(catch_rate_vs_exp = catch_rate_actual - catch_rate_exp,   # neg = held below their norm = good
+         ypt_vs_exp         = ypt_actual - ypt_exp) %>%
+  filter(n_tgt >= 10) %>%
+  group_by(final_position, season) %>%
+  mutate(cr_pctl  = percent_rank(-catch_rate_vs_exp),              # lower allowed = higher pctl
+         ypt_pctl = percent_rank(-ypt_vs_exp)) %>%
+  ungroup()
+
+receiving_coverage_defender_final <- receiving_coverage_defender_base %>% 
+  filter(!is.na(final_position))
+
+receiving_coverage_defender_base %>% filter(coverage_player_id == 26940)
+
+
+View(receiving_coverage_versus)
+
+
+plot_coverage_card_player <- function(player_id_vec,
+                                      seasons = NULL,
+                                      family  = c("man", "zone", "slot"),
+                                      df_man  = coverage_man_player_season_summary,
+                                      df_zone = coverage_zone_player_season_summary,
+                                      df_slot = coverage_slot_player_season_summary) {
+  
+  family <- match.arg(family)
+  
+  family_spec <- list(
+    man = list(
+      df      = df_man,
+      prefix  = "man_",
+      metrics = c("grade_cov", "cov_snaps_per_target", "cov_snaps_per_rec",
+                  "pass_break_up_rate", "catch_rate", "yards_per_rec",
+                  "yards_per_cov_snap", "avg_yac", "qb_rating_against",
+                  "missed_tackle_rate", "avg_depth_of_target"),
+      labels  = c("Grade", "Snap/Tgt", "Snap/Rec", "PBU %", "Catch %",
+                  "Y/Rec", "Y/CovSnp", "YAC", "QBR", "MT %", "aDOT")
+    ),
+    zone = list(
+      df      = df_zone,
+      prefix  = "zone_",
+      metrics = c("grade_cov", "cov_snaps_per_target", "cov_snaps_per_rec",
+                  "pass_break_up_rate", "catch_rate", "yards_per_rec",
+                  "yards_per_cov_snap", "avg_yac", "qb_rating_against",
+                  "missed_tackle_rate", "avg_depth_of_target"),
+      labels  = c("Grade", "Snap/Tgt", "Snap/Rec", "PBU %", "Catch %",
+                  "Y/Rec", "Y/CovSnp", "YAC", "QBR", "MT %", "aDOT")
+    ),
+    slot = list(
+      df      = df_slot,
+      prefix  = "slot_",
+      metrics = c("cov_snaps_per_target", "cov_snaps_per_rec",
+                  "yards_per_cov_snap", "avg_yac", "qb_rating_against"),
+      labels  = c("Snap/Tgt", "Snap/Rec", "Y/CovSnp", "YAC", "QBR")
+    )
+  )
+  
+  spec <- family_spec[[family]]
+  df   <- spec$df %>% filter(player_id %in% player_id_vec)
+  if (!is.null(seasons)) df <- df %>% filter(season %in% seasons)
+  
+  if (nrow(df) == 0) {
+    player_name <- NULL
+    for (fam in c("man", "zone", "slot")) {
+      nm <- family_spec[[fam]]$df %>%
+        filter(player_id %in% player_id_vec) %>%
+        pull(player) %>% unique()
+      if (length(nm) > 0) { player_name <- nm[1]; break }
+    }
+    
+    available <- character(0)
+    for (fam in c("man", "zone", "slot")) {
+      d_check <- family_spec[[fam]]$df %>% filter(player_id %in% player_id_vec)
+      if (!is.null(seasons)) d_check <- d_check %>% filter(season %in% seasons)
+      if (nrow(d_check) > 0) available <- c(available, fam)
+    }
+    
+    who <- if (!is.null(player_name)) {
+      paste0(player_name, " (", paste(player_id_vec, collapse = ", "), ")")
+    } else {
+      paste("player_id", paste(player_id_vec, collapse = ", "))
+    }
+    when <- if (!is.null(seasons)) paste0(" in ", paste(seasons, collapse = ", ")) else ""
+    
+    msg <- sprintf("No %s coverage rows for %s%s.", family, who, when)
+    if (length(available) > 0) {
+      msg <- paste0(msg, " Try family = ", paste(shQuote(available), collapse = " or "), ".")
+    } else {
+      msg <- paste0(msg, " Player isn't in any coverage family at the current snap thresholds.")
+    }
+    
+    message(msg)
+    return(invisible(NULL))
+  }
+  
+  metrics       <- spec$metrics
+  metric_labels <- spec$labels
+  pctl_cols     <- paste0(spec$prefix, metrics, "_season_pctl")
+  
+  d_full <- df %>%
+    arrange(desc(player), season) %>%
+    mutate(row_label = paste0(player, " — ", def_ssn, " (", n, " gms)"),
+           row_label = factor(row_label, levels = unique(row_label))) %>%
+    select(row_label, final_position, n, all_of(pctl_cols)) %>%
+    rename_with(~ paste0(metrics, "_season_pctl"), all_of(pctl_cols)) %>%
+    pivot_longer(ends_with("_season_pctl"),
+                 names_to = "metric", values_to = "pctl") %>%
+    mutate(metric         = sub("_season_pctl$", "", metric),
+           metric         = factor(metric, levels = metrics, labels = metric_labels),
+           final_position = factor(final_position, levels = c("CB","SCB","S","LB","MLB")))
+  
+  build_panel <- function(pos, show_x_strip, show_x_axis) {
+    d <- d_full %>% filter(final_position == pos)
+    if (nrow(d) == 0) return(NULL)
+    d <- d %>% mutate(row_label = droplevels(row_label))
+    
+    ggplot(d, aes(x = pctl, y = row_label, fill = pctl)) +
+      geom_col(width = 0.75) +
+      geom_vline(xintercept = 0.5, linetype = "dashed", color = "grey40", linewidth = 0.3) +
+      scale_fill_gradient(low = "#deebf7", high = "#08306b",
+                          limits = c(0, 1),
+                          labels = scales::percent_format(accuracy = 1),
+                          name = "Pctl") +
+      scale_x_continuous(limits = c(0, 1),
+                         breaks = c(0, 0.5, 1),
+                         labels = scales::percent_format(accuracy = 1)) +
+      facet_grid(. ~ metric, scales = "free_y") +
+      labs(title = pos, x = NULL, y = NULL) +
+      theme_minimal(base_size = 9) +
+      theme(plot.title         = element_text(face = "bold", size = 14, hjust = 0),
+            panel.grid.major.y = element_blank(),
+            strip.text.x       = if (show_x_strip) element_text(face = "bold", size = 8) else element_blank(),
+            strip.background   = element_rect(fill = "grey88", color = NA),
+            axis.text.x        = if (show_x_axis)  element_text(size = 6) else element_blank(),
+            plot.margin        = margin(t = 10, b = 5))
+  }
+  
+  pos_order <- intersect(c("CB","SCB","S","LB","MLB"),
+                         as.character(unique(d_full$final_position)))
+  
+  panels  <- list()
+  heights <- c()
+  for (i in seq_along(pos_order)) {
+    p <- pos_order[i]
+    panels[[i]] <- build_panel(p,
+                               show_x_strip = (i == 1),
+                               show_x_axis  = (i == length(pos_order)))
+    heights[i]  <- d_full %>% filter(final_position == p) %>% distinct(row_label) %>% nrow()
+  }
+  panels <- panels[!vapply(panels, is.null, logical(1))]
+  
+  player_names <- unique(df$player)
+  family_label <- switch(family,
+                         man  = "Man Coverage",
+                         zone = "Zone Coverage",
+                         slot = "Slot Coverage")
+  title_str <- if (length(player_names) == 1) {
+    paste0(player_names, " — ", family_label, " Scouting Card")
+  } else {
+    paste0(family_label, " Scouting Card")
+  }
+  
+  library(patchwork)
+  result <- if (length(panels) == 1) {
+    panels[[1]]
+  } else {
+    Reduce(`/`, panels) + plot_layout(heights = heights, guides = "collect")
+  }
+  
+  result + plot_annotation(
+    title    = title_str,
+    subtitle = "Each row = one player-season  |  Dark = elite season percentile",
+    theme    = theme(plot.title    = element_text(face = "bold", size = 14),
+                     plot.subtitle = element_text(size = 10))
+  )
+}
+
+plot_coverage_card_player(26940, family = "man")
+plot_coverage_card_player(26940, family = "zone")
+plot_coverage_card_player(26940, family = "slot")
+
+
+
+plot_coverage_archetype <- function(profile_df,
+                                    player_name    = NULL,
+                                    dim_label      = "Archetype",
+                                    focal_color    = "#0076B6",
+                                    teammate_color = "grey75",
+                                    min_targets    = 1,
+                                    order_by       = c("tgt_share", "arch")) {
+  
+  order_by <- match.arg(order_by)
+  
+  if (is.null(profile_df) || nrow(profile_df) == 0) {
+    message("No rows to plot.")
+    return(invisible(NULL))
+  }
+  
+  d <- profile_df %>% filter(targets >= min_targets)
+  if (nrow(d) == 0) {
+    message("All archetypes filtered out by min_targets = ", min_targets, ".")
+    return(invisible(NULL))
+  }
+  
+  d <- if (order_by == "tgt_share") {
+    d %>% arrange(desc(tgt_share))
+  } else {
+    d %>% arrange(arch)
+  }
+  
+  d <- d %>%
+    mutate(arch_lbl = paste0(arch, "  (n=", targets, " | r=", rest_targets, ")"),
+           arch_lbl = factor(arch_lbl, levels = rev(arch_lbl)))
+  
+  p_diet <- ggplot(d, aes(x = tgt_share, y = arch_lbl)) +
+    geom_col(fill = focal_color, width = 0.7) +
+    geom_text(aes(label = scales::percent(tgt_share, accuracy = 1)),
+              hjust = -0.15, size = 3.2, color = "grey25") +
+    scale_x_continuous(labels = scales::percent_format(accuracy = 1),
+                       expand  = expansion(mult = c(0, 0.18))) +
+    labs(title = "Target Diet", x = NULL, y = NULL) +
+    theme_minimal(base_size = 10) +
+    theme(panel.grid.major.y = element_blank(),
+          panel.grid.minor.x = element_blank(),
+          plot.title         = element_text(face = "bold", size = 11),
+          axis.text.x        = element_text(size = 8))
+  
+  kpi <- d %>%
+    transmute(
+      arch_lbl,
+      `Catch %_Focal`       = catch_rate          * 100,
+      `Catch %_Teammate`    = teammate_catch_rate * 100,
+      `Y/Tgt_Focal`         = ypt,
+      `Y/Tgt_Teammate`      = teammate_ypt,
+      `QB Rating_Focal`     = passer_rating_vs,
+      `QB Rating_Teammate`  = teammate_passer_rating
+    ) %>%
+    pivot_longer(cols = -arch_lbl,
+                 names_to  = c("metric", "side"),
+                 names_sep = "_",
+                 values_to = "value") %>%
+    mutate(metric = factor(metric, levels = c("Catch %", "Y/Tgt", "QB Rating")),
+           side   = factor(side,   levels = c("Teammate", "Focal")))
+  
+  p_kpi <- ggplot(kpi, aes(x = value, y = arch_lbl, fill = side)) +
+    geom_col(position = position_dodge(width = 0.75), width = 0.7) +
+    facet_grid(. ~ metric, scales = "free_x") +
+    scale_fill_manual(values = c("Focal" = focal_color, "Teammate" = teammate_color),
+                      breaks = c("Focal", "Teammate"),
+                      name   = NULL) +
+    labs(title = "Performance vs Own-def_ssn Teammates", x = NULL, y = NULL) +
+    theme_minimal(base_size = 10) +
+    theme(panel.grid.major.y = element_blank(),
+          panel.grid.minor.x = element_blank(),
+          plot.title         = element_text(face = "bold", size = 11),
+          legend.position    = "bottom",
+          strip.text         = element_text(face = "bold", size = 9),
+          strip.background   = element_rect(fill = "grey92", color = NA),
+          axis.text.x        = element_text(size = 8))
+  
+  def_ssns  <- unique(d$def_ssn)
+  scope     <- if (length(def_ssns) == 1) paste0(" — ", def_ssns) else ""
+  title_str <- if (!is.null(player_name)) {
+    paste0(player_name, " — Coverage Archetype Profile", scope)
+  } else {
+    paste0("Coverage Archetype Profile", scope)
+  }
+  
+  library(patchwork)
+  (p_diet / p_kpi) +
+    plot_layout(heights = c(1, 1.6)) +
+    plot_annotation(
+      title    = title_str,
+      subtitle = paste0("Sliced by ", dim_label,
+                        "  |  n = focal targets, r = teammate targets  |  ",
+                        "shorter Focal bar than Teammate = tighter coverage"),
+      theme    = theme(plot.title    = element_text(face = "bold", size = 14),
+                       plot.subtitle = element_text(size = 9, color = "grey30"))
+    )
+}
+# rte_cluster_name (defaults are fine — order by tgt_share desc)
+
+prof <- coverage_archetype_profile(26940,
+                                   dim            = "rte_cluster_name",
+                                   def_ssn_filter = "DET2025")
+plot_coverage_archetype(prof,
+                        player_name = "D.J. Reed",
+                        dim_label   = "Route Archetype")
+
+# pos_rank, WR-filtered (sort ascending so 1→5 reads naturally)
+prof <- coverage_archetype_profile(26940,
+                                   dim                   = "pos_rank",
+                                   def_ssn_filter        = "DET2025",
+                                   position_group_filter = "WR")
+plot_coverage_archetype(prof,
+                        player_name = "D.J. Reed",
+                        dim_label   = "WR Depth Chart Rank",
+                        order_by    = "arch")
+
+# 2. then call with the actual bucket column as dim
+prof <- coverage_archetype_profile(26940,
+                                   dim                   = "xpass_qrtl",
+                                   def_ssn_filter        = "DET2025",
+                                   position_group_filter = "WR")
+plot_coverage_archetype(prof,
+                        player_name = "D.J. Reed",
+                        dim_label   = "WR Expected-Pass Quartile",
+                        order_by    = "arch")
+
+
+build_defender_diet_matrix <- function(
+    cov_versus        = receiving_coverage_versus,
+    cov_df            = final_coverage_df_qbgrp,
+    dims              = c("final_position_group",
+                          "pos_rank",
+                          "rte_cluster_name",
+                          "tgt_cluster_name",
+                          "align_cluster_name",
+                          "td_grp_cluster",
+                          "man_zone_grp_cluster",
+                          "z_score_qrtl",
+                          "xpass_qrtl",
+                          "xtd_qrtl"),
+    min_total_targets = 20
+) {
+  
+  prefix_map <- c(
+    final_position_group = "pgrp",
+    pos_rank             = "posR",
+    rte_cluster_name     = "rte",
+    tgt_cluster_name     = "tgt",
+    align_cluster_name   = "algn",
+    td_grp_cluster       = "tdg",
+    man_zone_grp_cluster = "mz",
+    z_score_qrtl         = "zsc",
+    xpass_qrtl           = "xpa",
+    xtd_qrtl             = "xtd"
+  )
+  
+  defender_totals <- cov_versus %>%
+    filter(!is.na(coverage_player_id)) %>%
+    group_by(coverage_player_id, def_ssn, season) %>%
+    summarise(total_targets = sum(targets, na.rm = TRUE), .groups = "drop") %>%
+    filter(total_targets >= min_total_targets)
+  
+  build_diet_wide <- function(dim_col) {
+    pfx <- prefix_map[[dim_col]]; if (is.null(pfx)) pfx <- dim_col
+    
+    cov_versus %>%
+      filter(!is.na(.data[[dim_col]]), !is.na(coverage_player_id)) %>%
+      mutate(arch = sub("\\s.*$", "", as.character(.data[[dim_col]]))) %>%
+      group_by(coverage_player_id, def_ssn, season, arch) %>%
+      summarise(arch_targets = sum(targets, na.rm = TRUE), .groups = "drop") %>%
+      group_by(coverage_player_id, def_ssn, season) %>%
+      mutate(arch_share = arch_targets / sum(arch_targets)) %>%
+      ungroup() %>%
+      mutate(arch = paste0(pfx, "_", arch)) %>%
+      select(coverage_player_id, def_ssn, season, arch, arch_share) %>%
+      pivot_wider(names_from = arch, values_from = arch_share, values_fill = 0)
+  }
+  
+  diet_wide <- Reduce(
+    function(x, y) full_join(x, y, by = c("coverage_player_id", "def_ssn", "season")),
+    lapply(dims, build_diet_wide)
+  )
+  
+  # in final_coverage_df_qbgrp, player_id IS the defender — relabel to coverage_player_id for consistency
+  deployment <- cov_df %>%
+    filter(!is.na(player_id)) %>%
+    rename(coverage_player_id = player_id) %>%
+    group_by(coverage_player_id, def_ssn, season, final_position, team_name) %>%
+    summarise(
+      total_cov_snaps = sum(snap_counts_coverage,      na.rm = TRUE),
+      man_snaps       = sum(man_snap_counts_coverage,  na.rm = TRUE),
+      zone_snaps      = sum(zone_snap_counts_coverage, na.rm = TRUE),
+      slot_snaps      = sum(coverage_snaps_slot,       na.rm = TRUE),
+      n_games         = n(),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      man_pct  = man_snaps  / pmax(total_cov_snaps, 1),
+      zone_pct = zone_snaps / pmax(total_cov_snaps, 1),
+      slot_pct = slot_snaps / pmax(total_cov_snaps, 1)
+    )
+  
+  ids <- cov_df %>%
+    select(player_id, player) %>%
+    distinct() %>%
+    group_by(player_id) %>% slice(1) %>% ungroup() %>%
+    rename(coverage_player_id = player_id)
+  
+  used_prefixes <- unname(prefix_map[dims])
+  pat           <- paste0("^(", paste(used_prefixes, collapse = "|"), ")_")
+  diet_cols     <- names(diet_wide)[grepl(pat, names(diet_wide))]
+  
+  deployment %>%
+    semi_join(defender_totals, by = c("coverage_player_id", "def_ssn", "season")) %>%
+    left_join(ids,              by = "coverage_player_id") %>%
+    left_join(defender_totals,  by = c("coverage_player_id", "def_ssn", "season")) %>%
+    left_join(diet_wide,        by = c("coverage_player_id", "def_ssn", "season")) %>%
+    mutate(across(all_of(diet_cols), ~ replace_na(.x, 0))) %>%
+    select(coverage_player_id, player, def_ssn, season, final_position, team_name,
+           n_games, total_cov_snaps, total_targets,
+           man_snaps, zone_snaps, slot_snaps,
+           man_pct, zone_pct, slot_pct,
+           everything())
+}
+
+
+find_similar_defenders <- function(defender_id,
+                                   target_def_ssn,
+                                   matrix_df,
+                                   same_position = TRUE,
+                                   n_top         = 15,
+                                   weights       = c(
+                                     man_pct  = 1,
+                                     zone_pct = 1,
+                                     slot_pct = 1,
+                                     pgrp = 2,
+                                     posR = 3,
+                                     rte  = 1,
+                                     tgt  = 1,
+                                     algn = 1,
+                                     tdg  = 1,
+                                     mz   = 1,
+                                     zsc  = 1,
+                                     xpa  = 1,
+                                     xtd  = 1
+                                   )) {
+  
+  deploy_cols <- c("man_pct", "zone_pct", "slot_pct")
+  diet_cols   <- names(matrix_df)[grepl("^(pgrp|posR|rte|tgt|algn|tdg|mz|zsc|xpa|xtd)_",
+                                        names(matrix_df))]
+  feat_cols   <- c(deploy_cols, diet_cols)
+  
+  col_weights <- vapply(feat_cols, function(c) {
+    if (c %in% names(weights)) return(unname(weights[c]))
+    pfx <- sub("_.*$", "", c)
+    if (pfx %in% names(weights)) unname(weights[pfx]) else 1
+  }, numeric(1))
+  
+  target_row <- matrix_df %>%
+    filter(coverage_player_id == defender_id, def_ssn == target_def_ssn)
+  if (nrow(target_row) == 0) {
+    message("Defender ", defender_id, " in ", target_def_ssn, " not in matrix.")
+    return(invisible(NULL))
+  }
+  
+  pool <- if (same_position) {
+    matrix_df %>% filter(final_position == target_row$final_position[1])
+  } else {
+    matrix_df
+  }
+  pool <- pool %>% filter(!(coverage_player_id == defender_id & def_ssn == target_def_ssn))
+  
+  target_vec <- as.numeric(target_row[1, feat_cols]) * col_weights
+  pool_mat   <- sweep(as.matrix(pool[, feat_cols]), 2, col_weights, `*`)
+  
+  a_norm <- sqrt(sum(target_vec^2))
+  b_norm <- sqrt(rowSums(pool_mat^2))
+  pool$similarity <- as.numeric(pool_mat %*% target_vec) / (b_norm * a_norm + 1e-9)
+  
+  pool %>%
+    arrange(desc(similarity)) %>%
+    select(coverage_player_id, player, final_position,       # ← position now right after name
+           def_ssn, season, team_name,
+           total_targets, total_cov_snaps, similarity) %>%
+    head(n_top)
+}
+
+defender_diet_matrix <- build_defender_diet_matrix()
+
+find_similar_defenders(26940, "DET2025", defender_diet_matrix)
