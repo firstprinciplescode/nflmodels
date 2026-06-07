@@ -1145,7 +1145,8 @@ build_defender_diet_matrix <- function(
                           "z_score_qrtl",
                           "xpass_qrtl",
                           "xtd_qrtl"),
-    min_total_targets = 20
+    min_total_targets = 20,
+    min_games         = 6
 ) {
   
   prefix_map <- c(
@@ -1188,7 +1189,6 @@ build_defender_diet_matrix <- function(
     lapply(dims, build_diet_wide)
   )
   
-  # in final_coverage_df_qbgrp, player_id IS the defender — relabel to coverage_player_id for consistency
   deployment <- cov_df %>%
     filter(!is.na(player_id)) %>%
     rename(coverage_player_id = player_id) %>%
@@ -1201,6 +1201,7 @@ build_defender_diet_matrix <- function(
       n_games         = n(),
       .groups = "drop"
     ) %>%
+    filter(n_games >= min_games) %>%
     mutate(
       man_pct  = man_snaps  / pmax(total_cov_snaps, 1),
       zone_pct = zone_snaps / pmax(total_cov_snaps, 1),
@@ -1234,23 +1235,39 @@ build_defender_diet_matrix <- function(
 find_similar_defenders <- function(defender_id,
                                    target_def_ssn,
                                    matrix_df,
-                                   same_position = TRUE,
-                                   n_top         = 15,
-                                   weights       = c(
-                                     man_pct  = 1,
-                                     zone_pct = 1,
-                                     slot_pct = 1,
-                                     pgrp = 2,
+                                   same_position  = TRUE,
+                                   n_top          = NULL,
+                                   min_similarity = NULL,
+                                   weights        = c(
+                                     man_pct  = 1.75,
+                                     zone_pct = 1.75,
+                                     slot_pct = 1.5,
+                                     pgrp = 3,
                                      posR = 3,
-                                     rte  = 1,
+                                     rte  = .75,
                                      tgt  = 1,
                                      algn = 1,
-                                     tdg  = 1,
-                                     mz   = 1,
+                                     tdg  = 0.75,
+                                     mz   = 0.75,
                                      zsc  = 1,
                                      xpa  = 1,
                                      xtd  = 1
                                    )) {
+  
+  # ─────────────────────────────────────────────────────────────────────────
+  # n_top + min_similarity behavior:
+  #
+  #   call                                                  →  result
+  #   ───────────────────────────────────────────────────────────────────────
+  #   find_similar_defenders(id, ssn, m)                    →  top 15
+  #   find_similar_defenders(..., n_top = 30)               →  top 30
+  #   find_similar_defenders(..., min_similarity = 0.95)    →  every row at 0.95+
+  #   find_similar_defenders(..., min_similarity = 0.95,
+  #                          n_top = 100)                   →  up to 100 at 0.95+
+  #   find_similar_defenders(..., min_similarity = 0.95,
+  #                          n_top = 30)                    →  up to 30 at 0.95+
+  #   find_similar_defenders(..., n_top = Inf)              →  every comp, no threshold
+  # ─────────────────────────────────────────────────────────────────────────
   
   deploy_cols <- c("man_pct", "zone_pct", "slot_pct")
   diet_cols   <- names(matrix_df)[grepl("^(pgrp|posR|rte|tgt|algn|tdg|mz|zsc|xpa|xtd)_",
@@ -1284,14 +1301,215 @@ find_similar_defenders <- function(defender_id,
   b_norm <- sqrt(rowSums(pool_mat^2))
   pool$similarity <- as.numeric(pool_mat %*% target_vec) / (b_norm * a_norm + 1e-9)
   
-  pool %>%
+  result <- pool %>%
     arrange(desc(similarity)) %>%
-    select(coverage_player_id, player, final_position,       # ← position now right after name
+    select(coverage_player_id, player, final_position,
            def_ssn, season, team_name,
-           total_targets, total_cov_snaps, similarity) %>%
-    head(n_top)
+           total_targets, total_cov_snaps, similarity)
+  
+  if (!is.null(min_similarity)) {
+    result <- result %>% filter(similarity >= min_similarity)
+  }
+  
+  effective_n_top <- if (!is.null(n_top)) {
+    n_top
+  } else if (is.null(min_similarity)) {
+    15
+  } else {
+    Inf
+  }
+  
+  result %>% head(effective_n_top)
 }
 
 defender_diet_matrix <- build_defender_diet_matrix()
 
-find_similar_defenders(26940, "DET2025", defender_diet_matrix)
+comps <- find_similar_defenders(26940, "DET2025", defender_diet_matrix)
+comps <- find_similar_defenders(101515, "DET2025", defender_diet_matrix)
+
+inspect_defender_comps <- function(defender_id,
+                                   target_def_ssn,
+                                   matrix_df,
+                                   n_top          = 15,
+                                   min_similarity = NULL,
+                                   same_position  = TRUE,
+                                   weights        = NULL) {
+  
+  # get comps (pass weights through only if user provided them; otherwise let
+  # find_similar_defenders use its own defaults)
+  comp_args <- list(defender_id    = defender_id,
+                    target_def_ssn = target_def_ssn,
+                    matrix_df      = matrix_df,
+                    n_top          = n_top,
+                    min_similarity = min_similarity,
+                    same_position  = same_position)
+  if (!is.null(weights)) comp_args$weights <- weights
+  comps <- do.call(find_similar_defenders, comp_args)
+  
+  if (is.null(comps) || nrow(comps) == 0) return(invisible(NULL))
+  
+  focal_row <- matrix_df %>%
+    filter(coverage_player_id == defender_id,
+           def_ssn == .env$target_def_ssn) %>%
+    mutate(similarity = 1.0)
+  
+  comp_rows <- comps %>%
+    select(coverage_player_id, def_ssn, similarity) %>%
+    left_join(matrix_df, by = c("coverage_player_id", "def_ssn"))
+  
+  bind_rows(focal_row, comp_rows) %>%
+    arrange(desc(similarity))
+}
+
+inspect_defender_comps(101515, "DET2025", defender_diet_matrix, min_similarity = .95, n_top = 100) %>% View()
+
+
+compare_comps_performance <- function(comps_df,
+                                      focal_id,
+                                      focal_def_ssn,
+                                      family  = c("zone", "man", "slot"),
+                                      df_man  = coverage_man_player_season_summary,
+                                      df_zone = coverage_zone_player_season_summary,
+                                      df_slot = coverage_slot_player_season_summary) {
+  
+  family  <- match.arg(family)
+  perf_df <- switch(family,
+                    man  = df_man,
+                    zone = df_zone,
+                    slot = df_slot)
+  
+  keys <- comps_df %>%
+    select(coverage_player_id, def_ssn) %>%
+    bind_rows(tibble(coverage_player_id = focal_id, def_ssn = focal_def_ssn)) %>%
+    distinct() %>%
+    rename(player_id = coverage_player_id)
+  
+  sim_lookup <- comps_df %>%
+    select(coverage_player_id, def_ssn, similarity) %>%
+    rename(player_id = coverage_player_id) %>%
+    bind_rows(tibble(player_id  = focal_id,
+                     def_ssn    = focal_def_ssn,
+                     similarity = 1.0)) %>%
+    distinct(player_id, def_ssn, .keep_all = TRUE)
+  
+  perf_df %>%
+    semi_join(keys,        by = c("player_id", "def_ssn")) %>%
+    left_join(sim_lookup,  by = c("player_id", "def_ssn")) %>%
+    arrange(desc(similarity)) %>%
+    select(player_id, player, final_position, def_ssn, season, similarity, n,
+           ends_with("_season_pctl"))
+}
+
+cohort_perf <- compare_comps_performance(comps, 26940, "DET2025", family = "zone")
+cohort_perf <- compare_comps_performance(comps, 101515, "DET2025", family = "zone")
+
+# where does Reed land in the cohort distribution on each metric?
+focal_row <- cohort_perf %>% filter(player_id == 26940, def_ssn == "DET2025")
+pctl_cols <- names(cohort_perf)[grepl("_season_pctl$", names(cohort_perf))]
+
+vapply(pctl_cols, function(col) {
+  mean(cohort_perf[[col]] < focal_row[[col]], na.rm = TRUE)
+}, numeric(1)) %>% sort(decreasing = TRUE)
+
+
+
+plot_comps_dots <- function(comps_df,
+                            focal_id,
+                            focal_def_ssn,
+                            family  = c("zone", "man", "slot"),
+                            df_man  = coverage_man_player_season_summary,
+                            df_zone = coverage_zone_player_season_summary,
+                            df_slot = coverage_slot_player_season_summary) {
+  
+  family <- match.arg(family)
+  
+  family_spec <- list(
+    man = list(
+      prefix  = "man_",
+      metrics = c("grade_cov", "cov_snaps_per_target", "cov_snaps_per_rec",
+                  "pass_break_up_rate", "catch_rate", "yards_per_rec",
+                  "yards_per_cov_snap", "avg_yac", "qb_rating_against",
+                  "missed_tackle_rate", "avg_depth_of_target"),
+      labels  = c("Grade", "Snap/Tgt", "Snap/Rec", "PBU %", "Catch %",
+                  "Y/Rec", "Y/CovSnp", "YAC", "QBR", "MT %", "aDOT")
+    ),
+    zone = list(
+      prefix  = "zone_",
+      metrics = c("grade_cov", "cov_snaps_per_target", "cov_snaps_per_rec",
+                  "pass_break_up_rate", "catch_rate", "yards_per_rec",
+                  "yards_per_cov_snap", "avg_yac", "qb_rating_against",
+                  "missed_tackle_rate", "avg_depth_of_target"),
+      labels  = c("Grade", "Snap/Tgt", "Snap/Rec", "PBU %", "Catch %",
+                  "Y/Rec", "Y/CovSnp", "YAC", "QBR", "MT %", "aDOT")
+    ),
+    slot = list(
+      prefix  = "slot_",
+      metrics = c("cov_snaps_per_target", "cov_snaps_per_rec",
+                  "yards_per_cov_snap", "avg_yac", "qb_rating_against"),
+      labels  = c("Snap/Tgt", "Snap/Rec", "Y/CovSnp", "YAC", "QBR")
+    )
+  )
+  
+  spec          <- family_spec[[family]]
+  metrics       <- spec$metrics
+  metric_labels <- spec$labels
+  pctl_cols     <- paste0(spec$prefix, metrics, "_season_pctl")
+  
+  perf <- compare_comps_performance(comps_df, focal_id, focal_def_ssn, family,
+                                    df_man = df_man, df_zone = df_zone, df_slot = df_slot)
+  
+  d <- perf %>%
+    mutate(is_focal = (player_id == focal_id & def_ssn == focal_def_ssn))
+  
+  long <- d %>%
+    select(player, def_ssn, is_focal, all_of(pctl_cols)) %>%
+    pivot_longer(cols = all_of(pctl_cols),
+                 names_to = "metric", values_to = "pctl") %>%
+    mutate(metric = sub("_season_pctl$", "", metric),
+           metric = sub(paste0("^", spec$prefix), "", metric),
+           metric = factor(metric, levels = metrics, labels = metric_labels))
+  
+  family_label <- switch(family,
+                         man  = "Man Coverage",
+                         zone = "Zone Coverage",
+                         slot = "Slot Coverage")
+  focal_name <- d %>% filter(is_focal) %>% pull(player)  %>% .[1]
+  focal_def  <- d %>% filter(is_focal) %>% pull(def_ssn) %>% .[1]
+  
+  ggplot(long, aes(x = pctl, y = metric)) +
+    # comp cohort as grey dots, jittered vertically so they don't stack
+    geom_point(data = long %>% filter(!is_focal),
+               position = position_jitter(width = 0, height = 0.25, seed = 42),
+               color = "grey55", alpha = 0.45, size = 2.2) +
+    # focal as bigger red dot on top
+    geom_point(data = long %>% filter(is_focal),
+               color = "firebrick2", size = 4.5, stroke = 1) +
+    geom_vline(xintercept = 0.5, linetype = "dashed", color = "grey40", linewidth = 0.3) +
+    scale_x_continuous(limits = c(0, 1),
+                       breaks = seq(0, 1, 0.25),
+                       labels = scales::percent_format(accuracy = 1),
+                       expand = expansion(mult = c(0.02, 0.02))) +
+    scale_y_discrete(limits = rev(metric_labels)) +
+    labs(
+      title    = paste0(focal_name, " — ", focal_def, " vs Comp Cohort"),
+      subtitle = paste0(family_label,
+                        "  |  grey = comp cohort, red = focal  |  higher pctl = better"),
+      x = "Season Percentile (within position, within season)",
+      y = NULL
+    ) +
+    theme_minimal(base_size = 10) +
+    theme(
+      plot.title         = element_text(face = "bold", size = 14),
+      plot.subtitle      = element_text(size = 9, color = "grey30"),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      axis.text.y        = element_text(face = "bold", size = 10)
+    )
+}
+
+comps <- find_similar_defenders(123907, "DET2025", defender_diet_matrix,
+                                min_similarity = 0.95)
+
+plot_comps_dots(comps, 123907, "DET2025", family = "zone")
+plot_comps_dots(comps, 123907, "DET2025", family = "man")
+plot_comps_dots(comps, 123907, "DET2025", family = "slot")

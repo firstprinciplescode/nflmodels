@@ -274,31 +274,6 @@ View(pass_rush_all_opp_percentile %>% filter(qbgrp_ssn == "DETGoff-2024"))
 View(qb_stats_df_final %>% filter(qbgrp_ssn == "DETGoff-2025") %>% select(pressure_rate_rank_def, less_rate_rank_def, sack_rate_rank_def))
 
 
-build_logo_df <- function(pd) {
-  pff_to_nflverse <- c(
-    ARZ = "ARI", BLT = "BAL", CLV = "CLE", HST = "HOU",
-    SD  = "LAC", OAK = "LV"
-  )
-  
-  team_logo_lookup <- nflreadr::load_teams() %>%
-    dplyr::select(team_abbr, team_logo_espn) %>%
-    tibble::deframe()
-  
-  pd %>%
-    distinct(player_id, season, team_name) %>%
-    mutate(team_nflverse = dplyr::coalesce(pff_to_nflverse[team_name], team_name),
-           logo_url = team_logo_lookup[team_nflverse]) %>%
-    filter(!is.na(logo_url)) %>%
-    group_by(player_id, season) %>%
-    mutate(
-      n_teams  = n(),
-      team_idx = row_number(),
-      x_pos    = season + (team_idx - (n_teams + 1) / 2) * 0.3,
-      y_pos    = 1.10
-    ) %>%
-    ungroup()
-}
-
 plot_ol_pass_block <- function(player_ids,
                                data = all_pass_block_player_season_summary,
                                metric = "grade_season_pctl",
@@ -340,8 +315,6 @@ plot_ol_pass_block <- function(player_ids,
       det_position = factor(det_position, levels = c("LT","LG","C","RG","RT"))
     )
   
-  logo_df <- build_logo_df(pd)
-  
   hs_map <- pd %>%
     distinct(player_id, player) %>%
     rowwise() %>%
@@ -359,8 +332,7 @@ plot_ol_pass_block <- function(player_ids,
       )
     )
   
-  pd      <- pd      %>% left_join(hs_map %>% select(player_id, strip_label), by = "player_id")
-  logo_df <- logo_df %>% left_join(hs_map %>% select(player_id, strip_label), by = "player_id")
+  pd <- pd %>% left_join(hs_map %>% select(player_id, strip_label), by = "player_id")
   
   x_min <- min(pd$season); x_max <- max(pd$season)
   
@@ -379,13 +351,8 @@ plot_ol_pass_block <- function(player_ids,
       position = position_dodge2(width = 0.85, preserve = "single", padding = 0),
       vjust = -0.4, size = 2.5, color = "grey25"
     ) +
-    ggpath::geom_from_path(
-      data = logo_df,
-      aes(x = x_pos, y = y_pos, path = logo_url),
-      width = 0.08, inherit.aes = FALSE
-    ) +
     scale_fill_manual(values = pos_colors, drop = FALSE, name = "Position") +
-    scale_y_continuous(limits = c(0, 1.15), breaks = c(0, 0.5, 1), labels = scales::percent) +
+    scale_y_continuous(limits = c(0, 1.08), breaks = c(0, 0.5, 1), labels = scales::percent) +
     scale_x_continuous(breaks = seq(x_min, x_max, 1),
                        expand = expansion(add = 0.5)) +
     facet_wrap(~ strip_label, ncol = 3) +

@@ -438,6 +438,13 @@ plot_dumb(df  = tps_pblk_summary,     bkt = "TPS", focal = "PHI2025")
 all_pblk_z <- all_pass_block_opp_position_pctl %>%
   mutate(across(ends_with("_rank"), ~ as.numeric(scale(.x))))
 
+# ordered_pblk_all has same structure, no "tps_" prefix needed
+ordered_pblk_all <- c(
+  paste0("grade_perc_",    c("LT","LG","C","RG","RT")),
+  paste0("pressure_perc_", c("LT","LG","C","RG","RT")),
+  paste0("hurries_perc_",  c("LT","LG","C","RG","RT"))
+)
+
 all_pblk_long <- all_pblk_z %>%
   filter(def_ssn %in% c(sim_def$QB, "PHI2025")) %>%
   pivot_longer(ends_with("_rank"), names_to = "var", values_to = "z") %>%
@@ -453,13 +460,6 @@ all_pblk_long <- all_pblk_z %>%
   ) %>%
   filter(!is.na(z)) %>%
   mutate(var_label = factor(var_label, levels = rev(ordered_pblk_all)))
-
-# ordered_pblk_all has same structure, no "tps_" prefix needed
-ordered_pblk_all <- c(
-  paste0("grade_perc_",    c("LT","LG","C","RG","RT")),
-  paste0("pressure_perc_", c("LT","LG","C","RG","RT")),
-  paste0("hurries_perc_",  c("LT","LG","C","RG","RT"))
-)
 
 # Build summary + agg same way, run plot_strip/plot_dumb
 
