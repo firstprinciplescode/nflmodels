@@ -243,16 +243,8 @@ play_counts_receiving_stats_two <- play_counts_receiving_stats_one %>%
     pbp_rec_xtds = replace_na(pbp_rec_xtds, 0),
     tgt_share = replace_na(tgt_share, 0),
     pbp_xtds_share = replace_na(pbp_xtds_share, 0),
-    part_rec_xtds = case_when(
-      season == 2025 ~ NA_real_,
-      is.na(part_rec_xtds) ~ 0,
-      TRUE ~ part_rec_xtds
-    ),
-    part_xtds_share = case_when(
-      season == 2025 ~ NA_real_,
-      is.na(part_xtds_share) ~ 0,
-      TRUE ~ part_xtds_share
-    )
+    part_rec_xtds = replace_na(part_rec_xtds, 0),
+    part_xtds_share = replace_na(part_xtds_share, 0)
   )
 
 # Check what's still NA

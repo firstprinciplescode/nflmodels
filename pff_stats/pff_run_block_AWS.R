@@ -273,27 +273,6 @@ pff_to_nflverse <- c(
   SD  = "LAC", OAK = "LV"
 )
 
-# Helper: build a season-level background df keyed off whatever bg_by we choose
-build_bg_df <- function(pd) {
-  pff_to_nflverse <- c(
-    ARZ = "ARI", BLT = "BAL", CLV = "CLE", HST = "HOU",
-    SD  = "LAC", OAK = "LV"
-  )
-  
-  bg <- pd %>%
-    distinct(player_id, season, team_name) %>%
-    mutate(team_nflverse = dplyr::coalesce(pff_to_nflverse[team_name], team_name))
-  
-  team_color_lookup <- nflreadr::load_teams() %>%
-    dplyr::select(team_abbr, team_color) %>%
-    tibble::deframe()
-  
-  bg %>%
-    mutate(bg_color = team_color_lookup[team_nflverse]) %>%
-    mutate(bg_color = ifelse(is.na(bg_color), "#cccccc", bg_color)) %>%
-    mutate(bg_color = scales::alpha(bg_color, 0.18))
-}
-
 
 plot_ol_run_block <- function(player_ids,
                               data = gap_player_season_summary,
@@ -306,13 +285,21 @@ plot_ol_run_block <- function(player_ids,
   get_headshot <- function(pid) {
     dest <- file.path(cache_dir, paste0(pid, ".png"))
     if (!file.exists(dest)) {
-      url <- paste0("https://media.pff.com/player-photos/nfl/", pid, ".png")
-      try(download.file(url, dest, mode = "wb", quiet = TRUE), silent = TRUE)
+      ok <- tryCatch(
+        { suppressWarnings(download.file(paste0("https://media.pff.com/player-photos/nfl/", pid, ".png"),
+                                         dest, mode = "wb", quiet = TRUE)); TRUE },
+        error = function(e) FALSE, warning = function(w) FALSE
+      )
+      if (!ok && file.exists(dest)) try(file.remove(dest), silent = TRUE)
     }
-    if (!file.exists(dest) || file.size(dest) < 100) return(NA_character_)
-    con <- file(dest, "rb"); bytes <- readBin(con, "raw", 8); close(con)
+    if (!file.exists(dest)) return(NA_character_)
+    if (file.size(dest) < 100) { try(file.remove(dest), silent = TRUE); return(NA_character_) }
+    bytes <- tryCatch({
+      con <- file(dest, "rb"); on.exit(close(con), add = TRUE)
+      readBin(con, "raw", 8)
+    }, error = function(e) raw(0))
     png_magic <- as.raw(c(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))
-    if (identical(bytes, png_magic)) gsub("\\\\", "/", dest) else NA_character_
+    if (length(bytes) == 8 && identical(bytes, png_magic)) gsub("\\\\", "/", dest) else NA_character_
   }
   
   pos_colors <- c(
@@ -326,8 +313,6 @@ plot_ol_run_block <- function(player_ids,
       val = .data[[metric]],
       det_position = factor(det_position, levels = c("LT","LG","C","RG","RT"))
     )
-  
-  bg_df <- build_bg_df(pd)
   
   hs_map <- pd %>%
     distinct(player_id, player) %>%
@@ -346,18 +331,11 @@ plot_ol_run_block <- function(player_ids,
       )
     )
   
-  pd    <- pd    %>% left_join(hs_map %>% select(player_id, strip_label), by = "player_id")
-  bg_df <- bg_df %>% left_join(hs_map %>% select(player_id, strip_label), by = "player_id")
+  pd <- pd %>% left_join(hs_map %>% select(player_id, strip_label), by = "player_id")
   
   x_min <- min(pd$season); x_max <- max(pd$season)
   
   ggplot() +
-    geom_rect(
-      data = bg_df,
-      aes(xmin = season - 0.5, xmax = season + 0.5,
-          ymin = 0, ymax = 1.15, fill = I(bg_color)),
-      inherit.aes = FALSE
-    ) +
     geom_col(
       data = pd,
       aes(season, val, fill = det_position),
