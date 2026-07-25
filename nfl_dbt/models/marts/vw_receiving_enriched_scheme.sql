@@ -64,4 +64,4 @@ SELECT
 , (CASE WHEN ((A.position IN ('C', 'LT', 'LG', 'None', 'RG', 'RT')) OR (A.position IS NULL)) THEN 'Other' WHEN (A.position IN ('LWR', 'RWR', 'SLWR', 'SRWR')) THEN 'WR' WHEN (A.position IN ('TE-L', 'TE-R')) THEN 'TE' ELSE A.position END) position_group
 FROM
   ({{ ref('vw_receiving_enriched') }} A
-LEFT JOIN {{ source('pff_raw', 'receiver_scheme') }} B ON ((A.player_id = B.player_id) AND (A.season = B.season) AND (A.week = B.week) AND (A.jersey_number = B.jersey_number) AND (A.player = B.player) AND (A.team_abbreviation = B.team_name)))
+LEFT JOIN {{ ref('stg_pff__receiver_scheme') }} B ON ((A.player_id = B.player_id) AND (A.season = B.season) AND (A.week = B.week) AND (A.jersey_number = B.jersey_number) AND (A.player = B.player) AND (A.team_abbreviation = B.team_name)))

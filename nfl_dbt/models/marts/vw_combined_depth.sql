@@ -62,5 +62,5 @@ SELECT
 , ((SUM((medium_passing_snaps * medium_twp_rate)) / NULLIF(SUM(medium_passing_snaps), 0)) - (SUM((short_passing_snaps * short_twp_rate)) / NULLIF(SUM(short_passing_snaps), 0))) ms_twp_difference
 , ((CAST(SUM(deep_def_gen_pressures) AS DOUBLE) / NULLIF(SUM(deep_passing_snaps), 0)) - (CAST(SUM(medium_def_gen_pressures) AS DOUBLE) / NULLIF(SUM(medium_passing_snaps), 0))) pressure_rate_difference
 FROM
-  {{ source('pff_raw', 'passing_depth') }}
+  {{ ref('stg_pff__passing_depth') }}
 GROUP BY team_name, week, season

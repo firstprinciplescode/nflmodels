@@ -1,0 +1,48 @@
+name: dbt docs
+
+on:
+  push:
+    branches: [main, master]
+
+permissions:
+  id-token: write
+  contents: read
+  pages: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install dbt-core dbt-athena-community
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Write profile
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml << 'PROFILE'
+          nfl_athena:
+            target: prod
+            outputs:
+              prod:
+                type: athena
+                s3_staging_dir: ${{ secrets.ATHENA_STAGING_S3 }}
+                region_name: us-east-1
+                schema: nfl_data
+                database: awsdatacatalog
+          PROFILE
+      - run: dbt deps && dbt docs generate
+        working-directory: nfl_dbt
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: nfl_dbt/target
+      - id: deployment
+        uses: actions/deploy-pages@v4

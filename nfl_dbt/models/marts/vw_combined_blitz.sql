@@ -41,5 +41,5 @@ SELECT
 , ((CAST(SUM(blitz_def_gen_pressures) AS DOUBLE) / NULLIF(SUM(blitz_passing_snaps), 0)) - (CAST(SUM(no_blitz_def_gen_pressures) AS DOUBLE) / NULLIF(SUM(no_blitz_passing_snaps), 0))) pressure_rate_difference
 , ((CAST(SUM(blitz_sacks) AS DOUBLE) / NULLIF(SUM(blitz_passing_snaps), 0)) - (CAST(SUM(no_blitz_sacks) AS DOUBLE) / NULLIF(SUM(no_blitz_passing_snaps), 0))) sack_rate_difference
 FROM
-  {{ source('pff_raw', 'passing_pressure') }}
+  {{ ref('stg_pff__passing_pressure') }}
 GROUP BY team_name, week, season

@@ -1,0 +1,7 @@
+packages:
+  # dbt_utils: composite-key uniqueness tests, misc macros
+  - package: dbt-labs/dbt_utils
+    version: [">=1.3.0", "<2.0.0"]
+  # Add when needed (distribution/row-count expectations):
+  # - package: metaplane/dbt_expectations
+  #   version: [">=0.10.0", "<0.11.0"]

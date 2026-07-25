@@ -55,7 +55,7 @@ SELECT
 , AVG(man_avg_depth_of_target) avg_man_adot
 , AVG(zone_avg_depth_of_target) avg_zone_adot
 FROM
-  (vw_receiving_enriched_scheme
+  ({{ ref('vw_receiving_enriched_scheme') }} vw_receiving_enriched_scheme
 LEFT JOIN (
    WITH
      position_counts AS (
@@ -67,7 +67,7 @@ LEFT JOIN (
       , COUNT(*) CNT
       , ROW_NUMBER() OVER (PARTITION BY player_id, team_abbreviation, season ORDER BY COUNT(*) DESC, (CASE WHEN (position_group = 'HB') THEN 1 WHEN (position_group = 'TE') THEN 2 WHEN (position_group = 'WR') THEN 3 ELSE 4 END) ASC, position_group ASC) rn
       FROM
-        vw_receiving_enriched_scheme
+        {{ ref('vw_receiving_enriched_scheme') }}
       GROUP BY player_id, team_abbreviation, position_group, season
    ) 
    SELECT

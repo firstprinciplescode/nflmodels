@@ -1,33 +1,144 @@
 version: 2
 
+# NOTE ON TEST SEVERITY: `error` where uniqueness is structurally guaranteed by a
+# GROUP BY / grouped-join; `warn` where the grain is inferred from raw feeds or a
+# join could fan out. Promote warn -> error after the first clean `dbt build`.
+
 models:
-  - name: vw_combined_blitz
-    description: "Mart - terminal output for analysis/ML"
-  - name: vw_combined_depth
-    description: "Mart - terminal output for analysis/ML"
-  - name: vw_combined_pa
-    description: "Mart - terminal output for analysis/ML"
   - name: vw_combined_pressure
-    description: "Mart - terminal output for analysis/ML"
-  - name: vw_opponents
-    description: "Mart - terminal output for analysis/ML"
+    description: >
+      Team-week pressure profile: QB splits under pressure vs. no pressure
+      (vw_passing_pressure_agg) plus pressures allowed (vw_allowed_pressure),
+      with pressure-vs-clean deltas for grade, TTT, YPA, accuracy, QBR, BTT, TWP,
+      aDOT, scramble rate. Grain: team_name x week x season.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [team_name, week, season]
+  - name: vw_combined_pa
+    description: >
+      Team-week QB performance split by play-action vs. non-play-action with
+      PA-vs-non-PA deltas. Grain: team_name x week x season (GROUP BY).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [team_name, week, season]
+  - name: vw_combined_blitz
+    description: >
+      Team-week QB performance split by blitz vs. no blitz with deltas.
+      Grain: team_name x week x season (GROUP BY).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [team_name, week, season]
+  - name: vw_combined_depth
+    description: >
+      Team-week QB performance by target depth band (behind LOS / short / medium /
+      deep): rates, pressure rates, snap-weighted grades and efficiency, plus
+      deep-vs-short and medium-vs-short deltas. Grain: team_name x week x season.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [team_name, week, season]
   - name: vw_passing_tip
-    description: "Mart - terminal output for analysis/ML"
-  - name: vw_players_with_routes
-    description: "Mart - terminal output for analysis/ML"
-  - name: vw_players_with_routes_no_targets
-    description: "Mart - terminal output for analysis/ML"
-  - name: vw_receiving_clustering_base
-    description: "Mart - terminal output for analysis/ML"
-  - name: vw_receiving_depth_weekly
-    description: "Mart - terminal output for analysis/ML"
-  - name: vw_receiving_depth_weekly_agg
-    description: "Mart - terminal output for analysis/ML"
-  - name: vw_receiving_enriched_scheme
-    description: "Mart - terminal output for analysis/ML"
-  - name: vw_receiving_enriched_scheme_agg
-    description: "Mart - terminal output for analysis/ML"
+    description: >
+      Team-week QB performance split by time in pocket (less vs. more) with deltas.
+      Grain: team_name x week x season (GROUP BY).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [team_name, week, season]
+  - name: vw_opponents
+    description: >
+      Game schedule exploded to one row per game per participating team (home and
+      away perspectives) for opponent joins. Grain: game id x team; warn-level
+      because raw games feed may contain duplicate scrapes.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [id, team]
+          config: {severity: warn}
   - name: vw_team_passing_summary
-    description: "Mart - terminal output for analysis/ML"
+    description: >
+      Team-week passing summary: snap-weighted passing grade, inferred starting QB
+      (most snaps), and median-split good/bad offense and defense indicators, with
+      opponent attached via vw_opponents. Grain: team x week x season.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [team, week, season]
+          config: {severity: warn}
+  - name: vw_receiving_depth_weekly
+    description: >
+      Weekly receiving-depth detail (field-third x depth-band splits) unioning the
+      deduplicated no-targets staging feed with the with-targets feed.
+      Grain: player-week-season; warn-level because the with-targets side is not
+      yet deduplicated in staging.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player_id, week, season]
+          config: {severity: warn}
+  - name: vw_receiving_depth_weekly_agg
+    description: >
+      Season-level route and target volume by depth band per player-team, full-outer
+      combining targeted and untargeted feeds. Grain: player_id x team x season.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player_id, team, season]
+  - name: vw_receiving_enriched_scheme
+    description: >
+      Player-week receiving stats enriched with man/zone coverage splits from the
+      receiver scheme feed; backfills man/zone route and pass-play counts from
+      totals when one side is zero; adds position_group mapping.
+      Grain: player-week-season; warn-level for join fan-out risk.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player_id, week, season]
+          config: {severity: warn}
+  - name: vw_receiving_enriched_scheme_agg
+    description: >
+      Season aggregation of vw_receiving_enriched_scheme per player-team: volume,
+      snap-weighted and simple-average grades/QBR/aDOT overall and by man/zone,
+      with modal position_group. Grain: player x player_id x team x season (GROUP BY).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player, player_id, team_abbreviation, season]
+  - name: vw_receiving_clustering_base
+    description: >
+      Feature base for receiver archetype clustering: season depth-band volumes
+      (vw_receiving_depth_weekly_agg) joined to scheme/alignment aggregates.
+      Grain: player_id x team x season; warn-level for join fan-out risk.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player_id, team, season]
+          config: {severity: warn}
+  - name: vw_players_with_routes
+    description: >
+      Distinct player-seasons with at least one pass route run (route-runner
+      universe). Grain: player x player_id x season (GROUP BY).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player, player_id, season]
+  - name: vw_players_with_routes_no_targets
+    description: >
+      Player-weeks that ran routes but received zero targets (anti-join of
+      route-runners against targeted player-weeks). Grain: player x player_id x
+      week x season (GROUP BY + anti-join).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player, player_id, week, season]
   - name: vw_total_snaps
-    description: "Mart - terminal output for analysis/ML"
+    description: >
+      Team-week total and pass snap counts (max of player-level snap counts).
+      Grain: season x week x abbreviation (GROUP BY).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [season, week, abbreviation]

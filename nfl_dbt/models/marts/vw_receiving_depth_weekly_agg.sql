@@ -34,7 +34,7 @@ WITH
    , ((SUM(center_medium_targets) + SUM(left_medium_targets)) + SUM(right_medium_targets)) medium_targets
    , ((SUM(center_deep_targets) + SUM(left_deep_targets)) + SUM(right_deep_targets)) deep_targets
    FROM
-     receiving_depth_weekly_with_targets
+     {{ ref('stg_pff__receiving_depth_weekly_with_targets') }}
    GROUP BY player_id, team_name, season
 ) 
 SELECT

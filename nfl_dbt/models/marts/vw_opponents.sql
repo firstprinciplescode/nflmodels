@@ -7,7 +7,7 @@ SELECT
 , home_abbreviation opp
 , home_franchise_id opp_id
 FROM
-  {{ source('pff_raw', 'games') }}
+  {{ ref('stg_pff__games') }}
 UNION ALL SELECT
   id
 , season
@@ -17,4 +17,4 @@ UNION ALL SELECT
 , away_abbreviation opp
 , away_franchise_id opp_id
 FROM
-  {{ source('pff_raw', 'games') }}
+  {{ ref('stg_pff__games') }}

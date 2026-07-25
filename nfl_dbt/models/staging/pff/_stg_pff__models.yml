@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: stg_pff__receiving_depth_weekly_no_targets
+    description: >
+      Deduplicated weekly receiving-depth stats for player-weeks WITHOUT targets.
+      Keeps the most recent scrape per (player_id, week, season) via scraped_at DESC,
+      making rebuilds idempotent regardless of duplicate raw files in S3.
+      Materialized as a partitioned parquet table (season, week).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player_id, week, season]
+    columns:
+      - name: player_id
+        data_tests: [not_null]
+
+  # The models below are behavior-preserving pass-through views over raw sources.
+  # Downstream models must ref() these instead of reading sources directly, so the
+  # DAG is complete and dedup/typing logic has a single home when added later.
+  - name: stg_pff__games
+    description: "Pass-through of raw games schedule/results (one row per scraped game record; id = PFF game id)."
+  - name: stg_pff__team_ids_tbl
+    description: "Pass-through of team id / abbreviation lookup by season."
+  - name: stg_pff__play_counts
+    description: "Pass-through of player snap counts per game (player_id x game_id)."
+  - name: stg_pff__passing_pressure
+    description: "Pass-through of QB splits under pressure vs. no pressure, per player-game scrape."
+  - name: stg_pff__passing_concept
+    description: "Pass-through of QB splits by play-action vs. non-play-action."
+  - name: stg_pff__passing_depth
+    description: "Pass-through of QB splits by target depth band (behind LOS / short / medium / deep)."
+  - name: stg_pff__passing_tip
+    description: "Pass-through of QB splits by time-in-pocket (less / more than 2.5s)."
+  - name: stg_pff__allowed_pressure
+    description: "Pass-through of offensive pressures allowed (team splits: total, QB-caused, other)."
+  - name: stg_pff__receiving_with_targets
+    description: "Pass-through of weekly receiving summary for targeted player-weeks."
+  - name: stg_pff__receiving_no_targets
+    description: "Pass-through of weekly receiving summary for untargeted player-weeks (route data only)."
+  - name: stg_pff__receiving_depth_weekly_with_targets
+    description: "Pass-through of weekly receiving-depth stats for targeted player-weeks. Raw append-only; dedup candidate."
+  - name: stg_pff__receiver_scheme
+    description: "Pass-through of receiving splits vs. man / zone coverage per player-week."

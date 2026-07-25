@@ -1020,4 +1020,4 @@ SELECT
     center_deep_grades_pass_route,
     left_deep_grades_pass_route,
     season
-FROM {{ source('pff_raw', 'receiving_depth_weekly_with_targets') }}
+FROM {{ ref('stg_pff__receiving_depth_weekly_with_targets') }}

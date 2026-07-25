@@ -1,13 +1,55 @@
 version: 2
 
+# NOTE ON TEST SEVERITY: `error` where uniqueness is structurally guaranteed by a
+# GROUP BY; `warn` where the grain is inferred (raw append-only feeds or join
+# fan-out risk). Run `dbt build`, review warnings, then promote warn -> error
+# (or add dedup in staging) once validated against Athena.
+
 models:
-  - name: vw_allowed_pressure
-    description: "Intermediate layer - feeds downstream views"
-  - name: vw_passing_pressure_agg
-    description: "Intermediate layer - feeds downstream views"
-  - name: vw_play_counts_enriched
-    description: "Intermediate layer - feeds downstream views"
   - name: vw_receiving
-    description: "Intermediate layer - feeds downstream views"
+    description: >
+      Weekly player receiving stats, unioning targeted and untargeted player-week
+      feeds into one shape (derives behind_snaps from pass_plays minus aligned snaps).
+      Grain: one row per player-week-season (assumes the two feeds are disjoint;
+      see singular test assert_no_overlap_receiving_targets).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player_id, week, season]
+          config: {severity: warn}
+  - name: vw_play_counts_enriched
+    description: >
+      Player snap counts enriched with week/season from games and team abbreviation
+      from the team id lookup. Grain (inferred): player_id x game_id.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player_id, game_id]
+          config: {severity: warn}
+  - name: vw_allowed_pressure
+    description: >
+      Team-week offensive pressures allowed, split into QB-caused vs. other.
+      Grain: team_name x week x season (GROUP BY).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [team_name, week, season]
+  - name: vw_passing_pressure_agg
+    description: >
+      Team-week QB performance split by pressure vs. no pressure: snap-weighted
+      grades, time to throw, YPA, accuracy, QBR, BTT/TWP rates, aDOT, scramble and
+      sack rates. Grain: team_name x week x season (GROUP BY).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [team_name, week, season]
   - name: vw_receiving_enriched
-    description: "Intermediate layer - feeds downstream views"
+    description: >
+      vw_receiving joined to vw_play_counts_enriched to attach player name, team
+      abbreviation, and game_id. Grain follows vw_receiving (player-week-season);
+      warn-level test guards against join fan-out.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [player_id, week, season]
+          config: {severity: warn}
