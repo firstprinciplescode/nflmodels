@@ -1,67 +1,67 @@
 SELECT
-  A.*
-, B.position scheme_position
-, B.draft_season
-, B.eligible_season
-, (CASE WHEN (B.man_routes = 0) THEN GREATEST((A.routes - B.zone_routes), 0) ELSE B.man_routes END) man_routes
-, B.man_targets
-, B.man_receptions
-, B.man_yards
-, B.man_touchdowns
-, B.man_first_downs
-, B.man_drops
-, B.man_fumbles
-, B.man_interceptions
-, B.man_contested_targets
-, B.man_contested_receptions
-, B.man_yards_after_catch
-, B.man_avoided_tackles
-, B.man_longest
-, (CASE WHEN (B.man_pass_plays = 0) THEN GREATEST((A.pass_plays - B.zone_pass_plays), 0) ELSE B.man_pass_plays END) man_pass_plays
-, (CASE WHEN (B.man_pass_blocks = 0) THEN GREATEST((A.pass_blocks - B.zone_pass_blocks), 0) ELSE B.man_pass_blocks END) man_pass_blocks
-, B.man_route_rate
-, B.man_yprr
-, B.man_yards_per_reception
-, B.man_yards_after_catch_per_reception
-, B.man_avg_depth_of_target
-, (CASE WHEN (B.man_targets = 0) THEN null ELSE B.man_targeted_qb_rating END) man_targeted_qb_rating
-, B.man_caught_percent
-, B.man_drop_rate
-, B.man_contested_catch_rate
-, B.man_targets_percent
-, B.man_pass_block_rate
-, B.man_grades_pass_route
-, B.man_grades_hands_drop
-, (CASE WHEN (B.zone_routes = 0) THEN GREATEST((A.routes - B.man_routes), 0) ELSE B.zone_routes END) zone_routes
-, B.zone_targets
-, B.zone_receptions
-, B.zone_yards
-, B.zone_touchdowns
-, B.zone_first_downs
-, B.zone_drops
-, B.zone_fumbles
-, B.zone_interceptions
-, B.zone_contested_targets
-, B.zone_contested_receptions
-, B.zone_yards_after_catch
-, B.zone_avoided_tackles
-, B.zone_longest
-, (CASE WHEN (B.zone_pass_plays = 0) THEN GREATEST((A.pass_plays - B.man_pass_plays), 0) ELSE B.zone_pass_plays END) zone_pass_plays
-, (CASE WHEN (B.zone_pass_blocks = 0) THEN GREATEST((A.pass_blocks - B.man_pass_blocks), 0) ELSE B.zone_pass_blocks END) zone_pass_blocks
-, B.zone_route_rate
-, B.zone_yprr
-, B.zone_yards_per_reception
-, B.zone_yards_after_catch_per_reception
-, B.zone_avg_depth_of_target
-, (CASE WHEN (B.zone_targets = 0) THEN null ELSE B.zone_targeted_qb_rating END) zone_targeted_qb_rating
-, B.zone_caught_percent
-, B.zone_drop_rate
-, B.zone_contested_catch_rate
-, B.zone_targets_percent
-, B.zone_pass_block_rate
-, B.zone_grades_pass_route
-, B.zone_grades_hands_drop
-, (CASE WHEN ((A.position IN ('C', 'LT', 'LG', 'None', 'RG', 'RT')) OR (A.position IS NULL)) THEN 'Other' WHEN (A.position IN ('LWR', 'RWR', 'SLWR', 'SRWR')) THEN 'WR' WHEN (A.position IN ('TE-L', 'TE-R')) THEN 'TE' ELSE A.position END) position_group
+  A.*,
+B.POSITION AS SCHEME_POSITION,
+B.DRAFT_SEASON,
+B.ELIGIBLE_SEASON,
+(CASE WHEN (B.MAN_ROUTES = 0) THEN GREATEST((A.ROUTES - B.ZONE_ROUTES), 0) ELSE B.MAN_ROUTES END) AS MAN_ROUTES,
+B.MAN_TARGETS,
+B.MAN_RECEPTIONS,
+B.MAN_YARDS,
+B.MAN_TOUCHDOWNS,
+B.MAN_FIRST_DOWNS,
+B.MAN_DROPS,
+B.MAN_FUMBLES,
+B.MAN_INTERCEPTIONS,
+B.MAN_CONTESTED_TARGETS,
+B.MAN_CONTESTED_RECEPTIONS,
+B.MAN_YARDS_AFTER_CATCH,
+B.MAN_AVOIDED_TACKLES,
+B.MAN_LONGEST,
+(CASE WHEN (B.MAN_PASS_PLAYS = 0) THEN GREATEST((A.PASS_PLAYS - B.ZONE_PASS_PLAYS), 0) ELSE B.MAN_PASS_PLAYS END) AS MAN_PASS_PLAYS,
+(CASE WHEN (B.MAN_PASS_BLOCKS = 0) THEN GREATEST((A.PASS_BLOCKS - B.ZONE_PASS_BLOCKS), 0) ELSE B.MAN_PASS_BLOCKS END) AS MAN_PASS_BLOCKS,
+B.MAN_ROUTE_RATE,
+B.MAN_YPRR,
+B.MAN_YARDS_PER_RECEPTION,
+B.MAN_YARDS_AFTER_CATCH_PER_RECEPTION,
+B.MAN_AVG_DEPTH_OF_TARGET,
+(CASE WHEN (B.MAN_TARGETS = 0) THEN null ELSE B.MAN_TARGETED_QB_RATING END) AS MAN_TARGETED_QB_RATING,
+B.MAN_CAUGHT_PERCENT,
+B.MAN_DROP_RATE,
+B.MAN_CONTESTED_CATCH_RATE,
+B.MAN_TARGETS_PERCENT,
+B.MAN_PASS_BLOCK_RATE,
+B.MAN_GRADES_PASS_ROUTE,
+B.MAN_GRADES_HANDS_DROP,
+(CASE WHEN (B.ZONE_ROUTES = 0) THEN GREATEST((A.ROUTES - B.MAN_ROUTES), 0) ELSE B.ZONE_ROUTES END) AS ZONE_ROUTES,
+B.ZONE_TARGETS,
+B.ZONE_RECEPTIONS,
+B.ZONE_YARDS,
+B.ZONE_TOUCHDOWNS,
+B.ZONE_FIRST_DOWNS,
+B.ZONE_DROPS,
+B.ZONE_FUMBLES,
+B.ZONE_INTERCEPTIONS,
+B.ZONE_CONTESTED_TARGETS,
+B.ZONE_CONTESTED_RECEPTIONS,
+B.ZONE_YARDS_AFTER_CATCH,
+B.ZONE_AVOIDED_TACKLES,
+B.ZONE_LONGEST,
+(CASE WHEN (B.ZONE_PASS_PLAYS = 0) THEN GREATEST((A.PASS_PLAYS - B.MAN_PASS_PLAYS), 0) ELSE B.ZONE_PASS_PLAYS END) AS ZONE_PASS_PLAYS,
+(CASE WHEN (B.ZONE_PASS_BLOCKS = 0) THEN GREATEST((A.PASS_BLOCKS - B.MAN_PASS_BLOCKS), 0) ELSE B.ZONE_PASS_BLOCKS END) AS ZONE_PASS_BLOCKS,
+B.ZONE_ROUTE_RATE,
+B.ZONE_YPRR,
+B.ZONE_YARDS_PER_RECEPTION,
+B.ZONE_YARDS_AFTER_CATCH_PER_RECEPTION,
+B.ZONE_AVG_DEPTH_OF_TARGET,
+(CASE WHEN (B.ZONE_TARGETS = 0) THEN null ELSE B.ZONE_TARGETED_QB_RATING END) AS ZONE_TARGETED_QB_RATING,
+B.ZONE_CAUGHT_PERCENT,
+B.ZONE_DROP_RATE,
+B.ZONE_CONTESTED_CATCH_RATE,
+B.ZONE_TARGETS_PERCENT,
+B.ZONE_PASS_BLOCK_RATE,
+B.ZONE_GRADES_PASS_ROUTE,
+B.ZONE_GRADES_HANDS_DROP,
+(CASE WHEN ((A.POSITION IN ('C', 'LT', 'LG', 'None', 'RG', 'RT')) OR (A.POSITION IS null)) THEN 'Other' WHEN (A.POSITION IN ('LWR', 'RWR', 'SLWR', 'SRWR')) THEN 'WR' WHEN (A.POSITION IN ('TE-L', 'TE-R')) THEN 'TE' ELSE A.POSITION END) AS POSITION_GROUP
 FROM
-  ({{ ref('vw_receiving_enriched') }} A
-LEFT JOIN {{ ref('stg_pff__receiver_scheme') }} B ON ((A.player_id = B.player_id) AND (A.season = B.season) AND (A.week = B.week) AND (A.jersey_number = B.jersey_number) AND (A.player = B.player) AND (A.team_abbreviation = B.team_name)))
+  ({{ ref('vw_receiving_enriched') }} AS A
+LEFT JOIN {{ ref('stg_pff__receiver_scheme') }} AS B ON ((A.PLAYER_ID = B.PLAYER_ID) AND (A.SEASON = B.SEASON) AND (A.WEEK = B.WEEK) AND (A.JERSEY_NUMBER = B.JERSEY_NUMBER) AND (A.PLAYER = B.PLAYER) AND (A.TEAM_ABBREVIATION = B.TEAM_NAME)))
