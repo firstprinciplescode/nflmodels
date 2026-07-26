@@ -472,7 +472,7 @@ SELECT
     right_behind_los_drops,
     left_behind_los_first_downs,
     week,
-    CAST(scraped_at AS VARCHAR) as scraped_at,
+    CAST(scraped_at AS VARCHAR) AS scraped_at,
 
     right_deep_grades_pass_route,
     right_behind_los_grades_pass_route,
@@ -488,19 +488,10 @@ SELECT
     left_behind_los_grades_pass_route,
     left_short_grades_pass_route,
 
-
-
-
     center_short_grades_pass_route,
-
-
-
-
 
     deep_grades_pass_route,
     behind_los_grades_pass_route,
-
-
 
     right_medium_grades_pass_route,
 
@@ -985,7 +976,7 @@ SELECT
     right_behind_los_drops,
     left_behind_los_first_downs,
     week,
-    CAST(scraped_at AS VARCHAR) as scraped_at,
+    CAST(scraped_at AS VARCHAR) AS scraped_at,
 
     right_deep_grades_pass_route,
     right_behind_los_grades_pass_route,
@@ -1001,19 +992,10 @@ SELECT
     left_behind_los_grades_pass_route,
     left_short_grades_pass_route,
 
-
-
-
     center_short_grades_pass_route,
-
-
-
-
 
     deep_grades_pass_route,
     behind_los_grades_pass_route,
-
-
 
     right_medium_grades_pass_route,
 
