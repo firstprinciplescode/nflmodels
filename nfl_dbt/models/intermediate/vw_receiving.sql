@@ -47,7 +47,7 @@ SELECT
 , yards_per_reception
 , yprr
 FROM
-  {{ source('pff_raw', 'receiving_with_targets') }}
+  {{ ref('stg_pff__receiving_with_targets') }}
 UNION ALL SELECT
   avg_depth_of_target
 , avoided_tackles
@@ -97,4 +97,4 @@ UNION ALL SELECT
 , yards_per_reception
 , yprr
 FROM
-  {{ source('pff_raw', 'receiving_no_targets') }}
+  {{ ref('stg_pff__receiving_no_targets') }}

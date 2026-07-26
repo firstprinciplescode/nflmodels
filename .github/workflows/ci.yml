@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  id-token: write   # required for AWS OIDC
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest pandas pyarrow boto3
+      - run: python -m pytest -q
+
+  sqlfluff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install sqlfluff
+      - run: sqlfluff lint nfl_dbt/models --dialect athena --templater jinja
+
+  dbt-build:
+    # Runs dbt build (models + all tests) against Athena. Costs pennies per run.
+    # SETUP REQUIRED (one time, before this job can pass):
+    #   1. Create an IAM OIDC identity provider for token.actions.githubusercontent.com
+    #   2. Create a role trusting repo firstprinciplescode/nflmodels with Athena/Glue/S3 perms
+    #   3. Put its ARN in repo secret AWS_OIDC_ROLE_ARN
+    # Until then this job will fail at the credentials step - that is expected.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install dbt-core dbt-athena-community
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Write CI profile
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml << 'PROFILE'
+          nfl_athena:
+            target: ci
+            outputs:
+              ci:
+                type: athena
+                s3_staging_dir: ${{ secrets.ATHENA_STAGING_S3 }}
+                region_name: us-east-1
+                schema: nfl_data_ci
+                database: awsdatacatalog
+          PROFILE
+      - run: dbt deps
+        working-directory: nfl_dbt
+      - run: dbt build
+        working-directory: nfl_dbt

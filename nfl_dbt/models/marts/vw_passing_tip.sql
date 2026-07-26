@@ -41,5 +41,5 @@ SELECT
 , ((CAST(SUM(less_def_gen_pressures) AS DOUBLE) / NULLIF(SUM(less_passing_snaps), 0)) - (CAST(SUM(more_def_gen_pressures) AS DOUBLE) / NULLIF(SUM(more_passing_snaps), 0))) pressure_rate_difference
 , ((CAST(SUM(less_sacks) AS DOUBLE) / NULLIF(SUM(less_passing_snaps), 0)) - (CAST(SUM(more_sacks) AS DOUBLE) / NULLIF(SUM(more_passing_snaps), 0))) sack_rate_difference
 FROM
-  passing_tip
+  {{ ref('stg_pff__passing_tip') }}
 GROUP BY team_name, week, season
