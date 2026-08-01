@@ -369,17 +369,17 @@ plot_ol_run_block <- function(player_ids,
     )
 }
 
-# DET 2025
-ol_ids <- c(124034, 81788, 10650, 10729, 98261, 44909, 12307)
+# NE 2025
+ol_ids <- c(27357, 46013, 8701, 157106, 146717, 59869, 59741)
 plot_ol_run_block(ol_ids, gap_player_season_summary, "gap_season_pctl",
-                  "DET — Run Block Gap Pctl")
-plot_ol_run_block(ol_ids, zone_player_season_summary, "zone_season_pctl", "DET — Run Block Zone Pctl")
+                  "NE — Run Block Gap Pctl")
+plot_ol_run_block(ol_ids, zone_player_season_summary, "zone_season_pctl", "NE — Run Block Zone Pctl")
 
 
-# DET FA SIGNINGS
-ol_ids <- c(81995, 59879, 84236)
-plot_ol_run_block(ol_ids, gap_player_season_summary,  "gap_season_pctl",  "DET FA Signings — Run Block Gap Pctl")
-plot_ol_run_block(ol_ids, zone_player_season_summary, "zone_season_pctl", "DET FA Signings — Run Block Zone Pctl")
+# NE FA SIGNINGS
+ol_ids <- c(57107, 59854)
+plot_ol_run_block(ol_ids, gap_player_season_summary,  "gap_season_pctl",  "NE FA Signings — Run Block Gap Pctl")
+plot_ol_run_block(ol_ids, zone_player_season_summary, "zone_season_pctl", "NE FA Signings — Run Block Zone Pctl")
 
 # DET 2024 / 3
 ol_ids <- c(81788, 10729, 39137, 7032, 10650, 37070)
@@ -438,7 +438,7 @@ plot_team_rush_off <- function(team_season,
     )
 }
 
-plot_team_rush_off("DET2025")
+plot_team_rush_off("NE2025")
 plot_team_rush_off("CHI2025")
 plot_team_rush_off("DET2024")
 plot_team_rush_off("DET2023")
@@ -524,10 +524,10 @@ plot_team_rush <- function(team_season,
     )
 }
 
-plot_team_rush("DET2025", side = "off", sort_by = "week")
-plot_team_rush("DET2025", side = "off", sort_by = "ybc")
-plot_team_rush("DET2025", side = "off", sort_by = "ypc")
-plot_team_rush("DET2025", side = "off", sort_by = "yac")
+plot_team_rush("NE2025", side = "off", sort_by = "week")
+plot_team_rush("NE2025", side = "off", sort_by = "ybc")
+plot_team_rush("NE2025", side = "off", sort_by = "ypc")
+plot_team_rush("NE2025", side = "off", sort_by = "yac")
 
 plot_team_rush("CHI2025", side = "off", sort_by = "week")
 plot_team_rush("CHI2025", side = "off", sort_by = "ybc")

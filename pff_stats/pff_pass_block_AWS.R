@@ -370,44 +370,44 @@ plot_ol_pass_block <- function(player_ids,
     )
 }
 
-ol_ids <- c(98261, 124034, 81788, 10650, 10729, 44909, 39137, 7032, 37070)
+ol_ids <- c(27357, 46013, 8701, 157106, 146717, 59869, 59741)
 
 
 # All pass block snaps
-plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "grade_season_pctl",    "DET — Pass Block Grade Pctl")
-plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "pressure_season_pctl", "DET — Pass Block Pressure Pctl")
+plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "grade_season_pctl",    "NE — Pass Block Grade Pctl")
+plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "pressure_season_pctl", "NE — Pass Block Pressure Pctl")
 
 # True pass set only
-plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "grade_season_pctl",    "DET — True Pass Set Grade Pctl")
-plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "pressure_season_pctl", "DET — True Pass Set Pressure Pctl")
+plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "grade_season_pctl",    "NE — True Pass Set Grade Pctl")
+plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "pressure_season_pctl", "NE — True Pass Set Pressure Pctl")
 
 
-ol_ids <- c(81995, 59879, 84236)
+ol_ids <- c(57107, 59854)
 
 # All pass block snaps
-plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "grade_season_pctl",    "DET Signings — Pass Block Grade Pctl")
-plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "pressure_season_pctl", "DET Signings — Pass Block Pressure Pctl")
+plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "grade_season_pctl",    "NE Signings — Pass Block Grade Pctl")
+plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "pressure_season_pctl", "NE Signings — Pass Block Pressure Pctl")
 
 # True pass set only
-plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "grade_season_pctl",    "DET Signings — True Pass Set Grade Pctl")
-plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "pressure_season_pctl", "DET Signings — True Pass Set Pressure Pctl")
+plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "grade_season_pctl",    "NE Signings — True Pass Set Grade Pctl")
+plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "pressure_season_pctl", "NE Signings — True Pass Set Pressure Pctl")
 
 
 
 View(pass_rush_all_opp_percentile %>% 
-            filter(qbgrp_ssn %in% c("DETGoff-2024", "DETGoff-2025")) %>% 
+            filter(qbgrp_ssn %in% c("NEMaye-2024", "NEMaye-2025")) %>% 
             select(qbgrp_ssn, ends_with("_rank")))
 View(pass_rush_tps_opp_percentile %>% 
-       filter(qbgrp_ssn %in% c("DETGoff-2024", "DETGoff-2025")) %>% 
+       filter(qbgrp_ssn %in% c("NEMaye-2024", "NEMaye-2025")) %>% 
        select(qbgrp_ssn, ends_with("_rank")))
 
-det_long <- bind_rows(
+ne_long <- bind_rows(
   pass_rush_all_opp_percentile %>%
-    filter(qbgrp_ssn %in% c("DETGoff-2024", "DETGoff-2025")) %>%
+    filter(qbgrp_ssn %in% c("NEMaye-2024", "NEMaye-2025")) %>%
     select(qbgrp_ssn, ends_with("_rank")) %>%
     mutate(snap_type = "All Pass-Rush"),
   pass_rush_tps_opp_percentile %>%
-    filter(qbgrp_ssn %in% c("DETGoff-2024", "DETGoff-2025")) %>%
+    filter(qbgrp_ssn %in% c("NEMaye-2024", "NEMaye-2025")) %>%
     select(qbgrp_ssn, ends_with("_rank")) %>%
     rename_with(~ sub("^tps_", "", .x)) %>%
     mutate(snap_type = "True Pass Set")
@@ -425,7 +425,7 @@ det_long <- bind_rows(
     snap_type = factor(snap_type, levels = c("All Pass-Rush","True Pass Set"))
   )
 
-ggplot(det_long, aes(position, metric, fill = pctl)) +
+ggplot(ne_long, aes(position, metric, fill = pctl)) +
   geom_tile(color = "white", linewidth = 0.8) +
   geom_text(aes(label = sprintf("%.0f", pctl * 100),
                 color = abs(pctl - 0.5) > 0.3),
@@ -440,7 +440,7 @@ ggplot(det_long, aes(position, metric, fill = pctl)) +
   facet_grid(snap_type ~ season, switch = "y") +
   labs(
     title = "DET Goff Offense — Opposing Pass-Rush Production",
-    subtitle = "Higher (red) = defenders did better vs DET than their season norm  |  Lower (blue) = OL/QB suppressed them",
+    subtitle = "Higher (red) = defenders did better vs NE than their season norm  |  Lower (blue) = OL/QB suppressed them",
     x = "Defender Position", y = NULL
   ) +
   theme_minimal(base_size = 12) +
@@ -454,8 +454,8 @@ ggplot(det_long, aes(position, metric, fill = pctl)) +
     legend.position   = "right"
   )
 
-det_protection <- qb_stats_df_final %>% 
-  filter(posteam == "DET", season %in% c(2024, 2025)) %>%
+ne_protection <- qb_stats_df_final %>% 
+  filter(posteam == "NE", season %in% c(2024, 2025)) %>%
   select(qbgrp_ssn, week, season, defteam,
          # Scheme tendencies
          less_rate,         less_rate_rank_def,
@@ -482,7 +482,7 @@ det_protection <- qb_stats_df_final %>%
          
          )
 
-det_protection %>%
+ne_protection %>%
   group_by(season) %>%
   summarise(
     n_games = n(),
@@ -495,8 +495,8 @@ det_protection %>%
 
 
 # Build the game-level frame
-det_games <- qb_stats_df_final %>% 
-  filter(posteam == "DET", season %in% c(2025)) %>%
+ne_games <- qb_stats_df_final %>% 
+  filter(posteam == "NE", season %in% c(2025)) %>%
   select(qbgrp_ssn, week, season, defteam, tds, pbp_xtds, part_xtds,
          # Scheme
          less_rate_rank_def, pa_rate_rank_def, behind_los_rate_rank_def,
@@ -538,22 +538,22 @@ plot_det <- function(df, x_var, y_var, x_lab = x_var, y_lab = y_var, title = NUL
 }
 
 # 1. Quick game suppresses pressure? Positive slope = yes.
-p1 <- plot_det(det_games, "less_rate_rank_def", "pressure_rate_rank_def",
+p1 <- plot_det(ne_games, "less_rate_rank_def", "pressure_rate_rank_def",
                "Quick Game Rate (vs def avg)", "Pressure Suppression",
                "More quick game → less pressure?")
 
 # 2. PA suppresses pressure? Positive slope = yes.
-p2 <- plot_det(det_games, "pa_rate_rank_def", "pressure_rate_rank_def",
+p2 <- plot_det(ne_games, "pa_rate_rank_def", "pressure_rate_rank_def",
                "PA Rate (vs def avg)", "Pressure Suppression",
                "More PA → less pressure?")
 
 # 3. Pressure quality → TD production? Positive slope = protection drives scoring.
-p3 <- plot_det(det_games, "pressure_rate_rank_def", "pbp_xtds_rank_def",
+p3 <- plot_det(ne_games, "pressure_rate_rank_def", "pbp_xtds_rank_def",
                "Pressure Suppression", "Expected TDs (pbp)",
                "Protection → expected TDs?")
 
 # 4. Quick game → TD production? Floor analysis.
-p4 <- plot_det(det_games, "less_rate_rank_def", "pbp_xtds_rank_def",
+p4 <- plot_det(ne_games, "less_rate_rank_def", "pbp_xtds_rank_def",
                "Quick Game Rate", "Expected TDs (pbp)",
                "Does quick game cap TD upside?")
 
@@ -574,7 +574,7 @@ league_protect <- qb_stats_df_final %>%
     .groups = "drop"
   ) %>%
   filter(n_games >= 8) %>%                       # full(ish) season only
-  mutate(is_det = grepl("^DET", qbgrp_ssn))
+  mutate(is_det = grepl("^NE", qbgrp_ssn))
 
 # Helper
 plot_league <- function(df, x_var, y_var, x_lab, y_lab, title) {
@@ -602,18 +602,18 @@ plot_league <- function(df, x_var, y_var, x_lab, y_lab, title) {
 
 pl1 <- plot_league(league_protect, "less_rate", "pressure",
                    "Quick Game Rate (mean rank_def)", "Pressure Suppression",
-                   "Quick game → protection: where does DET sit?")
+                   "Quick game → protection: where does NE sit?")
 
 pl2 <- plot_league(league_protect, "pa_rate", "pressure",
                    "PA Rate (mean rank_def)", "Pressure Suppression",
-                   "PA → protection: where does DET sit?")
+                   "PA → protection: where does NE sit?")
 
 patchwork::wrap_plots(pl1, pl2, ncol = 2)
 
 
 
 det_games_25 <- qb_stats_df_final %>%
-  filter(posteam == "DET", season == 2025) %>%
+  filter(posteam == "NE", season == 2025) %>%
   select(qbgrp_ssn, week, season, defteam,
          less_rate_rank_def, pa_rate_rank_def, adot_rank_def,
          blitz_rate_rank_def,
@@ -661,15 +661,15 @@ league_protect <- qb_stats_df_final %>%
     .groups = "drop"
   ) %>%
   filter(n_games >= 8) %>%
-  mutate(is_det = grepl("^DET", qbgrp_ssn))
+  mutate(is_det = grepl("^NE", qbgrp_ssn))
 
 # Same plot_league helper from before
 pl_b1 <- plot_league(league_protect, "less_rate", "blitz_pressure",
                      "Quick Game Rate (mean rank_def)", "Blitz Pressure Suppression",
-                     "Quick game → blitz protection: where does DET sit?")
+                     "Quick game → blitz protection: where does NE sit?")
 
 pl_b2 <- plot_league(league_protect, "pa_rate", "blitz_pressure",
                      "PA Rate (mean rank_def)", "Blitz Pressure Suppression",
-                     "PA → blitz protection: where does DET sit?")
+                     "PA → blitz protection: where does NE sit?")
 
 patchwork::wrap_plots(pl_b1, pl_b2, ncol = 2)

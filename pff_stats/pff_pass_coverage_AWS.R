@@ -187,6 +187,11 @@ final_coverage_df_qbgrp <- left_join(final_coverage_df_qbgrp,
                                        by = c("player_id", "week", "season"))
 
 
+final_coverage_df_qbgrp <- final_coverage_df_qbgrp %>%
+  mutate(pass_break_up_rate      = ifelse(targets      > 0, pass_break_ups      / targets,      NA_real_),
+         man_pass_break_up_rate  = ifelse(man_targets  > 0, man_pass_break_ups  / man_targets,  NA_real_),
+         zone_pass_break_up_rate = ifelse(zone_targets > 0, zone_pass_break_ups / zone_targets, NA_real_))
+
 colnames(final_coverage_df_qbgrp)
 
 final_coverage_df_qbgrp %>%
@@ -665,17 +670,18 @@ add_pctl_buckets <- function(df,
 receiving_coverage_versus <- add_pctl_buckets(receiving_coverage_versus)
 
 
-View(coverage_man_player_season_summary %>% filter(def_ssn == "DET2025"))
-View(coverage_zone_player_season_summary %>% filter(def_ssn == "DET2025"))
-View(coverage_combined_player_season_summary %>% filter(def_ssn == "DET2025"))
+View(coverage_man_player_season_summary %>% filter(def_ssn == "NE2025"))
+View(coverage_zone_player_season_summary %>% filter(def_ssn == "NE2025"))
+View(coverage_combined_player_season_summary %>% filter(def_ssn == "NE2025"))
 
-View(coverage_man_player_season_summary %>% filter(player_id == 8000))
-View(coverage_zone_player_season_summary %>% filter(player_id == 8000))
-View(coverage_combined_player_season_summary %>% filter(player_id == 8000))
+View(coverage_man_player_season_summary %>% filter(player_id == 10698))
+View(coverage_zone_player_season_summary %>% filter(player_id == 10698))
+
+# 61853 57662 61853
 
 
 receiving_func_base %>% 
-  filter(def_ssn == 'DET2025')
+  filter(def_ssn == 'NE2025')
 
 
 put_object(
@@ -796,12 +802,10 @@ coverage_archetype_profile <- function(defender_id,
 }
 
 
-coverage_archetype_profile(26940, dim = "man_zone_grp_cluster")
-coverage_archetype_profile(26940, dim = "pos_rank", position_group_filter = "WR", def_ssn_filter = "DET2025")
-coverage_archetype_profile(26940, dim = "rte_cluster_name", position_group_filter = c("WR"), def_ssn_filter = "DET2025")
-
-coverage_archetype_profile(101515, dim = "man_zone_grp_cluster")
-coverage_archetype_profile(101515, dim = "rte_cluster_name", def_ssn_filter = "DET2025")
+coverage_archetype_profile(10698, dim = "man_zone_grp_cluster", def_ssn_filter = "CHI2025")
+coverage_archetype_profile(10698, dim = "pos_rank", def_ssn_filter = "CHI2025")
+coverage_archetype_profile(10698, dim = "rte_cluster_name", def_ssn_filter = "CHI2025")
+coverage_archetype_profile(10698, dim = "tgt_cluster_name", def_ssn_filter = "CHI2025")
 
 # receiver baseline: how each receiver does across ALL coverage, per season
 receiving_coverage_rec_stats_base <- receiving_coverage_versus %>%
@@ -813,8 +817,18 @@ receiving_coverage_rec_stats_base <- receiving_coverage_versus %>%
   filter(rec_targets >= 15)
 
 # defender effect = actual allowed minus what those receivers normally do
+# defender effect = actual allowed minus what those receivers normally do
 receiving_coverage_defender_base <- receiving_coverage_versus %>%
   inner_join(receiving_coverage_rec_stats_base, by = c("player_id", "season")) %>%
+  # GATE: sub-floor weeks carry NA final_position (helper join whiffed the snap floor) -
+  # drop them entirely so their targets never pool. Snap-based gate by design; n_tgt
+  # will read lower than PFF site season totals.
+  filter(!is.na(final_position)) %>%
+  # CONSOLIDATE: minority labels from cleared weeks (WLB/MLB oscillation) resolve to
+  # the player-season mode so one player can't fragment into two percentile rows.
+  group_by(coverage_player_id, season) %>%
+  mutate(final_position = names(which.max(table(final_position)))) %>%
+  ungroup() %>%
   group_by(coverage_player_id, final_position, def_ssn, season) %>%
   summarise(
     n_tgt              = sum(targets, na.rm = TRUE),
@@ -831,13 +845,19 @@ receiving_coverage_defender_base <- receiving_coverage_versus %>%
          ypt_pctl = percent_rank(-ypt_vs_exp)) %>%
   ungroup()
 
+# tripwire: no player-season may carry two labels (would fragment percentile rows)
+stopifnot(
+  receiving_coverage_defender_base %>%
+    group_by(coverage_player_id, season) %>%
+    filter(n_distinct(final_position) > 1) %>%
+    nrow() == 0
+)
+
 receiving_coverage_defender_final <- receiving_coverage_defender_base %>% 
   filter(!is.na(final_position))
 
-receiving_coverage_defender_base %>% filter(coverage_player_id == 26940)
+receiving_coverage_defender_base %>% filter(coverage_player_id == 61853)
 
-
-View(receiving_coverage_versus)
 
 
 plot_coverage_card_player <- function(player_id_vec,
@@ -999,9 +1019,9 @@ plot_coverage_card_player <- function(player_id_vec,
   )
 }
 
-plot_coverage_card_player(26940, family = "man")
-plot_coverage_card_player(26940, family = "zone")
-plot_coverage_card_player(26940, family = "slot")
+plot_coverage_card_player(10698, family = "man")
+plot_coverage_card_player(10698, family = "zone")
+# plot_coverage_card_player(61853, family = "slot")
 
 
 
@@ -1104,31 +1124,20 @@ plot_coverage_archetype <- function(profile_df,
 }
 # rte_cluster_name (defaults are fine — order by tgt_share desc)
 
-prof <- coverage_archetype_profile(26940,
-                                   dim            = "rte_cluster_name",
-                                   def_ssn_filter = "DET2025")
+prof <- coverage_archetype_profile(10698,
+                                   dim            = "pos_rank",
+                                   def_ssn_filter = "CHI2025")
 plot_coverage_archetype(prof,
-                        player_name = "D.J. Reed",
-                        dim_label   = "Route Archetype")
+                        player_name = "Kevin Byard",
+                        dim_label   = "Pos Rank")
 
 # pos_rank, WR-filtered (sort ascending so 1→5 reads naturally)
-prof <- coverage_archetype_profile(26940,
-                                   dim                   = "pos_rank",
-                                   def_ssn_filter        = "DET2025",
-                                   position_group_filter = "WR")
+prof <- coverage_archetype_profile(10698,
+                                   dim                   = "tgt_cluster_name",
+                                   def_ssn_filter        = "CHI2025")
 plot_coverage_archetype(prof,
-                        player_name = "D.J. Reed",
-                        dim_label   = "WR Depth Chart Rank",
-                        order_by    = "arch")
-
-# 2. then call with the actual bucket column as dim
-prof <- coverage_archetype_profile(26940,
-                                   dim                   = "xpass_qrtl",
-                                   def_ssn_filter        = "DET2025",
-                                   position_group_filter = "WR")
-plot_coverage_archetype(prof,
-                        player_name = "D.J. Reed",
-                        dim_label   = "WR Expected-Pass Quartile",
+                        player_name = "Kevin Byard",
+                        dim_label   = "Tgt Cluster",
                         order_by    = "arch")
 
 
@@ -1324,8 +1333,7 @@ find_similar_defenders <- function(defender_id,
 
 defender_diet_matrix <- build_defender_diet_matrix()
 
-comps <- find_similar_defenders(26940, "DET2025", defender_diet_matrix)
-comps <- find_similar_defenders(101515, "DET2025", defender_diet_matrix)
+comps <- find_similar_defenders(10698, "CHI2025", defender_diet_matrix)
 
 inspect_defender_comps <- function(defender_id,
                                    target_def_ssn,
@@ -1361,7 +1369,7 @@ inspect_defender_comps <- function(defender_id,
     arrange(desc(similarity))
 }
 
-inspect_defender_comps(101515, "DET2025", defender_diet_matrix, min_similarity = .95, n_top = 100) %>% View()
+inspect_defender_comps(10698, "CHI2025", defender_diet_matrix, min_similarity = .965, n_top = 25) %>% View()
 
 
 compare_comps_performance <- function(comps_df,
@@ -1400,17 +1408,27 @@ compare_comps_performance <- function(comps_df,
            ends_with("_season_pctl"))
 }
 
-cohort_perf <- compare_comps_performance(comps, 26940, "DET2025", family = "zone")
-cohort_perf <- compare_comps_performance(comps, 101515, "DET2025", family = "zone")
+
+cohort_perf <- compare_comps_performance(comps, 10698, "CHI2025", family = "man")
 
 # where does Reed land in the cohort distribution on each metric?
-focal_row <- cohort_perf %>% filter(player_id == 26940, def_ssn == "DET2025")
+focal_row <- cohort_perf %>% filter(player_id == 10698, def_ssn == "CHI2025")
 pctl_cols <- names(cohort_perf)[grepl("_season_pctl$", names(cohort_perf))]
 
 vapply(pctl_cols, function(col) {
   mean(cohort_perf[[col]] < focal_row[[col]], na.rm = TRUE)
 }, numeric(1)) %>% sort(decreasing = TRUE)
 
+
+cohort_perf <- compare_comps_performance(comps, 10698, "CHI2025", family = "zone")
+
+# where does Reed land in the cohort distribution on each metric?
+focal_row <- cohort_perf %>% filter(player_id == 10698, def_ssn == "CHI2025")
+pctl_cols <- names(cohort_perf)[grepl("_season_pctl$", names(cohort_perf))]
+
+vapply(pctl_cols, function(col) {
+  mean(cohort_perf[[col]] < focal_row[[col]], na.rm = TRUE)
+}, numeric(1)) %>% sort(decreasing = TRUE)
 
 
 plot_comps_dots <- function(comps_df,
@@ -1507,9 +1525,378 @@ plot_comps_dots <- function(comps_df,
     )
 }
 
-comps <- find_similar_defenders(123907, "DET2025", defender_diet_matrix,
-                                min_similarity = 0.95)
+comps <- find_similar_defenders(10698, "CHI2025", defender_diet_matrix,
+                                min_similarity = 0.97)
 
-plot_comps_dots(comps, 123907, "DET2025", family = "zone")
-plot_comps_dots(comps, 123907, "DET2025", family = "man")
-plot_comps_dots(comps, 123907, "DET2025", family = "slot")
+plot_comps_dots(comps, 10698, "CHI2024", family = "zone")
+plot_comps_dots(comps, 10698, "CHI2024", family = "man")
+plot_comps_dots(comps, 61853, "NE2025", family = "slot")
+
+
+
+#####
+#####
+#####
+
+
+
+DEF_FAMILY_SPEC <- list(
+  man = list(
+    prefix  = "man_",
+    metrics = c("grade_cov","cov_snaps_per_target","cov_snaps_per_rec",
+                "pass_break_up_rate","catch_rate","yards_per_rec",
+                "yards_per_cov_snap","avg_yac","qb_rating_against",
+                "missed_tackle_rate","avg_depth_of_target"),
+    labels  = c("Grade","Snap/Tgt","Snap/Rec","PBU %","Catch %",
+                "Y/Rec","Y/CovSnp","YAC","QBR","MT %","aDOT")
+  ),
+  zone = list(
+    prefix  = "zone_",
+    metrics = c("grade_cov","cov_snaps_per_target","cov_snaps_per_rec",
+                "pass_break_up_rate","catch_rate","yards_per_rec",
+                "yards_per_cov_snap","avg_yac","qb_rating_against",
+                "missed_tackle_rate","avg_depth_of_target"),
+    labels  = c("Grade","Snap/Tgt","Snap/Rec","PBU %","Catch %",
+                "Y/Rec","Y/CovSnp","YAC","QBR","MT %","aDOT")
+  ),
+  slot = list(
+    prefix  = "slot_",
+    metrics = c("cov_snaps_per_target","cov_snaps_per_rec",
+                "yards_per_cov_snap","avg_yac","qb_rating_against"),
+    labels  = c("Snap/Tgt","Snap/Rec","Y/CovSnp","YAC","QBR")
+  )
+)
+
+defender_comp_card <- function(comps_df, focal_id, focal_def_ssn,
+                               family      = c("zone","man","slot"),
+                               qual_adj_df = receiving_coverage_defender_final ,
+                               df_man      = coverage_man_player_season_summary,
+                               df_zone     = coverage_zone_player_season_summary,
+                               df_slot     = coverage_slot_player_season_summary) {
+  
+  family <- match.arg(family)
+  spec   <- DEF_FAMILY_SPEC[[family]]
+  
+  perf <- compare_comps_performance(comps_df, focal_id, focal_def_ssn, family,
+                                    df_man = df_man, df_zone = df_zone, df_slot = df_slot)
+  
+  focal <- perf %>% filter(player_id == focal_id, def_ssn == focal_def_ssn)
+  comp  <- perf %>% filter(!(player_id == focal_id & def_ssn == focal_def_ssn))
+  if (nrow(focal) == 0) { message("focal not in ", family, " summary at current thresholds"); return(invisible(NULL)) }
+  
+  pctl_cols <- paste0(spec$prefix, spec$metrics, "_season_pctl")
+  
+  card <- tibble(
+    metric      = spec$metrics,
+    label       = spec$labels,
+    league_pctl = vapply(pctl_cols, function(cc) focal[[cc]][1], numeric(1)),
+    cohort_pctl = vapply(pctl_cols, function(cc) {
+      x <- comp[[cc]]; v <- focal[[cc]][1]
+      if (is.na(v) || sum(!is.na(x)) == 0) NA_real_ else mean(x <= v, na.rm = TRUE)
+    }, numeric(1))
+  )
+  
+  # receiver-quality-adjusted rows: allowed vs what those receivers normally do (lower = better)
+  keys <- bind_rows(comps_df %>% select(coverage_player_id, def_ssn),
+                    tibble(coverage_player_id = focal_id, def_ssn = focal_def_ssn)) %>% distinct()
+  qa       <- qual_adj_df %>% semi_join(keys, by = c("coverage_player_id", "def_ssn"))
+  qa_focal <- qa %>% filter(coverage_player_id == focal_id, def_ssn == focal_def_ssn)
+  qa_comp  <- qa %>% filter(!(coverage_player_id == focal_id & def_ssn == focal_def_ssn))
+  
+  if (nrow(qa_focal) == 1) {
+    card <- bind_rows(card, tibble(
+      metric      = c("catch_rate_vs_exp", "ypt_vs_exp"),
+      label       = c("Catch% vs Exp*", "Y/Tgt vs Exp*"),
+      league_pctl = c(qa_focal$cr_pctl[1], qa_focal$ypt_pctl[1]),
+      cohort_pctl = c(mean(qa_comp$catch_rate_vs_exp >= qa_focal$catch_rate_vs_exp[1], na.rm = TRUE),
+                      mean(qa_comp$ypt_vs_exp        >= qa_focal$ypt_vs_exp[1],        na.rm = TRUE))
+    ))
+  }
+  
+  list(card       = card,
+       focal_name = focal$player[1],
+       focal_def  = focal_def_ssn,
+       family     = family,
+       n_cohort   = nrow(comp),
+       n_qa       = nrow(qa_comp))
+}
+
+plot_defender_comp_card <- function(card_obj, title = NULL) {
+  if (is.null(card_obj)) return(invisible(NULL))
+  
+  pd <- card_obj$card %>%
+    mutate(label = factor(label, levels = rev(unique(label)))) %>%
+    pivot_longer(c(league_pctl, cohort_pctl), names_to = "scope", values_to = "pctl") %>%
+    mutate(scope = factor(if_else(scope == "league_pctl", "League", "Comps"),
+                          levels = c("League", "Comps"))) %>%
+    filter(!is.na(pctl))
+  
+  fam_lbl <- switch(card_obj$family, man = "Man", zone = "Zone", slot = "Slot")
+  
+  ggplot(pd, aes(scope, label, fill = pctl)) +
+    geom_tile(color = "white", linewidth = 1) +
+    geom_text(aes(label = scales::percent(pctl, accuracy = 1),
+                  color = abs(pctl - 0.5) > 0.25),
+              size = 4.2, fontface = "bold", show.legend = FALSE) +
+    scale_fill_gradient2(low = "#08519c", mid = "#f7f7f7", high = "#a63603",
+                         midpoint = 0.5, limits = c(0, 1),
+                         labels = scales::percent, name = "Pctl") +
+    scale_color_manual(values = c(`TRUE` = "white", `FALSE` = "grey20")) +
+    scale_x_discrete(position = "top") +
+    labs(title    = title %||% paste0(card_obj$focal_name, " — ", card_obj$focal_def,
+                                      " — ", fam_lbl, " Coverage Card"),
+         subtitle = paste0("League = pctl within position-season  |  Comps = pctl within ",
+                           card_obj$n_cohort, " similarity-matched defenders  |  ",
+                           "* = adjusted for receiver quality faced (n=", card_obj$n_qa, ")"),
+         x = NULL, y = NULL) +
+    theme_minimal(base_size = 11) +
+    theme(plot.title      = element_text(face = "bold", size = 16),
+          plot.subtitle   = element_text(color = "grey40", size = 9),
+          panel.grid      = element_blank(),
+          axis.text.x.top = element_text(face = "bold", size = 12),
+          axis.text.y     = element_text(size = 11, face = "bold"),
+          legend.key.height = unit(1.4, "cm"))
+}
+
+comps <- find_similar_defenders(10698, "CHI2025", defender_diet_matrix, min_similarity = 0.977)
+
+byard_zone_card <- defender_comp_card(comps, 10698, "CHI2024", family = "zone")
+plot_defender_comp_card(byard_zone_card)
+
+byard_man_card <- defender_comp_card(comps, 10698, "CHI2025", family = "man")
+plot_defender_comp_card(byard_man_card)
+
+
+
+#####
+#####
+#####
+
+#### COVERAGE EVAL LAYER ####
+
+# metric dictionary: label + question-group + direction + raw column suffix
+COV_METRIC_DICT <- tibble::tribble(
+  ~metric,                ~label,      ~group,     ~higher_better, ~raw_suffix,
+  "grade_cov",            "Grade",     "Grade",    TRUE,           "grades_coverage_defense",
+  "cov_snaps_per_target", "Snap/Tgt",  "Avoid",    TRUE,           "coverage_snaps_per_target",
+  "cov_snaps_per_rec",    "Snap/Rec",  "Avoid",    TRUE,           "coverage_snaps_per_reception",
+  "catch_rate",           "Catch %",   "Suppress", FALSE,          "catch_rate",
+  "pass_break_up_rate",   "PBU %",     "Disrupt",  TRUE,           "pass_break_up_rate",
+  "yards_per_cov_snap",   "Y/CovSnp",  "Damage",   FALSE,          "yards_per_coverage_snap",
+  "yards_per_rec",        "Y/Rec",     "Damage",   FALSE,          "yards_per_reception",
+  "avg_yac",              "YAC",       "Damage",   FALSE,          "avg_yac",
+  "qb_rating_against",    "QB Rtg",    "Damage",   FALSE,          "qb_rating_against",
+  "missed_tackle_rate",   "MT %",      "Damage",   FALSE,          "missed_tackle_rate",
+  "avg_depth_of_target",  "aDOT vs",   "Context",  NA,             "avg_depth_of_target"
+)
+COV_GROUP_ORDER <- c("Grade","Avoid","Suppress","Disrupt","Damage","Context")
+
+# 1) grouped season heatmap: rows = metrics grouped by question, cols = def_ssn seasons
+plot_coverage_season_heatmap <- function(player_id_in, seasons = NULL,
+                                         family = c("man","zone","slot"),
+                                         dfs = list(man  = coverage_man_player_season_summary,
+                                                    zone = coverage_zone_player_season_summary,
+                                                    slot = coverage_slot_player_season_summary)) {
+  family <- match.arg(family)
+  # rebuild dict HERE so a stale session copy can't leak in via lazy defaults
+  dict <- COV_METRIC_DICT
+  df <- dfs[[family]] %>% filter(player_id == player_id_in)
+  if (!is.null(seasons)) df <- df %>% filter(season %in% seasons)
+  if (!nrow(df)) { message("no rows for ", player_id_in, " (", family, ")"); return(invisible(NULL)) }
+  dict <- dict %>% filter(paste0(family, "_", metric, "_season_pctl") %in% names(df))
+  
+  pd <- bind_rows(lapply(seq_len(nrow(dict)), function(i) {
+    m <- dict$metric[i]
+    tibble(group  = dict$group[i], metric = dict$label[i],
+           season = df$season,
+           col_id = paste0(df$def_ssn, "\n(", df$n, "g)"),
+           pctl   = df[[paste0(family, "_", m, "_season_pctl")]])
+  })) %>%
+    mutate(pctl_plot = pctl,
+           lbl = ifelse(is.na(pctl), "—", scales::percent(pctl, accuracy = 1)),
+           group  = factor(group, levels = COV_GROUP_ORDER),
+           metric = factor(metric, levels = rev(dict$label)),
+           col_id = factor(col_id, levels = unique(col_id[order(season)])))
+  
+  nm <- df$player[1]
+  ggplot(pd, aes(col_id, metric, fill = pctl_plot)) +
+    geom_tile(color = "white", linewidth = 1) +
+    geom_text(aes(label = lbl, color = !is.na(pctl_plot) & abs(pctl_plot - 0.5) > 0.25),
+              size = 3.4, fontface = "bold", show.legend = FALSE) +
+    facet_grid(group ~ ., scales = "free_y", space = "free_y", switch = "y") +
+    scale_fill_gradient2(low = "#08519c", mid = "#f7f7f7", high = "#a63603",
+                         midpoint = 0.5, limits = c(0,1), labels = scales::percent,
+                         name = "Pctl", na.value = "grey88") +
+    scale_color_manual(values = c(`TRUE` = "white", `FALSE` = "grey20")) +
+    scale_x_discrete(position = "top") +
+    labs(title = paste0(nm, " — ", family, " coverage — percentile by season"),
+         subtitle = "rows grouped by question | tile = pctl within position-season | aDOT inverted: high = shallower targets against",
+         x = NULL, y = NULL) +
+    theme_minimal(base_size = 11) +
+    theme(plot.title = element_text(face = "bold", size = 15),
+          plot.subtitle = element_text(color = "grey40", size = 9),
+          panel.grid = element_blank(),
+          strip.placement = "outside",
+          strip.text.y.left = element_text(face = "bold", angle = 0, size = 9),
+          axis.text.x.top = element_text(face = "bold", size = 8, lineheight = 0.9),
+          legend.key.height = unit(1.2, "cm"))
+}
+
+plot_coverage_season_heatmap(10698, family = "man")
+plot_coverage_season_heatmap(10698, family = "zone")
+
+
+
+# 2) common-opponent percentiles: focal game vs CB pool facing the SAME qbgrp_ssn
+coverage_common_opp_pctl <- function(player_id_in, season_in,
+                                     family = c("combined","man","zone"),
+                                     dict = COV_METRIC_DICT,
+                                     df = final_coverage_df_qbgrp,
+                                     min_comp = 3) {
+  family   <- match.arg(family)
+  snap_col <- switch(family, combined = "snap_counts_coverage",
+                     man = "man_snap_counts_coverage", zone = "zone_snap_counts_coverage")
+  snap_min <- switch(family, combined = 23, man = 7, zone = 13)
+  pref     <- if (family == "combined") "" else paste0(family, "_")
+  dict     <- dict %>% filter(!is.na(higher_better))   # context metrics aren't scored
+  
+  d     <- df %>% filter(.data[[snap_col]] >= snap_min, !is.na(final_position))
+  focal <- d %>% filter(player_id == player_id_in, season == season_in)
+  if (!nrow(focal)) { message("no focal games"); return(invisible(NULL)) }
+  comp  <- d %>% filter(final_position == focal$final_position[1],
+                        !(player_id == player_id_in & season == season_in))
+  
+  per_game <- bind_rows(lapply(seq_len(nrow(focal)), function(i) {
+    off  <- focal$qbgrp_ssn[i]
+    pool <- comp %>% filter(qbgrp_ssn == off)
+    tibble(qbgrp_ssn = off, week = focal$week[i],
+           label  = dict$label,
+           n_comp = nrow(pool),
+           pctl   = vapply(seq_len(nrow(dict)), function(j) {
+             cn <- paste0(pref, dict$raw_suffix[j])
+             v  <- focal[[cn]][i]; x <- pool[[cn]]
+             if (!dict$higher_better[j]) { v <- -v; x <- -x }
+             if (is.na(v) || sum(!is.na(x)) < min_comp) NA_real_ else mean(x <= v, na.rm = TRUE)
+           }, numeric(1)))
+  }))
+  
+  summary <- per_game %>%
+    group_by(label) %>%
+    summarise(pctl_co = mean(pctl, na.rm = TRUE), n_defs = sum(!is.na(pctl)), .groups = "drop")
+  
+  list(per_game = per_game, summary = summary,
+       focal_name = focal$player[1], focal_season = season_in, family = family)
+}
+
+byard_co_man  <- coverage_common_opp_pctl(10698, 2024, "man")
+byard_co_zone <- coverage_common_opp_pctl(10698, 2024, "zone")
+
+# SOS honesty check before trusting: comp games per opponent
+byard_co_man$per_game %>% distinct(qbgrp_ssn, n_comp) %>% arrange(n_comp)
+
+
+plot_co_pctl_bars <- function(co_obj, order = RECV_CO_ORDER, title = NULL,
+                              focal_name = NULL, focal_season = NULL, n_games = NULL) {
+  
+  pd <- co_obj$summary %>%
+    filter(!is.na(pctl_co)) %>%
+    mutate(label = factor(as.character(label), levels = rev(order))) %>%
+    filter(!is.na(label))
+  
+  nm <- focal_name   %||% co_obj$focal_name   %||% "Focal"
+  yr <- focal_season %||% co_obj$focal_season %||% ""
+  ng <- n_games %||% dplyr::n_distinct(co_obj$per_game$week)
+  
+  fam_lbl    <- if (!is.null(co_obj$family)) paste0(" — ", toupper(co_obj$family)) else ""
+  auto_title <- paste0(nm, " — ", yr, fam_lbl, " — vs common-opponent cohort")
+  
+  sub_txt <- if (!is.null(co_obj$family)) {
+    paste0("percentile among same-position defenders facing the SAME offense, averaged across ",
+           ng, " games  |  dashed = 50th")
+  } else {
+    paste0("percentile among same-archetype receivers facing the SAME defense, averaged across ",
+           ng, " games  |  dashed = 50th")
+  }
+  
+  ggplot(pd, aes(x = pctl_co, y = label, fill = pctl_co)) +
+    geom_col(width = 0.72) +
+    geom_vline(xintercept = 0.5, linetype = "dashed", color = "grey45", linewidth = 0.4) +
+    geom_text(aes(label = scales::percent(pctl_co, accuracy = 1)),
+              hjust = -0.15, size = 4, fontface = "bold", color = "grey20") +
+    scale_fill_gradient2(low = "#08519c", mid = "#f7f7f7", high = "#a63603",
+                         midpoint = 0.5, limits = c(0, 1),
+                         labels = scales::percent, name = "Pctl") +
+    scale_x_continuous(labels = scales::percent, limits = c(0, 1.08),
+                       breaks = c(0, .25, .5, .75, 1)) +
+    labs(title    = title %||% auto_title,
+         subtitle = sub_txt,
+         x = "Percentile", y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title       = element_text(face = "bold", size = 16),
+          plot.subtitle    = element_text(color = "grey40", size = 9),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor   = element_blank(),
+          axis.text.y      = element_text(size = 11, face = "bold"),
+          legend.position  = "none")
+}
+
+
+# plots — your existing functions work as-is
+plot_co_pctl_bars(byard_co_man,  order = COV_METRIC_DICT$label[COV_METRIC_DICT$group != "Context"])
+plot_co_pctl_bars(byard_co_zone, order = COV_METRIC_DICT$label[COV_METRIC_DICT$group != "Context"])
+
+
+
+plot_vs_exp_strip <- function(focal_id, focal_def_ssn, comps_df = NULL,
+                              qa_df = receiving_coverage_defender_final,
+                              title = NULL) {
+  
+  qa_focal <- qa_df %>% filter(coverage_player_id == focal_id, def_ssn == focal_def_ssn)
+  if (nrow(qa_focal) != 1) { message("no vs-exp row for focal"); return(invisible(NULL)) }
+  
+  pd <- tibble(
+    label = c("Catch% vs Exp", "Y/Tgt vs Exp"),
+    scope = "League",
+    pctl  = c(qa_focal$cr_pctl[1], qa_focal$ypt_pctl[1])
+  )
+  
+  if (!is.null(comps_df)) {
+    qa_comp <- qa_df %>%
+      semi_join(comps_df %>% select(coverage_player_id, def_ssn),
+                by = c("coverage_player_id", "def_ssn"))
+    pd <- bind_rows(pd, tibble(
+      label = c("Catch% vs Exp", "Y/Tgt vs Exp"),
+      scope = "Comps",
+      pctl  = c(mean(qa_comp$catch_rate_vs_exp >= qa_focal$catch_rate_vs_exp[1], na.rm = TRUE),
+                mean(qa_comp$ypt_vs_exp        >= qa_focal$ypt_vs_exp[1],        na.rm = TRUE))
+    ))
+  }
+  
+  pd <- pd %>% mutate(scope = factor(scope, levels = c("League","Comps")),
+                      label = factor(label, levels = c("Y/Tgt vs Exp","Catch% vs Exp")))
+  
+  ggplot(pd, aes(scope, label, fill = pctl)) +
+    geom_tile(color = "white", linewidth = 1) +
+    geom_text(aes(label = scales::percent(pctl, accuracy = 1),
+                  color = abs(pctl - 0.5) > 0.25),
+              size = 4.5, fontface = "bold", show.legend = FALSE) +
+    scale_fill_gradient2(low = "#08519c", mid = "#f7f7f7", high = "#a63603",
+                         midpoint = 0.5, limits = c(0, 1),
+                         labels = scales::percent, name = "Pctl") +
+    scale_color_manual(values = c(`TRUE` = "white", `FALSE` = "grey20")) +
+    scale_x_discrete(position = "top") +
+    labs(title = title %||% paste0(qa_focal$final_position[1], " ", focal_id, " — ", focal_def_ssn,
+                                   " — vs receiver expectation"),
+         subtitle = paste0("all coverage, season grain  |  held receivers below their own norms = high pctl  |  n_tgt = ",
+                           qa_focal$n_tgt[1]),
+         x = NULL, y = NULL) +
+    theme_minimal(base_size = 11) +
+    theme(plot.title = element_text(face = "bold", size = 14),
+          plot.subtitle = element_text(color = "grey40", size = 9),
+          panel.grid = element_blank(),
+          axis.text.x.top = element_text(face = "bold", size = 12),
+          axis.text.y = element_text(size = 11, face = "bold"),
+          legend.key.height = unit(1.2, "cm"))
+}
+
+plot_vs_exp_strip(10698, "CHI2025", comps_df = comps)

@@ -248,18 +248,14 @@ plot_ybc_yac_quadrants_def <- function(team_season, data = rush_stats_high) {
     )
 }
 
-plot_ybc_yac_quadrants_def("DET2025")
-plot_ybc_yac_quadrants_def("CHI2018")
+plot_ybc_yac_quadrants_def("NE2025")
 
 
-View(gap_opp_position_percentile %>% filter(def_ssn == "DET2025"))
-View(zone_opp_position_percentile %>% filter(def_ssn == "DET2025"))
-
-View(gap_opp_position_percentile %>% filter(def_ssn == "DET2024"))
-View(zone_opp_position_percentile %>% filter(def_ssn == "DET2024"))
+View(gap_opp_position_percentile %>% filter(def_ssn == "NE2025"))
+View(zone_opp_position_percentile %>% filter(def_ssn == "NE2025"))
 
 
-View(run_defense_player_season_summary %>% filter(def_ssn == "DET2025") %>%
+View(run_defense_player_season_summary %>% filter(def_ssn == "NE2025") %>%
        select(player:def_ssn, ends_with("_pctl")))
 
 
@@ -345,7 +341,7 @@ plot_run_def_card <- function(team_season,
   )
 }
 
-plot_run_def_card("CHI2018")
+plot_run_def_card("NE2025")
 
 
 plot_run_def_card_player <- function(player_id_vec,
@@ -439,22 +435,10 @@ plot_run_def_card_player <- function(player_id_vec,
   )
 }
 
-# DL / ED
-plot_run_def_card_player(c(82330, 145080, 76996, 76836))
-# LB
-plot_run_def_card_player(c(101515, 58120))
-# S
-plot_run_def_card_player(c(123907, 97325, 50543, 83239)) 
-# CB
-plot_run_def_card_player(c(49564, 26940, 146603)) 
 
-
-# PLAYERS LEAVING
-plot_run_def_card_player(c(11831, 55619, 10800, 48676, 50291)) 
-
-
-# PLAYERS INCOMING
-plot_run_def_card_player(c(44550, 83360, 81282, 56913)) 
+plot_run_def_card_player(c(100612, 49335, 131679, 50918, 82198, 55717, 56976, 48600, 61853, 56682)) # PLAYERS STILL WITH NE
+plot_run_def_card_player(c(51423, 57662, 57945, 52000, 25449, 51055)) # PLAYERS WHO LEFT NE
+plot_run_def_card_player(c(28075, 10698, 57727, 49346, 56054)) # NEW PLAYERS
 
 
 
@@ -467,7 +451,8 @@ pbp_rush %>% filter(def_ssn == "DET2025") %>% select(yardline_100, offense_playe
 
 combined_ids_defense %>% filter(team == "NE", season == 2025) %>%
   select(player, player_id, gsis_id, position) %>%
-  distinct()
+  distinct() %>%
+  View(.)
 
 unique(pbp_rush$ydstogo_group)
 
@@ -645,28 +630,22 @@ plot_on_off_dist <- function(gsis_id,
 #   clip     = c(0.02,0.98)   # y view window as quantiles of outcome (view-only)
 #   wp_range = c(0.1,0.9)     # drop garbage-time snaps before everything (off by default)
 
-plot_on_off_dist("00-0032424", outcome = "epa", bucket = "part_predicted_xpass",
-                 player_name = "DJ Reader", def_ssn = "DET2025")
+plot_on_off_dist("00-0036193", outcome = "epa", bucket = "part_predicted_xpass",
+                 player_name = "Anfernee Jennings", def_ssn = "NE2025")
 
-plot_on_off_dist("00-0032424", outcome = "epa", bucket = "n_ol",
-                 player_name = "DJ Reader", def_ssn = "DET2025")
+plot_on_off_dist("00-0036193", outcome = "epa", bucket = "yardline_100",
+                 player_name = "Anfernee Jennings", def_ssn = "NE2025")
 
-plot_on_off_dist("00-0036624", outcome = "epa", bucket = "part_predicted_xpass",
-                 player_name = "Alim McNeil", def_ssn = "DET2025")
-
-plot_on_off_dist("00-0036624", outcome = "epa", bucket = "n_ol",
-                 player_name = "Alim McNeil", def_ssn = "DET2025")
-
-plot_on_off_dist("00-0036916", outcome = "epa", bucket = "part_predicted_xpass",
-                 player_name = "Milton Williams", def_ssn = "PHI2024")
-
-plot_on_off_dist("00-0036916", outcome = "epa", bucket = "n_ol",
-                 player_name = "Milton Williams", def_ssn = "PHI2024")
 
 combined_ids_defense %>% 
   filter(gsis_id == "00-0032424") %>% 
   select(team, season) %>%
   distinct()
+
+combined_ids_defense %>% filter(player == "Kevin Byard") %>%
+  select(player, player_id, gsis_id, position) %>%
+  distinct() %>%
+  View(.)
 
 
 plot_def_ssn_dist <- function(def_ssn,
@@ -781,7 +760,10 @@ plot_def_ssn_dist <- function(def_ssn,
 }
 
 # single bucket — deciles really shine here
-plot_def_ssn_dist("NE2025", outcome = "epa", bucket = "shotgun")
+plot_def_ssn_dist("NE2025", outcome = "epa", bucket = "yardline_100")
 
 # all faceted (dense at deciles, but there if you want the overview)
 plot_def_ssn_dist("NE2025", outcome = "ypc_oe_part", bucket = "part_predicted_xpass")
+
+# all faceted (dense at deciles, but there if you want the overview)
+plot_def_ssn_dist("NE2025", outcome = "ypc_oe_part", bucket = "yardline_100")
