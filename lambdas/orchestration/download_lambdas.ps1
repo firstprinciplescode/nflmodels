@@ -1,8 +1,8 @@
 # ============================================================
-# Download all 36 Lambda functions from AWS into D:\nflmodels_UPDATE\lambdas\
+# Download all 36 Lambda functions from AWS into C:\Users\vflre\Downloads\nflmodels_UPDATE\lambdas\
 # ============================================================
 
-$REPO_ROOT = "D:\nflmodels_UPDATE"
+$REPO_ROOT = "C:\Users\vflre\Downloads\nflmodels_UPDATE"
 $LAMBDAS_DIR = Join-Path $REPO_ROOT "lambdas"
 
 if (-not (Test-Path $LAMBDAS_DIR)) {
