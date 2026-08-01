@@ -1,35 +1,35 @@
-comparison_blitz_def_func("DET2025", 1.05) # 21
-comparison_depth_def_func("DET2025", 1.02) # 35
-comparison_less_def_func("DET2025", .97) # 77
-comparison_pa_def_func("DET2025", 1) # 59
-comparison_pressure_def_func("DET2025", 1.05) # 25
+comparison_blitz_def_func("NE2025", .955) # 89
+comparison_depth_def_func("NE2025", 1.01) # 53
+comparison_less_def_func("NE2025", 1) # 59
+comparison_pa_def_func("NE2025", .96) # 83
+comparison_pressure_def_func("NE2025", .96) # 89
 
-all_def <- rbind(as.data.frame(comparison_blitz_def_func("DET2025", 1.045)), 
-                 as.data.frame(comparison_depth_def_func("DET2025", 1.015)), 
-                 as.data.frame(comparison_less_def_func("DET2025", .965)), 
-                 as.data.frame(comparison_pa_def_func("DET2025", .995)), 
-                 as.data.frame(comparison_pressure_def_func("DET2025", 1.015)))
+all_def <- rbind(as.data.frame(comparison_blitz_def_func("NE2025", .915)), 
+                 as.data.frame(comparison_depth_def_func("NE2025", .97)), 
+                 as.data.frame(comparison_less_def_func("NE2025", .96)), 
+                 as.data.frame(comparison_pa_def_func("NE2025", .94)), 
+                 as.data.frame(comparison_pressure_def_func("NE2025", .94)))
 
 sim_def <- sqldf("SELECT QB, COUNT(*) AS CNT
         FROM  all_def 
         GROUP BY  QB
-        HAVING  CNT >= 3") %>% select(QB) %>% distinct()
+        HAVING  CNT >= 4") %>% select(QB) %>% distinct()
 
 sim_def
 
 
-det_blitz_def <- df_pressure_def_scaled_z %>%
-  filter(def_ssn %in% c(sim_def$QB, "DET2025")) %>%
+ne_blitz_def <- df_blitz_def_scaled_z %>%
+  filter(def_ssn %in% c(sim_def$QB, "NE2025")) %>%
   select(-contains("snaps"), -contains("int_rate")) 
 
 # Preserve original column order from the CSV as the y-axis order
-ordered_vars_def <- det_blitz_def %>%
+ordered_vars_def <- ne_blitz_def %>%
   select(-def_ssn) %>%
   names() %>%
   sub("_(Good|Bad|diff)$", "", .) %>%
   unique()                # first-appearance order, no dupes
 
-det_long_def <- det_blitz_def %>%
+ne_long_def <- ne_blitz_def %>%
   pivot_longer(-def_ssn, names_to = "var", values_to = "z") %>%
   mutate(
     bucket = case_when(
@@ -45,12 +45,12 @@ det_long_def <- det_blitz_def %>%
   mutate(bucket    = factor(bucket, levels = c("Good","Bad","Diff (G-B)")),
          var_label = factor(var_label, levels = rev(ordered_vars_def)))   # FIX: ordered_vars_def
 
-det_summary_def <- det_long_def %>%
+ne_summary_def <- ne_long_def %>%
   group_by(var_label, bucket) %>%
   summarise(
-    vs      = z[def_ssn == "DET2025"],
-    cc      = median(z[def_ssn != "DET2025"], na.rm = TRUE),   # FIX: !=
-    cc_mean = mean(z[def_ssn != "DET2025"], na.rm = TRUE),     # FIX: !=
+    vs      = z[def_ssn == "NE2025"],
+    cc      = median(z[def_ssn != "NE2025"], na.rm = TRUE),   # FIX: !=
+    cc_mean = mean(z[def_ssn != "NE2025"], na.rm = TRUE),     # FIX: !=
     .groups = "drop"
   )
 
@@ -133,20 +133,20 @@ plot_dumb <- function(df, bkt = "Good", focal = "DETGoff-2025") {
 }
 
 # Calls
-plot_strip(df = det_long_def,    bkt = "Good", focal = "DET2025", id_col = "def_ssn")
-plot_dumb(df = det_summary_def,  bkt = "Good", focal = "DET2025")
+plot_strip(df = ne_long_def,    bkt = "Good", focal = "NE2025", id_col = "def_ssn")
+plot_dumb(df = ne_summary_def,  bkt = "Good", focal = "NE2025")
 
-plot_strip(df = det_long_def,    bkt = "Bad",  focal = "DET2025", id_col = "def_ssn")
-plot_dumb(df = det_summary_def,  bkt = "Bad",  focal = "DET2025")
+plot_strip(df = ne_long_def,    bkt = "Bad",  focal = "NE2025", id_col = "def_ssn")
+plot_dumb(df = ne_summary_def,  bkt = "Bad",  focal = "NE2025")
 
-plot_strip(df = det_long_def,    bkt = "Diff (G-B)", focal = "DET2025", id_col = "def_ssn")
-plot_dumb(df = det_summary_def,  bkt = "Diff (G-B)", focal = "DET2025")
+plot_strip(df = ne_long_def,    bkt = "Diff (G-B)", focal = "NE2025", id_col = "def_ssn")
+plot_dumb(df = ne_summary_def,  bkt = "Diff (G-B)", focal = "NE2025")
 
 
 
 
 df_blitz_def_scaled_z %>%
-  filter(def_ssn %in% c(sim_def$QB, "DET2025")) %>%
+  filter(def_ssn %in% c(sim_def$QB, "NE2025")) %>%
   aws.s3::s3write_using(write.csv, row.names = FALSE,
                         object = "outputs/tb2025_blitz_comps.csv",
                         bucket = "nfl-pff-data-lucas")

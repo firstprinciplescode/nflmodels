@@ -16,14 +16,13 @@ show_player_onfield <- function(player_id_in,
            align_cluster_name, rte_cluster_name, tgt_cluster_name, man_zone_grp_cluster)
 }
 
-show_player_onfield(11824, season_filter = c(2023, 2024, 2025))    # Berrios NYJ 2019 only
-show_player_onfield(11824, qbgrp_filter = "SEADarnold-2025")  # specific QB era
+show_player_onfield(145059, qbgrp_filter = "NEMaye-2025")$onfield_perc %>% sort()
+show_player_onfield(84329, season_filter = 2025)$onfield_perc %>% sort()
 
-
-receiving_clustering_base <- run_athena_query("
-    SELECT  *
-    FROM    nfl_data.vw_receiving_clustering_base
-")
+#receiving_clustering_base <- run_athena_query("
+#    SELECT  *
+#    FROM    nfl_data.vw_receiving_clustering_base
+#")
 
 get_player_cluster_inputs <- function(player_id_in, season_in,
                                       posteam = NULL,
@@ -82,18 +81,52 @@ get_player_cluster_neighbors <- function(player_id_in, season_in,
 }
 
 
-get_player_identity_history <- function(player_id_in, season_in,
-                                        df_identity = receiving_func_base) {
-  
+get_offense_receiver_identity <- function(qbgrp_ssn_in,
+                                          rte_cluster_input    = NULL,
+                                          tgt_cluster_input    = NULL,
+                                          align_cluster_input  = NULL,
+                                          position_group_input = NULL,
+                                          man_zone_grp_input   = NULL,
+                                          xtd_grp_input        = NULL,
+                                          pos_rank_vec         = c(1, 99),
+                                          team_rank_vec        = c(1, 99),
+                                          onfield_min          = 0,
+                                          onfield_max          = 1,
+                                          tgt_share_min        = 0,
+                                          tgt_share_max        = 1,
+                                          df                   = receiving_func_base) {
+
   get_mode <- function(x) {
     tab <- table(x, useNA = "no")
     if (length(tab) == 0) NA_character_ else names(sort(tab, decreasing = TRUE))[1]
   }
-  
-  df_identity %>%
-    filter(player_id == player_id_in, season %in% season_in) %>%
-    group_by(season) %>%
+
+  d <- df %>% ungroup() %>%
+    filter(qbgrp_ssn %in% qbgrp_ssn_in,
+           tgt_share    >= tgt_share_min, tgt_share    <= tgt_share_max,
+           onfield_perc >= onfield_min,   onfield_perc <= onfield_max,
+           pos_rank  >= pos_rank_vec[1],  pos_rank  <= pos_rank_vec[2],
+           team_rank >= team_rank_vec[1], team_rank <= team_rank_vec[2])
+
+  if (!is.null(rte_cluster_input))    d <- d %>% filter(rte_cluster_name     %in% rte_cluster_input)
+  if (!is.null(tgt_cluster_input))    d <- d %>% filter(tgt_cluster_name     %in% tgt_cluster_input)
+  if (!is.null(align_cluster_input))  d <- d %>% filter(align_cluster_name   %in% align_cluster_input)
+  if (!is.null(position_group_input)) d <- d %>% filter(final_position_group %in% position_group_input)
+  if (!is.null(man_zone_grp_input))   d <- d %>% filter(man_zone_grp_cluster %in% man_zone_grp_input)
+  if (!is.null(xtd_grp_input))        d <- d %>% filter(td_grp_cluster       %in% xtd_grp_input)
+
+  d %>%
+    group_by(qbgrp_ssn, player_id, player) %>%
     summarise(
+      n_games              = n(),
+      final_position_group = get_mode(final_position_group),
+      pos_rank             = get_mode(pos_rank),
+      team_rank            = get_mode(team_rank),
+      onfield_perc_avg     = mean(onfield_perc, na.rm = TRUE),
+      tgt_share_avg        = mean(tgt_share, na.rm = TRUE),
+      align_cluster_name   = get_mode(align_cluster_name),
+      rte_cluster_name     = get_mode(rte_cluster_name),
+      tgt_cluster_name     = get_mode(tgt_cluster_name),
       man_zone_grp_cluster = get_mode(man_zone_grp_cluster),
       td_grp_cluster       = get_mode(td_grp_cluster),
       z_score_percentile   = mean(z_score_percentile, na.rm = TRUE),
@@ -101,14 +134,8 @@ get_player_identity_history <- function(player_id_in, season_in,
       xtd_percentile       = mean(xtd_percentile,     na.rm = TRUE),
       .groups = "drop"
     ) %>%
-    arrange(season)
+    arrange(qbgrp_ssn, desc(tgt_share_avg))
 }
-
-# usage:
-get_player_cluster_neighbors(48327, 2025, distance_mult = 2)    # single season, rte/tgt/align
-get_player_cluster_neighbors(48327, 2024, distance_mult = 2)    # single season, rte/tgt/align
-get_player_identity_history(48327, c(2023, 2024, 2025))          # multi-season identity drift
-
 
 compare_receiver_cohort <- function(focal_player_id      = NULL,
                                     focal_season         = NULL,
@@ -128,6 +155,7 @@ compare_receiver_cohort <- function(focal_player_id      = NULL,
                                     xtd_grp_na           = TRUE,
                                     onfield_min          = 0.50,
                                     onfield_max          = 1.00,
+                                    min_games            = 6,
                                     season_filter        = NULL,
                                     grain                = c("season", "game"),
                                     drop_part_cols       = FALSE,
@@ -190,6 +218,7 @@ compare_receiver_cohort <- function(focal_player_id      = NULL,
         onfield_perc_avg = mean(onfield_perc, na.rm = TRUE),
         .groups = "drop"
       ) %>%
+      filter(n_weeks >= min_games) %>%
       mutate(
         pbp_cp_oe   = acc_rate - pbp_cp,
         part_cp_oe  = acc_rate - part_cp,
@@ -241,57 +270,282 @@ compare_receiver_cohort <- function(focal_player_id      = NULL,
   out
 }
 
+
+####
+#### LOGGING INFRASTRUCTURE — wrapper + registry (lives right after compare_receiver_cohort)
+####
+
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
+# logged wrapper: runs compare_receiver_cohort AND stamps the call params onto the result
+compare_receiver_cohort_logged <- function(...) {
+  args <- list(...)
+  out  <- compare_receiver_cohort(...)
+  foc  <- out %>% filter(is_focal) %>% slice(1)
+  attr(out, "call_params")  <- args
+  attr(out, "focal_name")   <- if (nrow(foc)) foc$player[1] else NA_character_
+  attr(out, "focal_season") <- if (nrow(foc)) foc$season[1] else args$focal_season %||% NA
+  attr(out, "logged_at")    <- Sys.time()
+  out
+}
+
+fmt_val <- function(v) {
+  if (is.null(v)) return("NULL")
+  if (is.logical(v) || is.numeric(v)) return(paste(v, collapse = ","))
+  paste0("c(", paste0('"', v, '"', collapse = ","), ")")
+}
+
+# registry: one row per saved view, non-default params as a string
+log_view <- function(view, view_name, registry = NULL) {
+  p <- attr(view, "call_params")
+  if (is.null(p)) stop("view has no call_params - build it with compare_receiver_cohort_logged()")
+  defaults <- formals(compare_receiver_cohort)
+  is_default <- function(name, val) {
+    d <- defaults[[name]]
+    if (is.symbol(d) || is.null(d)) return(FALSE)
+    d <- tryCatch(eval(d), error = function(e) return(FALSE))
+    isTRUE(all.equal(val, d))
+  }
+  nondef <- p[!vapply(names(p), function(n) is_default(n, p[[n]]), logical(1))]
+  nondef <- nondef[!names(nondef) %in% "df"]
+  
+  row <- tibble(
+    view_name    = view_name,
+    focal_name   = attr(view, "focal_name"),
+    focal_season = attr(view, "focal_season"),
+    logged_at    = attr(view, "logged_at"),
+    params       = paste(names(nondef), vapply(nondef, fmt_val, character(1)),
+                         sep = " = ", collapse = " | ")
+  )
+  if (is.null(registry)) row else bind_rows(registry, row)
+}
+
+# show only the NON-default params of a logged view, tidy 2-col
+show_params <- function(view) {
+  p <- attr(view, "call_params")
+  if (is.null(p)) { message("No logged params on this object."); return(invisible(NULL)) }
+  defaults <- formals(compare_receiver_cohort)
+  is_default <- function(name, val) {
+    d <- defaults[[name]]
+    if (is.symbol(d) || is.null(d)) return(FALSE)
+    d <- tryCatch(eval(d), error = function(e) return(FALSE))
+    isTRUE(all.equal(val, d))
+  }
+  nondef <- p[!vapply(names(p), function(n) is_default(n, p[[n]]), logical(1))]
+  nondef <- nondef[!names(nondef) %in% "df"]
+  df <- tibble(param = names(nondef),
+               value = vapply(nondef, fmt_val, character(1)))
+  cat(attr(view, "focal_name"), "-", attr(view, "focal_season"), "\n")
+  print(df, n = Inf)
+  invisible(df)
+}
+
+# reprint the exact rebuild call for a registry row
+recover_call <- function(registry, view_name_in) {
+  r <- registry %>% filter(view_name == view_name_in) %>% slice(1)
+  cat(view_name_in, " <- compare_receiver_cohort_logged(\n  ",
+      gsub(" \\| ", ",\n  ", r$params), ")\n", sep = "")
+}
+
+
+####
+#### identity / offense functions (unchanged)
+####
+
+get_offense_receiver_identity <- function(qbgrp_ssn_in,
+                                          rte_cluster_input    = NULL,
+                                          tgt_cluster_input    = NULL,
+                                          align_cluster_input  = NULL,
+                                          position_group_input = NULL,
+                                          tgt_share_min        = 0,
+                                          tgt_share_max        = 1,
+                                          df                   = receiving_func_base) {
+  
+  get_mode <- function(x) {
+    tab <- table(x, useNA = "no")
+    if (length(tab) == 0) NA_character_ else names(sort(tab, decreasing = TRUE))[1]
+  }
+  
+  d <- df %>% ungroup() %>%
+    filter(qbgrp_ssn %in% qbgrp_ssn_in,
+           tgt_share >= tgt_share_min,
+           tgt_share <= tgt_share_max)
+  
+  if (!is.null(rte_cluster_input))    d <- d %>% filter(rte_cluster_name     %in% rte_cluster_input)
+  if (!is.null(tgt_cluster_input))    d <- d %>% filter(tgt_cluster_name     %in% tgt_cluster_input)
+  if (!is.null(align_cluster_input))  d <- d %>% filter(align_cluster_name   %in% align_cluster_input)
+  if (!is.null(position_group_input)) d <- d %>% filter(final_position_group %in% position_group_input)
+  
+  d %>%
+    group_by(qbgrp_ssn, player_id, player) %>%
+    summarise(
+      n_games              = n(),
+      tgt_share_avg        = mean(tgt_share, na.rm = TRUE),
+      man_zone_grp_cluster = get_mode(man_zone_grp_cluster),
+      td_grp_cluster       = get_mode(td_grp_cluster),
+      z_score_percentile   = mean(z_score_percentile, na.rm = TRUE),
+      xpass_percentile     = mean(xpass_percentile,   na.rm = TRUE),
+      xtd_percentile       = mean(xtd_percentile,     na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    arrange(qbgrp_ssn, desc(tgt_share_avg))
+}
+
+# usage:
+get_player_cluster_neighbors(84329, 2025, distance_mult = 7)
+get_player_cluster_neighbors(84329, 2024, distance_mult = 3.5)
+get_player_identity_history(84329, c(2023, 2024, 2025))
+
+get_offense_receiver_identity(c("NEMaye-2025", "NEMaye-2024", "NEBrissett-2024"),
+                              position_group_input = c("WR"),
+                              tgt_cluster_input    = c("ML")) %>% View(.)
+
+
+####
+#### KAYSHON BOUTTE — logged views + registry appends
+####
+
 # Season aggregate (default)
-aj_brown_season_view <- compare_receiver_cohort(focal_player_id      = 48327,   # optional, just flags focal in output
-                                                focal_season         = 2025,
-                                                rte_cluster_input    = c("SMT","ST","RB","DT"),
-                                                tgt_cluster_input    = c("ML"),
-                                                align_cluster_input  = c("WWR"),
-                                                position_group_input = c("WR"),
-                                                pos_rank_vec         = c(1, 99),
-                                                team_rank_vec        = c(1, 99),
-                                                man_zone_grp_input   = c("WR_DEEP"),
-                                                man_z_vec_input      = c(60, 100),
-                                                man_z_na             = FALSE,
-                                                xpass_vec_input      = c(20, 80),
-                                                xpass_na             = FALSE,
-                                                xtd_grp_input        = c("TD_LOW"),
-                                                xtd_vec_input        = c(50, 100),
-                                                xtd_grp_na           = FALSE,
-                                                onfield_min          = 0.90,
-                                                onfield_max          = 1.00,
-                                                season_filter        = NULL,
-                                                df                   = receiving_func_base,
-                                                grain                = "season",
-                                                drop_part_cols       = TRUE)
+doubs_season_view <- compare_receiver_cohort_logged(
+  focal_player_id      = 84329 ,
+  focal_season         = 2025,
+  rte_cluster_input    = c("BT","DT","RB"),
+  tgt_cluster_input    = c("ML"),
+  align_cluster_input  = c("WWR"),
+  position_group_input = c("WR"),
+  man_zone_grp_input   = c("WR_DEEP"),
+  man_z_vec_input      = c(0, 100),
+  man_z_na             = FALSE,
+  xpass_vec_input      = c(30, 80),
+  xpass_na             = FALSE,
+  xtd_grp_input        = c("TD_LOW"),
+  xtd_vec_input        = c(0, 100),
+  xtd_grp_na           = FALSE,
+  onfield_min          = 0.55,
+  onfield_max          = 1.00,
+  grain                = "season")
+
+doubs_season_view_lowtd <- compare_receiver_cohort_logged(
+  focal_player_id      = 48327,
+  focal_season         = 2025,
+  rte_cluster_input    = c("ST","DT","SMT","RB"),
+  tgt_cluster_input    = c("ML"),
+  align_cluster_input  = c("WWR"),
+  position_group_input = c("WR"),
+  man_zone_grp_input   = c("WR_DEEP"),
+  man_z_vec_input      = c(50, 100),
+  man_z_na             = FALSE,
+  xpass_vec_input      = c(0, 65),
+  xpass_na             = FALSE,
+  xtd_grp_input        = c("TD_LOW"),
+  xtd_vec_input        = c(70, 100),
+  xtd_grp_na           = FALSE,
+  onfield_min          = 0.65,
+  onfield_max          = 1.00,
+  grain                = "season")
+
+receiver_registry <- log_view(doubs_season_view, "doubs_season_view",
+                              if (exists("receiver_registry")) receiver_registry else NULL)
+
+doubs_season_view <- rbind(doubs_season_view_hightd, doubs_season_view_lowtd)
 
 # Per-game view
-aj_brown_game_view   <- compare_receiver_cohort(focal_player_id      = 48327,   # optional, just flags focal in output
-                                                focal_season         = 2025,
-                                                rte_cluster_input    = c("SMT","ST","RB","DT"),
-                                                tgt_cluster_input    = c("ML"),
-                                                align_cluster_input  = c("WWR"),
-                                                position_group_input = c("WR"),
-                                                pos_rank_vec         = c(1, 99),
-                                                team_rank_vec        = c(1, 99),
-                                                man_zone_grp_input   = c("WR_DEEP"),
-                                                man_z_vec_input      = c(60, 100),
-                                                man_z_na             = FALSE,
-                                                xpass_vec_input      = c(20, 80),
-                                                xpass_na             = FALSE,
-                                                xtd_grp_input        = c("TD_LOW"),
-                                                xtd_vec_input        = c(50, 100),
-                                                xtd_grp_na           = FALSE,
-                                                onfield_min          = 0.90,
-                                                onfield_max          = 1.00,
-                                                season_filter        = NULL,
-                                                df                   = receiving_func_base,
-                                                grain                = "game",
-                                                drop_part_cols       = TRUE)
+doubs_game_view <- compare_receiver_cohort_logged(
+  focal_player_id      = 84329 ,
+  focal_season         = 2025,
+  rte_cluster_input    = c("BT","DT","RB"),
+  tgt_cluster_input    = c("ML"),
+  align_cluster_input  = c("WWR"),
+  position_group_input = c("WR"),
+  man_zone_grp_input   = c("WR_DEEP"),
+  man_z_vec_input      = c(0, 100),
+  man_z_na             = FALSE,
+  xpass_vec_input      = c(30, 80),
+  xpass_na             = FALSE,
+  xtd_grp_input        = c("TD_LOW"),
+  xtd_vec_input        = c(0, 100),
+  xtd_grp_na           = FALSE,
+  onfield_min          = 0.55,
+  onfield_max          = 1.00,
+  grain                = "game")
+
+doubs_game_view_lowtd <- compare_receiver_cohort_logged(
+  focal_player_id      = 48327,
+  focal_season         = 2025,
+  rte_cluster_input    = c("ST","DT","SMT","RB"),
+  tgt_cluster_input    = c("ML"),
+  align_cluster_input  = c("WWR"),
+  position_group_input = c("WR"),
+  man_zone_grp_input   = c("WR_DEEP"),
+  man_z_vec_input      = c(50, 100),
+  man_z_na             = FALSE,
+  xpass_vec_input      = c(0, 65),
+  xpass_na             = FALSE,
+  xtd_grp_input        = c("TD_LOW"),
+  xtd_vec_input        = c(70, 100),
+  xtd_grp_na           = FALSE,
+  onfield_min          = 0.65,
+  onfield_max          = 1.00,
+  grain                = "game")
+
+receiver_registry <- log_view(doubs_game_view, "doubs_game_view", receiver_registry)
+
+doubs_game_view <- rbind(doubs_game_view_hightd, doubs_game_view_lowtd)
+
+# Wide pool for common-opponent work (looser filters)
+doubs_wide_game <- compare_receiver_cohort_logged(
+  focal_player_id      = 84329 ,
+  focal_season         = 2025,
+  rte_cluster_input    = c("BT","DT","RB","SMT"),
+  tgt_cluster_input    = c("ML"),
+  align_cluster_input  = c("WWR"),
+  position_group_input = c("WR"),
+  man_zone_grp_input   = c("WR_DEEP"),
+  man_z_vec_input      = c(0, 100),
+  man_z_na             = FALSE,
+  xpass_vec_input      = c(30, 80),
+  xpass_na             = FALSE,
+  xtd_grp_input        = c("TD_LOW"),
+  xtd_vec_input        = c(0, 100),
+  xtd_grp_na           = FALSE,
+  onfield_min          = 0.55,
+  onfield_max          = 1.00,
+  grain                = "game")
+
+doubs_wide_game_lowtd <- compare_receiver_cohort_logged(
+  focal_player_id      = 48327,
+  focal_season         = 2025,
+  rte_cluster_input    = c("ST","DT","SMT","RB"),
+  tgt_cluster_input    = c("ML", "SMT", "DT", "G"),
+  align_cluster_input  = c("WWR"),
+  position_group_input = c("WR"),
+  man_zone_grp_input   = c("WR_DEEP"),
+  man_z_vec_input      = c(45, 100),
+  man_z_na             = FALSE,
+  xpass_vec_input      = c(0, 65),
+  xpass_na             = FALSE,
+  xtd_grp_input        = c("TD_LOW"),
+  xtd_vec_input        = c(60, 100),
+  xtd_grp_na           = FALSE,
+  onfield_min          = 0.65,
+  onfield_max          = 1.00,
+  grain                = "game")
+
+receiver_registry <- log_view(doubs_wide_game, "doubs_wide_game", receiver_registry)
+
+doubs_wide_game <- rbind(doubs_wide_game_hightd, doubs_wide_game_lowtd)
+
+# check the registry / recover a recipe after restart:
+# View(receiver_registry)
+# show_params(kayshon_boutte_wide_game)
+# recover_call(receiver_registry, "kayshon_boutte_wide_game")
 
 
-# Single source of truth for metric → display label.
-# Add to it as new metrics get computed; the function will pick them up automatically.
+####
+#### plotting dictionaries + functions (unchanged from your script)
+####
+
+# Single source of truth for metric -> display label.
 METRIC_LABELS <- c(
   tgt_per_route    = "Tgt/Route",
   tgt_share_avg    = "Tgt Share",
@@ -310,8 +564,7 @@ METRIC_LABELS <- c(
   onfield_perc     = "On-Field %"
 )
 
-# Default plotting order — function filters this down to what's available + non-NA
-DEFAULT_PLOT_METRICS <- c("tgt_per_route",
+DEFAULT_PLOT_METRICS <- c("tgt_per_route", "tgt_share",
                           "pbp_cp_oe",  "part_cp_oe",
                           "pbp_ypa_oe", "part_ypa_oe",
                           "pbp_yac_oe", "part_yac_oe",
@@ -325,13 +578,11 @@ plot_cohort_dots <- function(cohort_df,
   focal_rows <- cohort_df %>% filter(is_focal)
   if (nrow(focal_rows) == 0) { message("No focal flagged."); return(invisible(NULL)) }
   
-  # keep only metrics that exist in the data AND have at least one non-NA value
   metrics <- metrics[metrics %in% names(cohort_df)]
   metrics <- metrics[vapply(metrics, function(c) any(!is.na(cohort_df[[c]])), logical(1))]
   
   if (length(metrics) == 0) { message("No plottable metrics."); return(invisible(NULL)) }
   
-  # display labels: lookup from dict, fall back to column name
   metric_labels <- unname(ifelse(metrics %in% names(label_map),
                                  label_map[metrics],
                                  metrics))
@@ -374,5 +625,254 @@ plot_cohort_dots <- function(cohort_df,
           panel.grid.minor   = element_blank())
 }
 
-plot_cohort_dots(aj_brown_season_view, title_suffix = "Season")
-plot_cohort_dots(aj_brown_game_view,   title_suffix = "Game")
+plot_cohort_dots(doubs_season_view, title_suffix = "Season")
+plot_cohort_dots(doubs_game_view,   title_suffix = "Game")
+
+
+# metric -> label; both season (*_avg) and game names listed, existence-filtered
+RECV_PCTL_SPEC <- tibble::tribble(
+  ~label,          ~col,
+  "Tgt/Route",     "tgt_per_route",
+  "Tgt Share",     "tgt_share_avg",
+  "Tgt Share",     "tgt_share",
+  "CP OE (pbp)",   "pbp_cp_oe",
+  "CP OE (part)",  "part_cp_oe",
+  "YPA OE (pbp)",  "pbp_ypa_oe",
+  "YPA OE (part)", "part_ypa_oe",
+  "YAC OE (pbp)",  "pbp_yac_oe",
+  "YAC OE (part)", "part_yac_oe",
+  "aDOT",          "adot",
+  "On-Field %",    "onfield_perc_avg",
+  "On-Field %",    "onfield_perc"
+)
+
+plot_receiver_pctl_heatmap <- function(cohort_df, spec = RECV_PCTL_SPEC, title = NULL) {
+  
+  focal_rows <- cohort_df %>% filter(is_focal)
+  if (nrow(focal_rows) == 0) { message("No focal flagged."); return(invisible(NULL)) }
+  
+  has_week <- "week" %in% names(cohort_df)
+  spec <- spec %>% filter(col %in% names(cohort_df))
+  
+  pctl_in <- function(col, v) {
+    x <- cohort_df[[col]]
+    mean(x <= v, na.rm = TRUE)
+  }
+  
+  focal_keyed <- if (has_week) {
+    focal_rows %>% mutate(col_id = paste0("Wk ", week)) %>%
+      arrange(week)
+  } else {
+    focal_rows %>% mutate(col_id = "Season")
+  }
+  
+  pd <- bind_rows(lapply(seq_len(nrow(spec)), function(i) {
+    cc <- spec$col[i]
+    tibble(
+      metric = spec$label[i],
+      col_id = focal_keyed$col_id,
+      raw    = focal_keyed[[cc]],
+      pctl   = vapply(focal_keyed[[cc]], function(v) if (is.na(v)) NA_real_ else pctl_in(cc, v), numeric(1))
+    )
+  })) %>%
+    filter(!is.na(pctl)) %>%
+    mutate(
+      metric = factor(metric, levels = rev(unique(spec$label))),
+      col_id = factor(col_id, levels = unique(focal_keyed$col_id))
+    )
+  
+  focal_name <- focal_rows$player[1]
+  focal_yr   <- focal_rows$season[1]
+  
+  ggplot(pd, aes(col_id, metric, fill = pctl)) +
+    geom_tile(color = "white", linewidth = 1) +
+    geom_text(aes(label = scales::percent(pctl, accuracy = 1),
+                  color = abs(pctl - 0.5) > 0.25),
+              size = if (has_week) 3 else 4.5, fontface = "bold", show.legend = FALSE) +
+    scale_fill_gradient2(low = "#08519c", mid = "#f7f7f7", high = "#a63603",
+                         midpoint = 0.5, limits = c(0, 1),
+                         labels = scales::percent, name = "Pctl") +
+    scale_color_manual(values = c(`TRUE` = "white", `FALSE` = "grey20")) +
+    scale_x_discrete(position = "top") +
+    labs(
+      title    = title %||% paste0(focal_name, " — ", focal_yr, " — Percentile vs cohort"),
+      subtitle = paste0("red→blue = high→low percentile within cohort (n = ", nrow(cohort_df) - sum(cohort_df$is_focal),
+                        " grey)  |  OE = over expected"),
+      x = NULL, y = NULL
+    ) +
+    theme_minimal(base_size = 11) +
+    theme(
+      plot.title      = element_text(face = "bold", size = 16),
+      plot.subtitle   = element_text(color = "grey40", size = 9),
+      panel.grid      = element_blank(),
+      axis.text.x.top = element_text(face = "bold", size = if (has_week) 9 else 12),
+      axis.text.y     = element_text(size = 11),
+      legend.position = "right",
+      legend.key.height = unit(1.4, "cm")
+    )
+}
+
+plot_receiver_pctl_heatmap(doubs_season_view)
+
+
+####
+#### common-opponent percentile machinery
+####
+
+RECV_CO_METRICS <- c(tgt_per_route = "Tgt/Route",  tgt_share    = "Tgt Share",
+                     pbp_cp_oe     = "CP OE (pbp)", part_cp_oe   = "CP OE (part)",
+                     pbp_ypa_oe    = "YPA OE (pbp)",part_ypa_oe  = "YPA OE (part)",
+                     pbp_yac_oe    = "YAC OE (pbp)",part_yac_oe  = "YAC OE (part)",
+                     adot          = "aDOT",        onfield_perc = "On-Field %")
+
+common_opp_pctl <- function(game_cohort, metrics = RECV_CO_METRICS, min_comp = 3) {
+  focal <- game_cohort %>% filter(is_focal)
+  comp  <- game_cohort %>% filter(!is_focal)
+  metric_cols <- names(metrics)
+  
+  # per focal game x metric: percentile within comp games vs the SAME def_ssn
+  per_game <- bind_rows(lapply(seq_len(nrow(focal)), function(i) {
+    d    <- focal$def_ssn[i]
+    pool <- comp %>% filter(def_ssn == d)
+    tibble(
+      def_ssn = d,
+      week    = focal$week[i],
+      metric  = metric_cols,
+      value   = vapply(metric_cols, function(m) focal[[m]][i], numeric(1)),
+      pctl    = vapply(metric_cols, function(m) {
+        v <- focal[[m]][i]; x <- pool[[m]]
+        if (is.na(v) || sum(!is.na(x)) < min_comp) NA_real_ else mean(x <= v, na.rm = TRUE)
+      }, numeric(1)),
+      n_comp  = nrow(pool)
+    )
+  }))
+  
+  summary <- per_game %>%
+    group_by(metric) %>%
+    summarise(pctl_co = mean(pctl, na.rm = TRUE),
+              n_defs  = sum(!is.na(pctl)), .groups = "drop") %>%
+    mutate(label = factor(metrics[metric], levels = rev(unname(metrics))))
+  
+  # stamp focal identity for self-labeling plots
+  focal_id <- focal %>% slice(1)
+  list(per_game = per_game, summary = summary,
+       focal_name   = if (nrow(focal_id)) focal_id$player[1] else NA_character_,
+       focal_season = if (nrow(focal_id)) focal_id$season[1] else NA)
+}
+
+doubs_co <- common_opp_pctl(doubs_wide_game, min_comp = 3)
+
+# DIAGNOSTIC - is there enough per defense?
+def_n <- doubs_co$per_game %>% distinct(def_ssn, n_comp) %>% arrange(n_comp)
+cat("comp games per focal-defense:\n"); print(def_n)
+cat("\nmedian comp games/def:", median(def_n$n_comp),
+    "| defenses with >=3:", sum(def_n$n_comp >= 3), "of", nrow(def_n), "\n")
+cat("\nmetrics x how many defenses cleared min_comp:\n"); print(henry_co$summary %>% select(metric, n_defs))
+
+
+threshold_sweep <- function(game_cohort, metrics = RECV_CO_METRICS, thresholds = 1:10) {
+  focal <- game_cohort %>% filter(is_focal)
+  comp  <- game_cohort %>% filter(!is_focal)
+  
+  pool_n <- sapply(focal$def_ssn, function(d) sum(comp$def_ssn == d))
+  
+  bind_rows(lapply(thresholds, function(mc) {
+    co <- common_opp_pctl(game_cohort, metrics = metrics, min_comp = mc)
+    ov <- co$summary %>% summarise(mean_pctl = mean(pctl_co, na.rm = TRUE),
+                                   sd_across_metrics = sd(pctl_co, na.rm = TRUE))
+    tibble(min_comp        = mc,
+           defs_qualifying = sum(pool_n >= mc),
+           defs_total      = length(pool_n),
+           avg_n_defs_used = mean(co$summary$n_defs),
+           mean_pctl       = ov$mean_pctl)
+  }))
+}
+
+sweep <- threshold_sweep(doubs_wide_game)
+print(sweep)
+
+focal <- doubs_wide_game %>% filter(is_focal)
+comp  <- doubs_wide_game %>% filter(!is_focal)
+pool_n <- tibble(def_ssn = focal$def_ssn,
+                 n_comp  = sapply(focal$def_ssn, function(d) sum(comp$def_ssn == d))) %>%
+  arrange(n_comp)
+print(pool_n)
+cat("median:", median(pool_n$n_comp), " min:", min(pool_n$n_comp), " max:", max(pool_n$n_comp), "\n")
+
+
+####
+#### common-opponent plots (self-labeling off co_obj)
+####
+
+plot_co_pctl_heatmap <- function(co_obj, title = NULL) {
+  pd <- co_obj$summary %>% filter(!is.na(pctl_co))
+  nm <- co_obj$focal_name   %||% "Focal"
+  yr <- co_obj$focal_season %||% ""
+  ggplot(pd, aes(x = "Common-Opp", y = label, fill = pctl_co)) +
+    geom_tile(color = "white", linewidth = 1) +
+    geom_text(aes(label = scales::percent(pctl_co, accuracy = 1),
+                  color = abs(pctl_co - 0.5) > 0.25),
+              size = 4.5, fontface = "bold", show.legend = FALSE) +
+    scale_fill_gradient2(low = "#08519c", mid = "#f7f7f7", high = "#a63603",
+                         midpoint = 0.5, limits = c(0, 1),
+                         labels = scales::percent, name = "Pctl") +
+    scale_color_manual(values = c(`TRUE` = "white", `FALSE` = "grey20")) +
+    scale_x_discrete(position = "top") +
+    labs(title = title %||% paste0(nm, " — ", yr, " — vs common-opponent cohort"),
+         subtitle = "percentile among same-archetype receivers facing the SAME defense, averaged across games",
+         x = NULL, y = NULL) +
+    theme_minimal(base_size = 11) +
+    theme(plot.title = element_text(face = "bold", size = 16),
+          plot.subtitle = element_text(color = "grey40", size = 9),
+          panel.grid = element_blank(),
+          axis.text.x.top = element_text(face = "bold", size = 12),
+          axis.text.y = element_text(size = 11),
+          legend.key.height = unit(1.4, "cm"))
+}
+
+plot_co_pctl_heatmap(doubs_co)
+
+
+RECV_CO_ORDER <- c("On-Field %", "Tgt Share", "Tgt/Route",
+                   "CP OE (pbp)", "CP OE (part)",
+                   "YPA OE (pbp)", "YPA OE (part)",
+                   "YAC OE (pbp)", "YAC OE (part)",
+                   "aDOT")
+
+plot_co_pctl_bars <- function(co_obj, order = RECV_CO_ORDER, title = NULL,
+                              focal_name = NULL, focal_season = NULL, n_games = NULL) {
+  
+  pd <- co_obj$summary %>%
+    filter(!is.na(pctl_co)) %>%
+    mutate(label = factor(as.character(label), levels = rev(order))) %>%
+    filter(!is.na(label))
+  
+  nm <- focal_name   %||% co_obj$focal_name   %||% "Focal"
+  yr <- focal_season %||% co_obj$focal_season %||% ""
+  ng <- n_games %||% dplyr::n_distinct(co_obj$per_game$week)
+  auto_title <- paste0(nm, " — ", yr, " — vs common-opponent cohort")
+  
+  ggplot(pd, aes(x = pctl_co, y = label, fill = pctl_co)) +
+    geom_col(width = 0.72) +
+    geom_vline(xintercept = 0.5, linetype = "dashed", color = "grey45", linewidth = 0.4) +
+    geom_text(aes(label = scales::percent(pctl_co, accuracy = 1)),
+              hjust = -0.15, size = 4, fontface = "bold", color = "grey20") +
+    scale_fill_gradient2(low = "#08519c", mid = "#f7f7f7", high = "#a63603",
+                         midpoint = 0.5, limits = c(0, 1),
+                         labels = scales::percent, name = "Pctl") +
+    scale_x_continuous(labels = scales::percent, limits = c(0, 1.08),
+                       breaks = c(0, .25, .5, .75, 1)) +
+    labs(title    = title %||% auto_title,
+         subtitle = paste0("percentile among same-archetype receivers facing the SAME defense, averaged across ",
+                           ng, " games  |  dashed = 50th"),
+         x = "Percentile", y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title       = element_text(face = "bold", size = 16),
+          plot.subtitle    = element_text(color = "grey40", size = 9),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor   = element_blank(),
+          axis.text.y      = element_text(size = 11, face = "bold"),
+          legend.position  = "none")
+}
+
+# plot_co_pctl_bars(hollins_co)

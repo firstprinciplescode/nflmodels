@@ -1,14 +1,14 @@
-comparison_blitz_func("DETGoff-2025", .97) # 147 # .93 - 120
-comparison_depth_func("DETGoff-2025", 1.14) # 42 # 1.1 - 20
-comparison_less_func("DETGoff-2025", 1.02) # 106 # .98 - 74
-comparison_pa_func("DETGoff-2025", 1) # 131 #.96 - 96
-comparison_pressure_func("DETGoff-2025", 1.01) # 122 # .96 - 99
+comparison_blitz_func("NEMaye-2025", .99) # 80
+comparison_depth_func("NEMaye-2025", .95) # 98
+comparison_less_func("NEMaye-2025", .98) # 75
+comparison_pa_func("NEMaye-2025", 1.01) # 61
+comparison_pressure_func("NEMaye-2025", 1.02) # 54
 
-all_qbs <- rbind(as.data.frame(comparison_blitz_func("DETGoff-2025", .957)), 
-             as.data.frame(comparison_depth_func("DETGoff-2025", 1.127)), 
-             as.data.frame(comparison_less_func("DETGoff-2025", 1.007)), 
-             as.data.frame(comparison_pa_func("DETGoff-2025", .987)), 
-             as.data.frame(comparison_pressure_func("DETGoff-2025", .997)))
+all_qbs <- rbind(as.data.frame(comparison_blitz_func("NEMaye-2025", .99)), 
+             as.data.frame(comparison_depth_func("NEMaye-2025", .95)), 
+             as.data.frame(comparison_less_func("NEMaye-2025", .98)), 
+             as.data.frame(comparison_pa_func("NEMaye-2025", 1.01)), 
+             as.data.frame(comparison_pressure_func("NEMaye-2025", 1.02)))
 
 sim_qb <- sqldf("SELECT QB, COUNT(*) AS CNT
         FROM  all_qbs 
@@ -17,9 +17,9 @@ sim_qb <- sqldf("SELECT QB, COUNT(*) AS CNT
 
 sim_qb
 
-
+### UPDATE THIS FIRST ####
 det_blitz <- df_pressure_scaled_z %>%
-  filter(qbgrp_ssn %in% c(sim_qb$QB, "DETGoff-2025")) %>%
+  filter(qbgrp_ssn %in% c(sim_qb$QB, "NEMaye-2025")) %>%
   select(-contains("snaps"), -contains("int_rate"))
   # %>%
   # select(-contains("adot"))
@@ -83,9 +83,9 @@ det_long <- det_blitz %>%
 det_summary <- det_long %>%
   group_by(var_label, bucket) %>%
   summarise(
-    vs      = z[qbgrp_ssn == "DETGoff-2025"],
-    cc      = median(z[qbgrp_ssn != "DETGoff-2025"], na.rm = TRUE),
-    cc_mean = mean(z[qbgrp_ssn != "DETGoff-2025"], na.rm = TRUE),
+    vs      = z[qbgrp_ssn == "NEMaye-2025"],
+    cc      = median(z[qbgrp_ssn != "NEMaye-2025"], na.rm = TRUE),
+    cc_mean = mean(z[qbgrp_ssn != "NEMaye-2025"], na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -109,7 +109,7 @@ col_seq <- scales::col_numeric(
 gradient_raster <- matrix(blend_white(col_seq, 0.4), nrow = 1)
 
 
-plot_strip <- function(df = det_long, bkt = "Good", focal = "DETGoff-2025") {
+plot_strip <- function(df = det_long, bkt = "Good", focal = "NEMaye-2025") {
   ggplot(df %>% filter(bucket == bkt),
          aes(x = z, y = var_label)) +
     annotation_raster(gradient_raster,
@@ -139,7 +139,7 @@ plot_strip <- function(df = det_long, bkt = "Good", focal = "DETGoff-2025") {
           axis.text.y       = element_text(size = 7))
 }
 
-plot_dumb <- function(df = det_summary, bkt = "Good", focal = "DETGoff-2025") {
+plot_dumb <- function(df = det_summary, bkt = "Good", focal = "NEMaye-2025") {
   ggplot(df %>% filter(bucket == bkt), aes(y = var_label)) +
     annotation_raster(gradient_raster,
                       xmin = -2.5, xmax = 2.5,
@@ -173,15 +173,34 @@ plot_dumb <- function(df = det_summary, bkt = "Good", focal = "DETGoff-2025") {
 }
 
 # Call however you want
-plot_strip(df = det_long,    bkt = "Good", focal = "DETGoff-2025", id_col = "qbgrp_ssn")
-plot_dumb(df = det_summary,  bkt = "Good", focal = "DETGoff-2025")
+plot_strip(df = det_long,    bkt = "Good", focal = "NEMaye-2025")
+plot_dumb(df = det_summary,  bkt = "Good", focal = "NEMaye-2025")
 
-plot_strip(df = det_long,    bkt = "Bad",  focal = "DETGoff-2025", id_col = "qbgrp_ssn")
-plot_dumb(df = det_summary,  bkt = "Bad",  focal = "DETGoff-2025")
+plot_strip(df = det_long,    bkt = "Bad",  focal = "NEMaye-2025")
+plot_dumb(df = det_summary,  bkt = "Bad",  focal = "NEMaye-2025")
 
-plot_strip(df = det_long,    bkt = "Diff (G-B)", focal = "DETGoff-2025", id_col = "qbgrp_ssn")
-plot_dumb(df = det_summary,  bkt = "Diff (G-B)", focal = "DETGoff-2025")
+plot_strip(df = det_long,    bkt = "Diff (G-B)", focal = "NEMaye-2025")
+plot_dumb(df = det_summary,  bkt = "Diff (G-B)", focal = "NEMaye-2025")
 
+
+
+sim_qb2 <- sqldf("SELECT QB, COUNT(*) AS CNT
+        FROM  all_qbs 
+        GROUP BY  QB
+        HAVING  CNT >= 4") %>% select(QB) %>% distinct()
+
+sim_qb2
+
+### UPDATE THIS FIRST ####
+det_blitz2 <- df_pressure_scaled_z %>%
+  filter(qbgrp_ssn %in% c(sim_qb2$QB, "NEMaye-2025")) %>%
+  select(-contains("snaps"), -contains("int_rate"))
+
+# BLTJackson-2024, SEADarnold-2025, HSTWatson-2020
+
+df_pressure_scaled_z %>%
+  filter(qbgrp_ssn %in% c("BLTJackson-2024", "SEADarnold-2025", "HSTWatson-2020")) %>%
+  select(pressure_ypa_Good, pressure_ypa_Bad, pressure_ypa_diff)
 
 
 
