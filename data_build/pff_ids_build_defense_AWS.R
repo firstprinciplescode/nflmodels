@@ -1,7 +1,9 @@
 # ============================================================
-# DEFENSE: PFF ↔ NFLverse gsis_id reconciliation
+# DEFENSE: PFF <-> NFLverse gsis_id reconciliation
 # Output: combined_ids_defense (one row per PFF player-week)
 # ============================================================
+
+SEASONS <- 2016:2025
 
 # === HELPERS ===
 run_athena_query <- function(sql) {
@@ -18,14 +20,14 @@ run_athena_query <- function(sql) {
 
 normalize_position <- function(pos) {
   case_when(
-    pos %in% c("HB", "RB", "FB")                ~ "BACK",
-    pos %in% c("WR", "TE")                      ~ "REC",
-    pos %in% c("QB")                            ~ "QB",
+    pos %in% c("HB", "RB", "FB") ~ "BACK",
+    pos %in% c("WR", "TE") ~ "REC",
+    pos %in% c("QB") ~ "QB",
     pos %in% c("T", "G", "C", "OL", "OT", "OG") ~ "OL",
-    pos %in% c("CB", "DB", "S", "FS", "SS")     ~ "DB",
-    pos %in% c("LB", "ILB", "OLB", "MLB")       ~ "LB",
-    pos %in% c("DE", "DT", "DL", "NT", "EDGE")  ~ "DL",
-    TRUE                                        ~ "OTHER"
+    pos %in% c("CB", "DB", "S", "FS", "SS") ~ "DB",
+    pos %in% c("LB", "ILB", "OLB", "MLB") ~ "LB",
+    pos %in% c("DE", "DT", "DL", "NT", "EDGE", "DI", "ED") ~ "DL",  # DI/ED added 2026-08: 47,920 rows were falling through to OTHER
+    TRUE ~ "OTHER"
   )
 }
 
@@ -33,13 +35,13 @@ standardize_cols <- function(df) {
   colnames(df) <- tolower(colnames(df))
   df %>%
     mutate(
-      player       = as.character(player),
-      player_id    = as.numeric(player_id),
-      team         = as.character(team),
+      player = as.character(player),
+      player_id = as.numeric(player_id),
+      team = as.character(team),
       franchise_id = as.numeric(franchise_id),
-      week         = as.numeric(week),
-      season       = as.numeric(season),
-      position     = as.character(position)
+      week = as.numeric(week),
+      season = as.numeric(season),
+      position = as.character(position)
     )
 }
 
@@ -53,31 +55,31 @@ clean_name <- function(x) {
 }
 
 # === LOAD NFLVERSE ROSTERS ===
-ids_one <- load_rosters_weekly(season = c(2016:2025))
+ids_one <- load_rosters_weekly(season = SEASONS)
 
 ids_one$team[which(ids_one$team == "ARI")] <- "ARZ"
 ids_one$team[which(ids_one$team == "BAL")] <- "BLT"
 ids_one$team[which(ids_one$team == "CLE")] <- "CLV"
 ids_one$team[which(ids_one$team == "HOU")] <- "HST"
 ids_one$team[which(ids_one$team == "LAC" & ids_one$season == 2016)] <- "SD"
-ids_one$team[which(ids_one$team == "LV"  & ids_one$season <= 2019)] <- "OAK"
+ids_one$team[which(ids_one$team == "LV" & ids_one$season <= 2019)] <- "OAK"
 
 ids_one$week <- ifelse(ids_one$week == 18 & ids_one$season <= 2020, 28, ids_one$week)
 ids_one$week <- ifelse(ids_one$week == 19 & ids_one$season <= 2020, 29, ids_one$week)
-ids_one$week <- ifelse(ids_one$week == 19 & ids_one$season >  2020, 28, ids_one$week)
+ids_one$week <- ifelse(ids_one$week == 19 & ids_one$season > 2020, 28, ids_one$week)
 ids_one$week <- ifelse(ids_one$week == 20 & ids_one$season <= 2020, 30, ids_one$week)
-ids_one$week <- ifelse(ids_one$week == 20 & ids_one$season >  2020, 29, ids_one$week)
+ids_one$week <- ifelse(ids_one$week == 20 & ids_one$season > 2020, 29, ids_one$week)
 ids_one$week <- ifelse(ids_one$week == 21 & ids_one$season <= 2020, 32, ids_one$week)
-ids_one$week <- ifelse(ids_one$week == 21 & ids_one$season >  2020, 30, ids_one$week)
-ids_one$week <- ifelse(ids_one$week == 22,                          32, ids_one$week)
+ids_one$week <- ifelse(ids_one$week == 21 & ids_one$season > 2020, 30, ids_one$week)
+ids_one$week <- ifelse(ids_one$week == 22, 32, ids_one$week)
 
 # === PULL PFF DEFENSE TABLES ===
-pff_coverage_scheme     <- run_athena_query("SELECT DISTINCT player, player_id, team, franchise_id, week, season, position FROM coverage_scheme")
-pff_coverage_summary    <- run_athena_query("SELECT DISTINCT player, player_id, team, franchise_id, week, season, position FROM coverage_summary")
-pff_pass_rush_kpis      <- run_athena_query("SELECT DISTINCT player, player_id, team, franchise_id, week, season, position FROM pass_rush_kpis")
-pff_pass_rush_summary   <- run_athena_query("SELECT DISTINCT player, player_id, team, franchise_id, week, season, position FROM pass_rush_summary")
+pff_coverage_scheme <- run_athena_query("SELECT DISTINCT player, player_id, team, franchise_id, week, season, position FROM coverage_scheme")
+pff_coverage_summary <- run_athena_query("SELECT DISTINCT player, player_id, team, franchise_id, week, season, position FROM coverage_summary")
+pff_pass_rush_kpis <- run_athena_query("SELECT DISTINCT player, player_id, team, franchise_id, week, season, position FROM pass_rush_kpis")
+pff_pass_rush_summary <- run_athena_query("SELECT DISTINCT player, player_id, team, franchise_id, week, season, position FROM pass_rush_summary")
 pff_run_defense_summary <- run_athena_query("SELECT DISTINCT player, player_id, team, franchise_id, week, season, position FROM run_defense_summary")
-pff_slot_coverage       <- run_athena_query("SELECT DISTINCT player, player_id, team, franchise_id, week, season, position FROM slot_coverage")
+pff_slot_coverage <- run_athena_query("SELECT DISTINCT player, player_id, team, franchise_id, week, season, position FROM slot_coverage")
 
 # === DISTINCT PFF PLAYER-WEEKS (modal position) ===
 pff_ids_one <- bind_rows(
@@ -89,20 +91,24 @@ pff_ids_one <- bind_rows(
   standardize_cols(pff_slot_coverage)
 ) %>%
   distinct() %>%
-  drop_na() %>%
-  group_by(player, player_id, team, franchise_id, week, season) %>%
+  # narrowed 2026-08: position/franchise_id are not join keys - an NA there
+  # must not delete a row that the pff_id tier could still match
+  drop_na(player, player_id, team, week, season) %>%
+  # franchise_id out of the group: an NA must not split a player-week
+  group_by(player, player_id, team, week, season) %>%
   summarise(position = names(sort(table(position), decreasing = TRUE))[1],
+            franchise_id = dplyr::first(franchise_id[!is.na(franchise_id)]),
             .groups = "drop") %>%
   arrange(player_id, season, week)
 
 # === PREP BOTH SIDES ===
 ids_one_keyed <- ids_one %>%
   filter(!is.na(gsis_id)) %>%
-  mutate(pff_id   = as.numeric(pff_id),
+  mutate(pff_id = as.numeric(pff_id),
          name_key = clean_name(full_name))
 
 pff_keyed <- pff_ids_one %>%
-  mutate(name_key  = clean_name(player),
+  mutate(name_key = clean_name(player),
          pos_group = normalize_position(position))
 
 # === LOOKUPS (each uniqueness-gated) ===
@@ -134,11 +140,11 @@ lk_name_only <- ids_one_keyed %>%
 
 # === BUILD COMBINED_IDS_DEFENSE ===
 combined_ids_defense <- pff_keyed %>%
-  left_join(lk_pff_id,    by = c("player_id" = "pff_id", "team", "week", "season")) %>%
+  left_join(lk_pff_id, by = c("player_id" = "pff_id", "team", "week", "season")) %>%
   rename(gsis_id_pff = gsis_id) %>%
-  left_join(lk_name_tws,  by = c("name_key", "team", "week", "season")) %>%
-  left_join(lk_name_ts,   by = c("name_key", "team", "season")) %>%
-  left_join(lk_name_s,    by = c("name_key", "season")) %>%
+  left_join(lk_name_tws, by = c("name_key", "team", "week", "season")) %>%
+  left_join(lk_name_ts, by = c("name_key", "team", "season")) %>%
+  left_join(lk_name_s, by = c("name_key", "season")) %>%
   left_join(lk_name_only, by = "name_key") %>%
   mutate(gsis_id = coalesce(gsis_id_pff, gsis_id_a, gsis_id_b, gsis_id_c, gsis_id_d)) %>%
   group_by(player_id) %>%
@@ -150,7 +156,7 @@ combined_ids_defense <- pff_keyed %>%
 # pff_id collisions that survive the cascade (extend as needed)
 combined_ids_defense <- combined_ids_defense %>%
   mutate(gsis_id = case_when(
-    player_id == 83220 ~ "00-0038602",   # Chris Smith II — name collision w/ DL Chris Smith
+    player_id == 83220 ~ "00-0038602",  # Chris Smith II - name collision w/ DL Chris Smith
     TRUE ~ gsis_id
   ))
 
@@ -180,38 +186,41 @@ check_gsis_week <- combined_ids_defense %>%
 
 check_critical_na <- combined_ids_defense %>%
   filter(is.na(player) | is.na(player_id) | is.na(team) |
-           is.na(week)   | is.na(season))
+           is.na(week) | is.na(season))
 
+# franchise_id may legitimately be NA post-narrowing - exclude before the consistency check
 check_fid_team <- combined_ids_defense %>%
+  filter(!is.na(franchise_id)) %>%
   group_by(season, franchise_id) %>%
   summarise(n_teams = n_distinct(team), .groups = "drop") %>% filter(n_teams > 1)
 
 check_gsis_format <- combined_ids_defense %>%
   filter(!is.na(gsis_id), !grepl("^\\d{2}-\\d{7}$", gsis_id))
 
+# bounds derive from SEASONS - next year, edit SEASONS at the top only
 check_bounds <- combined_ids_defense %>%
   filter(week < 1 | week > 32 |
-           season < 2016 | season > 2025 |
+           season < min(SEASONS) | season > max(SEASONS) |
            player_id <= 0)
 
 stopifnot(
-  nrow(dupe_check)        == 0,
-  nrow(check_pid_name)    == 0,
-  nrow(check_pid_gsis)    == 0,
-  nrow(check_gsis_pid)    == 0,
-  nrow(check_gsis_week)   == 0,
+  nrow(dupe_check) == 0,
+  nrow(check_pid_name) == 0,
+  nrow(check_pid_gsis) == 0,
+  nrow(check_gsis_pid) == 0,
+  nrow(check_gsis_week) == 0,
   nrow(check_critical_na) == 0,
-  nrow(check_fid_team)    == 0,
+  nrow(check_fid_team) == 0,
   nrow(check_gsis_format) == 0,
-  nrow(check_bounds)      == 0
+  nrow(check_bounds) == 0
 )
 
-# === MATCH RATE BY SEASON (soft report — expected ~99.9%+) ===
+# === MATCH RATE BY SEASON (soft report - expected ~99.9%+) ===
 combined_ids_defense %>%
   group_by(season) %>%
-  summarise(total   = n(),
+  summarise(total = n(),
             matched = sum(!is.na(gsis_id)),
-            pct     = round(100 * matched / total, 1))
+            pct = round(100 * matched / total, 1))
 
 # === CLEANUP ===
 rm(
