@@ -24,3 +24,8 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+*.RData
+*.rds
+.Rhistory
+.Rproj.user/
