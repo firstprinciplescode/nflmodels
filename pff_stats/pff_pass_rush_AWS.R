@@ -245,6 +245,7 @@ pass_rush_all_player_season_summary <- full_pass_rush_qbgrp %>%
     player_prp                = mean(prp, na.rm = TRUE),
     player_pass_rush_win_rate = mean(pass_rush_win_rate, na.rm = TRUE),
     player_pressure_rate      = mean(pressure_rate, na.rm = TRUE),
+    player_hit_rate           = mean(hit_rate, na.rm = TRUE),
     player_hurry_rate         = mean(hurry_rate, na.rm = TRUE),
     n = n(),
     .groups = "drop"
@@ -256,6 +257,7 @@ pass_rush_all_player_season_summary <- full_pass_rush_qbgrp %>%
     prp_season_pctl                = percent_rank_avg(player_prp),
     pass_rush_win_rate_season_pctl = percent_rank_avg(player_pass_rush_win_rate),
     pressure_rate_season_pctl      = percent_rank_avg(player_pressure_rate),
+    hit_rate_season_pctl           = percent_rank_avg(player_hit_rate),
     hurry_rate_season_pctl         = percent_rank_avg(player_hurry_rate)
   ) %>%
   ungroup()
@@ -319,6 +321,7 @@ pass_rush_tps_player_season_summary <- full_pass_rush_qbgrp %>%
     player_tps_prp                = mean(true_pass_set_prp, na.rm = TRUE),
     player_tps_pass_rush_win_rate = mean(true_pass_set_pass_rush_win_rate, na.rm = TRUE),
     player_tps_pressure_rate      = mean(tps_pressure_rate, na.rm = TRUE),
+    player_tps_hit_rate           = mean(tps_hit_rate, na.rm = TRUE),    
     player_tps_hurry_rate         = mean(tps_hurry_rate, na.rm = TRUE),
     n = n(),
     .groups = "drop"
@@ -330,6 +333,7 @@ pass_rush_tps_player_season_summary <- full_pass_rush_qbgrp %>%
     tps_prp_season_pctl                = percent_rank_avg(player_tps_prp),
     tps_pass_rush_win_rate_season_pctl = percent_rank_avg(player_tps_pass_rush_win_rate),
     tps_pressure_rate_season_pctl      = percent_rank_avg(player_tps_pressure_rate),
+    tps_hit_rate_season_pctl           = percent_rank_avg(player_tps_hit_rate),    
     tps_hurry_rate_season_pctl         = percent_rank_avg(player_tps_hurry_rate)
   ) %>%
   ungroup()
@@ -886,6 +890,12 @@ plot_prush_card_player(82330)                              # Hutch, all seasons,
 plot_prush_card_player(82330, view = "tps")                # Hutch, TPS
 plot_prush_card_player(c(82198, 48600, 56682, 56976, 142819), view = "tps")    # NE PLAYERS WHO STAYED                
 plot_prush_card_player(c(57945, 52000, 25449), view = "tps") # NE PLAYERS WHO LEFT
+plot_prush_card_player(c(28075), view = "tps") # INCOMING NE PLAYERS. 
+# ALSO GABE JACAS - 77 NGS, 
+
+
+plot_prush_card_player(c(76914, 151084, 8675, 28075, 124147, 7863), view = "tps")    # NE PLAYERS WHO STAYED                
+plot_prush_card_player(c(43742, 10678, 50201, 28075, 49935, 99321, 56962, 129579), view = "tps") # NE PLAYERS WHO LEFT
 plot_prush_card_player(c(28075), view = "tps") # INCOMING NE PLAYERS. 
 # ALSO GABE JACAS - 77 NGS, 
 

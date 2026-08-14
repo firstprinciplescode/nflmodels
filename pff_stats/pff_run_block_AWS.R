@@ -661,7 +661,7 @@ plot_def_pos_heatmap <- function(qbgrp,
     )
 }
 
-plot_def_pos_heatmap("DETGoff-2025")
+plot_def_pos_heatmap("NEMaye-2025")
 plot_def_pos_heatmap("DETGoff-2024")
 plot_def_pos_heatmap("DETGoff-2023")
 plot_def_pos_heatmap("CHIWilliams-2025")

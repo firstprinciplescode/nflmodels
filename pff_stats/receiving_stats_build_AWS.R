@@ -317,4 +317,4 @@ left_join(receiving_func_base,
           qb_stats_df_final %>% select(qbgrp_ssn, def_ssn, week, season, temp, wind, rain_ind, snow_ind), 
           by = c("qbgrp_ssn", "def_ssn","week","season"))
 
-          
+                             
