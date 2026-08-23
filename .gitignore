@@ -29,5 +29,14 @@ Thumbs.db
 *.rds
 .Rhistory
 .Rproj.user/
+HEAD
 *.RDataTmp
 *.Rhistory
+
+*.RData
+*.rds
+util/amazon_web_credentials.R
+*cookie*
+.Renviron
+*.env
+57cbbad (seven-unit machine: backlog + pff_stats unit subfolders)

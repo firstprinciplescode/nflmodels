@@ -378,7 +378,7 @@ plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "grade_season_p
 plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "pressure_season_pctl", "NE — True Pass Set Pressure Pctl")
 
 
-ol_ids <- c(57107, 59854)
+ol_ids <- c(123068)
 
 # All pass block snaps
 plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "grade_season_pctl",    "NE Signings — Pass Block Grade Pctl")

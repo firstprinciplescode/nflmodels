@@ -1,14 +1,14 @@
-comparison_blitz_func("NEMaye-2025", .99) # 80
-comparison_depth_func("NEMaye-2025", .95) # 98
-comparison_less_func("NEMaye-2025", .98) # 75
-comparison_pa_func("NEMaye-2025", 1.01) # 61
-comparison_pressure_func("NEMaye-2025", 1.02) # 54
+comparison_blitz_func("SEADarnold-2025", .95) # 89
+comparison_depth_func("SEADarnold-2025", .91) # 109
+comparison_less_func("SEADarnold-2025", .94) # 90
+comparison_pa_func("SEADarnold-2025", 1.05) # 34
+comparison_pressure_func("SEADarnold-2025", .94) # 92
 
-all_qbs <- rbind(as.data.frame(comparison_blitz_func("NEMaye-2025", .99)), 
-             as.data.frame(comparison_depth_func("NEMaye-2025", .95)), 
-             as.data.frame(comparison_less_func("NEMaye-2025", .98)), 
-             as.data.frame(comparison_pa_func("NEMaye-2025", 1.01)), 
-             as.data.frame(comparison_pressure_func("NEMaye-2025", 1.02)))
+all_qbs <- rbind(as.data.frame(comparison_blitz_func("SEADarnold-2025", .958)), 
+             as.data.frame(comparison_depth_func("SEADarnold-2025", .918)), 
+             as.data.frame(comparison_less_func("SEADarnold-2025", .948)), 
+             as.data.frame(comparison_pa_func("SEADarnold-2025", 1.058)), 
+             as.data.frame(comparison_pressure_func("SEADarnold-2025", .948)))
 
 sim_qb <- sqldf("SELECT QB, COUNT(*) AS CNT
         FROM  all_qbs 
@@ -19,7 +19,7 @@ sim_qb
 
 ### UPDATE THIS FIRST ####
 det_blitz <- df_pressure_scaled_z %>%
-  filter(qbgrp_ssn %in% c(sim_qb$QB, "NEMaye-2025")) %>%
+  filter(qbgrp_ssn %in% c(sim_qb$QB, "SEADarnold-2025")) %>%
   select(-contains("snaps"), -contains("int_rate"))
   # %>%
   # select(-contains("adot"))

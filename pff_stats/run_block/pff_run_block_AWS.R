@@ -370,7 +370,7 @@ plot_ol_run_block <- function(player_ids,
 }
 
 # NE 2025
-ol_ids <- c(27357, 46013, 8701, 157106, 146717, 59869, 59741)
+ol_ids <- c(10647)
 plot_ol_run_block(ol_ids, gap_player_season_summary, "gap_season_pctl",
                   "NE — Run Block Gap Pctl")
 plot_ol_run_block(ol_ids, zone_player_season_summary, "zone_season_pctl", "NE — Run Block Zone Pctl")
