@@ -66,6 +66,19 @@
 #   FIREWALL INTACT: gap blends with the gap replacement level, zone
 #           with the zone level, adj with the adj level; the priced
 #           family stays its own always-labeled family.
+#   SCHEME SPLIT (round two, stamped 2026-08-30, same signature as
+#           the currency file's section 4b): V_c3_gap / V_c3_zone
+#           (+ their _av priced forms) built per scheme from the
+#           currency file's gap_c3_pctl / zone_c3_pctl, same blend
+#           law as blended V_c3, which stays untouched.
+#   FACED-SIDE SPLIT (round three, stamped 2026-08-30, Andy:
+#           "Yes -- honest '--' holes"): the section-8 per-team
+#           tables carry THEIR OWN adjusted columns per scheme --
+#           faced cells valued on gap_c3_pctl / zone_c3_pctl at the
+#           game slot, the 2026 side on per-scheme 24/25 blends
+#           with NO prior fill. A scheme neither season earned
+#           prints '--'; holes never fill on this side. Sections
+#           5/6/7 keep the blended adjusted lens.
 #   NOT SEEN: current 2026 injuries beyond roster membership (the
 #           roster-change protocol drops known season-enders via
 #           load_rosters; PUP/short-term IR not priced here).
@@ -101,7 +114,12 @@ req_cols_rb <- list(
   ol_season_pctl   = c("player_id", "det_position", "gap", "zone"),
   rookie_prior     = c("det_position", "pr_gap", "pr_zone"),
   rblk_c3_pctl     = c("player_id", "player", "season", "band",
-                       "qual_g", "c3_pctl"),
+                       "qual_g", "c3_pctl", "gap_c3_pctl",
+                       "zone_c3_pctl", "gap_qual_g",
+                       "zone_qual_g"),  # round-two split (2026-08-30):
+  # if this wall fires, re-source
+  # league_run_block_evaluating_currency_three.R
+  # (with section 4b) first
   entry_years      = c("player_id", "entry_year"),
   opp_ol_2026_final = c("team_name", "det_position", "roster_name",
                         "player_id", "status", "gap_f", "zone_f"),
@@ -246,6 +264,28 @@ if (!setequal(c3_rookie_prior_rb$band, ol_pos_levels)) {
 }
 
 # ------------------------------------------------------------
+# 0c. SCHEME-SPLIT c3 priors by slot (round two, stamped
+#     2026-08-30 -- same signature as the currency file's 4b):
+#     entry-year medians of gap_c3_pctl / zone_c3_pctl. Scheme
+#     samples are thinner BY DESIGN, so a slot can lack a scheme
+#     prior -- NO stop here; every chain below falls scheme
+#     prior -> blended slot prior -> unit scalar.
+# ------------------------------------------------------------
+
+c3_scheme_prior_rb <- rblk_c3_pctl %>%
+  inner_join(entry_years, by = "player_id") %>%
+  filter(season == entry_year, entry_year >= 2017) %>%
+  filter(band %in% ol_pos_levels) %>%
+  group_by(band) %>%
+  summarise(pr_c3_gap  = median(gap_c3_pctl,  na.rm = TRUE),
+            pr_c3_zone = median(zone_c3_pctl, na.rm = TRUE),
+            n_entry = dplyr::n(), .groups = "drop")
+
+cat("\n--- c3 entry-year prior by slot, per scheme (a hole falls",
+    "to the blended prior in the chains below) ---\n")
+print(c3_scheme_prior_rb)
+
+# ------------------------------------------------------------
 # 2b. THE FIRST-YEAR LINES (Andy 2026-08-19: "career backups get
 #     priced at the backup thing; rookies get the rookie line").
 #     Measured from 2024-25 first-year starters: when a guy holds a
@@ -355,7 +395,8 @@ repl_games_rb <- run_block_summary_qbgrp %>%
                      zone25 = zone),
             by = c("player_id", "det_position")) %>%
   left_join(rblk_c3_pctl %>% filter(season == 2025) %>%
-              select(player_id, band, c3_pctl),
+              select(player_id, band, c3_pctl, gap_c3_pctl,
+                     zone_c3_pctl),
             by = c("player_id", "det_position" = "band")) %>%
   mutate(
     # signed fill law per lens: earned 2025 level, else slot prior,
@@ -373,6 +414,23 @@ repl_games_rb <- run_block_summary_qbgrp %>%
       c3_pctl,
       c3_rookie_prior_rb$pr_c3[match(det_position,
                                      c3_rookie_prior_rb$band)],
+      prior_unit_c3_rb),
+    # round two: same signed fill law per scheme -- earned scheme
+    # level, else slot scheme prior, else slot blended prior,
+    # else unit scalar
+    adj_gap_val = dplyr::coalesce(
+      gap_c3_pctl,
+      c3_scheme_prior_rb$pr_c3_gap[match(det_position,
+                                         c3_scheme_prior_rb$band)],
+      c3_rookie_prior_rb$pr_c3[match(det_position,
+                                     c3_rookie_prior_rb$band)],
+      prior_unit_c3_rb),
+    adj_zone_val = dplyr::coalesce(
+      zone_c3_pctl,
+      c3_scheme_prior_rb$pr_c3_zone[match(det_position,
+                                          c3_scheme_prior_rb$band)],
+      c3_rookie_prior_rb$pr_c3[match(det_position,
+                                     c3_rookie_prior_rb$band)],
       prior_unit_c3_rb))
 
 repl_level_rb <- repl_games_rb %>%
@@ -381,6 +439,8 @@ repl_level_rb <- repl_games_rb %>%
             repl_gap  = round(mean(gap_val,  na.rm = TRUE), 3),
             repl_zone = round(mean(zone_val, na.rm = TRUE), 3),
             repl_adj  = round(mean(adj_val,  na.rm = TRUE), 3),
+            repl_adj_gap  = round(mean(adj_gap_val,  na.rm = TRUE), 3),
+            repl_adj_zone = round(mean(adj_zone_val, na.rm = TRUE), 3),
             .groups = "drop")
 
 cat("\n--- when the starter is out, what do you get? (2025 backup",
@@ -388,11 +448,15 @@ cat("\n--- when the starter is out, what do you get? (2025 backup",
 print(repl_level_rb %>%
         rename(slot = det_position, "backup gms seen" = n_backup,
                "fill lvl (gap)" = repl_gap, "fill lvl (zone)" = repl_zone,
-               "fill lvl (adj)" = repl_adj))
+               "fill lvl (adj)" = repl_adj,
+               "fill lvl (adj gap)" = repl_adj_gap,
+               "fill lvl (adj zone)" = repl_adj_zone))
 if (!setequal(repl_level_rb$det_position, ol_pos_levels) ||
     any(is.na(repl_level_rb$repl_gap)) ||
     any(is.na(repl_level_rb$repl_zone)) ||
-    any(is.na(repl_level_rb$repl_adj))) {
+    any(is.na(repl_level_rb$repl_adj)) ||
+    any(is.na(repl_level_rb$repl_adj_gap)) ||
+    any(is.na(repl_level_rb$repl_adj_zone))) {
   stop("replacement level NA or slot missing -- report")
 }
 
@@ -462,15 +526,31 @@ slot_value_26_rb_build <- slots_full %>%
       TRUE ~ dplyr::coalesce(zone_bl, zone, pr_zone,
                              prior_unit_zone_rb))) %>%
   left_join(rblk_c3_pctl %>% filter(season == 2025) %>%
-              select(player_id, a25 = c3_pctl, qg25a = qual_g),
+              select(player_id, a25 = c3_pctl, qg25a = qual_g,
+                     g25 = gap_c3_pctl, qg25g = gap_qual_g,
+                     z25 = zone_c3_pctl, qg25z = zone_qual_g),
             by = "player_id") %>%
   left_join(rblk_c3_pctl %>% filter(season == 2024) %>%
-              select(player_id, a24 = c3_pctl),
+              select(player_id, a24 = c3_pctl, g24 = gap_c3_pctl,
+                     z24 = zone_c3_pctl),
             by = "player_id") %>%
   left_join(c3_rookie_prior_rb %>% select(band, pr_c3),
             by = c("slot" = "band")) %>%
+  left_join(c3_scheme_prior_rb %>% select(band, pr_c3_gap,
+                                          pr_c3_zone),
+            by = c("slot" = "band")) %>%
   mutate(w25a = pmin(dplyr::coalesce(qg25a, 0L) / 10, 1),
-         V_c3 = dplyr::coalesce(blend2(a25, a24, w25a), pr_c3)) %>%
+         V_c3 = dplyr::coalesce(blend2(a25, a24, w25a), pr_c3),
+         # round two: the scheme split -- same blend law per scheme;
+         # fill chain scheme prior -> blended slot prior -> unit
+         w25g = pmin(dplyr::coalesce(qg25g, 0L) / 10, 1),
+         w25z = pmin(dplyr::coalesce(qg25z, 0L) / 10, 1),
+         V_c3_gap = dplyr::coalesce(blend2(g25, g24, w25g),
+                                    pr_c3_gap, pr_c3,
+                                    prior_unit_c3_rb),
+         V_c3_zone = dplyr::coalesce(blend2(z25, z24, w25z),
+                                     pr_c3_zone, pr_c3,
+                                     prior_unit_c3_rb)) %>%
   # --- layer-only joins below this line; V values untouched ---
   left_join(avail_rb %>%
               select(player_id, yrs, job_yrs, avail_all, avail_job),
@@ -488,11 +568,27 @@ slot_value_26_rb_build <- slots_full %>%
   left_join(repl_level_rb, by = c("slot" = "det_position")) %>%
   mutate(V_gap_av  = round(avail * V_gap  + (1 - avail) * repl_gap, 4),
          V_zone_av = round(avail * V_zone + (1 - avail) * repl_zone, 4),
-         V_c3_av   = round(avail * V_c3   + (1 - avail) * repl_adj, 4))
+         V_c3_av   = round(avail * V_c3   + (1 - avail) * repl_adj, 4),
+         V_c3_gap_av  = round(avail * V_c3_gap +
+                                (1 - avail) * repl_adj_gap, 4),
+         V_c3_zone_av = round(avail * V_c3_zone +
+                                (1 - avail) * repl_adj_zone, 4))
 stopifnot(!any(is.na(slot_value_26_rb_build$V_gap)),
           !any(is.na(slot_value_26_rb_build$V_zone)),
           !any(is.na(slot_value_26_rb_build$V_c3)),
+          !any(is.na(slot_value_26_rb_build$V_c3_gap)),
+          !any(is.na(slot_value_26_rb_build$V_c3_zone)),
+          !any(is.na(slot_value_26_rb_build$V_c3_gap_av)),
+          !any(is.na(slot_value_26_rb_build$V_c3_zone_av)),
           !any(is.na(slot_value_26_rb_build$avail)))
+
+cat("\n--- round-two receipt: 2026 slots priced, scheme split live ---\n")
+print(slot_value_26_rb_build %>%
+        summarise(slots = dplyr::n(),
+                  gap_earned = sum(!is.na(g25) | !is.na(g24)),
+                  zone_earned = sum(!is.na(z25) | !is.na(z24)),
+                  prior_filled_gap = sum(is.na(g25) & is.na(g24)),
+                  prior_filled_zone = sum(is.na(z25) & is.na(z24))))
 
 # THE LEAGUE WALL: league_sys_rb rebuilt from this membership and
 # these faced cells, all 32 focals, both box lenses, 1e-8.
@@ -570,15 +666,38 @@ proj_c3_rb <- opp_ol_2026_final %>%
   left_join(rblk_c3_pctl %>% filter(season == 2024) %>%
               select(player_id, c3_24p = c3_pctl),
             by = "player_id") %>%
+  left_join(rblk_c3_pctl %>% filter(season == 2025) %>%
+              select(player_id, c3_25g = gap_c3_pctl, qg25_g = gap_qual_g,
+                     c3_25z = zone_c3_pctl, qg25_z = zone_qual_g),
+            by = "player_id") %>%
+  left_join(rblk_c3_pctl %>% filter(season == 2024) %>%
+              select(player_id, c3_24g = gap_c3_pctl,
+                     c3_24z = zone_c3_pctl),
+            by = "player_id") %>%
   left_join(c3_rookie_prior_rb %>% select(band, pr_c3),
             by = c("det_position" = "band")) %>%
   mutate(w25_c3 = pmin(dplyr::coalesce(qg25_c3, 0L) / 10, 1),
          c3_bl  = blend2(c3_25p, c3_24p, w25_c3),
          prior_used_c3 = is.na(c3_bl),
-         c3_f   = dplyr::coalesce(c3_bl, pr_c3))
+         c3_f   = dplyr::coalesce(c3_bl, pr_c3),
+         # round three: per-scheme 2026 values, SAME blend law as
+         # blended -- but NO prior fill (Andy 2026-08-30, honest
+         # '--' holes). A scheme neither season earned stays NA.
+         w25_g = pmin(dplyr::coalesce(qg25_g, 0L) / 10, 1),
+         w25_z = pmin(dplyr::coalesce(qg25_z, 0L) / 10, 1),
+         c3_f_gap  = blend2(c3_25g, c3_24g, w25_g),
+         c3_f_zone = blend2(c3_25z, c3_24z, w25_z))
 stopifnot(nrow(proj_c3_rb) == 70L,
           anyDuplicated(proj_c3_rb[, c("team_name", "det_position")]) == 0,
           !any(is.na(proj_c3_rb$c3_f)))
+
+cat("\n--- 2026 slate scheme holes (of the 70 opponent-line slots):",
+    "no scheme currency in EITHER 2025 or 2024 -- they print '--'",
+    "in the per-team tables; nothing fills them ---\n")
+print(proj_c3_rb %>%
+        summarise(slots = dplyr::n(),
+                  gap_holes = sum(is.na(c3_f_gap)),
+                  zone_holes = sum(is.na(c3_f_zone))))
 
 # NE faced cells rebuilt once here for the adjusted side (canon's
 # faced frame drops player_id in its final select). Raw side of
@@ -617,10 +736,16 @@ stopifnot(all(chk_val_rb$ok))
 # Adj valuation at the GAME slot: c3 keeps one modal band per
 # player-season, so the join key is (player_id, game slot == band).
 # Misses split into never-qualified vs qualified-at-another-band;
-# both fill at the slot prior.
+# both fill at the slot prior. ROUND THREE (Andy 2026-08-30): the
+# scheme cells c3_25_gap / c3_25_zone ride the same join but are
+# earned-or-HOLE -- no prior fill, ever.
 faced_c3_rb <- faced_ne_rb %>%
   left_join(rblk_c3_pctl %>% filter(season == 2025) %>%
               select(player_id, band, c3_25 = c3_pctl),
+            by = c("player_id", "det_position" = "band")) %>%
+  left_join(rblk_c3_pctl %>% filter(season == 2025) %>%
+              select(player_id, band, c3_25_gap = gap_c3_pctl,
+                     c3_25_zone = zone_c3_pctl),
             by = c("player_id", "det_position" = "band")) %>%
   mutate(has_c3_25 = player_id %in%
            (rblk_c3_pctl %>% filter(season == 2025) %>%
@@ -639,6 +764,15 @@ if (any(is.na(faced_c3_rb$c3_25))) {
 cat("\n--- NE faced fill tiers (adj, by cell count) ---\n")
 print(faced_c3_rb %>% count(fill_why, name = "cells") %>%
         mutate(share = round(cells / sum(cells), 3)))
+
+cat("\n--- NE faced SCHEME holes (of the faced cells above): the",
+    "faced player never earned that scheme's 2025 currency at the",
+    "game slot. Honest holes -- they print '--' in the per-team",
+    "tables and drop out of the adjusted '25 means ---\n")
+print(faced_c3_rb %>%
+        summarise(cells = dplyr::n(),
+                  gap_holes = sum(is.na(c3_25_gap)),
+                  zone_holes = sum(is.na(c3_25_zone))))
 
 faced_band_c3_rb <- faced_c3_rb %>%
   group_by(det_position) %>%
@@ -985,20 +1119,27 @@ print(team_exposure_rb %>%
 # 8. THE TEAM-SPLIT VISUAL -- raw vs adjusted, per 2026 opponent
 #    and slot. The pass-rush adjusted edition's per-team table
 #    (Andy's stamped screenshot, 2026-08-20), ported to OL law:
-#    one member per slot, equal-game means, raw faced earned-only,
-#    adjusted faced fills at the slot prior. TWO tables -- gap
-#    lens and zone lens; the adjusted columns repeat in both
-#    (this unit carries ONE adjusted lens, not scheme-split).
-#    Canon holes print '--' in raw '26 -- the adjusted side
-#    covers them. The injury-priced family stays OUT of these
-#    tables -- it has its own section above.
+#    one member per slot, equal-game means, raw faced earned-only.
+#    TWO tables -- gap lens and zone lens -- and each carries ITS
+#    OWN adjusted columns (round three, Andy 2026-08-30: "Yes --
+#    honest '--' holes"): faced '25 valued on that scheme's c3 at
+#    the game slot, '26 on that scheme's 24/25 blend with NO prior
+#    fill. A player who never earned the scheme currency prints
+#    '--' -- holes never fill on this side, and adjusted '25 means
+#    run over earned games only (the 'earned' columns show how
+#    much of each cell is real). Canon holes print '--' in raw '26
+#    as before; each table sorts by ITS OWN adjusted delta,
+#    hardest first. The injury-priced family stays OUT of these
+#    tables -- it has its own section above; sections 5-7 keep
+#    the blended adjusted lens.
 # ------------------------------------------------------------
 
 suppressPackageStartupMessages(library(gt))
 
 # -- per-team-x-slot faced 2025: raw earned means (canon law)
-#    from the layer's walled rebuild; adj + fill from the layer's
-#    faced c3 cells ------------------------------------------------
+#    from the layer's walled rebuild; scheme adj means over EARNED
+#    games only + earned shares from the layer's faced c3 cells
+#    (round-three honest-hole law) ---------------------------------
 faced_team_rb <- faced_ne_rb %>%
   left_join(ol_season_pctl %>%
               select(player_id, det_position, g_gap = gap,
@@ -1012,9 +1153,13 @@ faced_team_rb <- faced_ne_rb %>%
             .groups = "drop") %>%
   full_join(faced_c3_rb %>%
               group_by(team_name, det_position) %>%
-              summarise(adj25    = mean(c3_25),
-                        fill_pct = mean(fill_c3),
-                        .groups = "drop"),
+              summarise(adj25_gap  = dplyr::na_if(
+                mean(c3_25_gap,  na.rm = TRUE), NaN),
+                adj25_zone = dplyr::na_if(
+                  mean(c3_25_zone, na.rm = TRUE), NaN),
+                earned25_gap  = mean(!is.na(c3_25_gap)),
+                earned25_zone = mean(!is.na(c3_25_zone)),
+                .groups = "drop"),
             by = c("team_name", "det_position"))
 
 # membership wall: faced cells per team x slot must equal canon's
@@ -1034,29 +1179,35 @@ if (!all(chk_mem_rb2$same)) {
        " proceed")
 }
 
-# -- per-team-x-slot 2026: canon members, holes inherited -------
+# -- per-team-x-slot 2026: canon members; raw holes inherited,
+#    adjusted cells earned-or-hole (round-three law) -------------
 team26_split_rb <- proj_c3_rb %>%
   transmute(team_name, det_position,
             raw26_gap  = gap_f,
             raw26_zone = zone_f,
-            adj26      = c3_f,
-            interp     = as.numeric(prior_used_c3))
+            adj26_gap  = c3_f_gap,
+            adj26_zone = c3_f_zone,
+            earned26_gap  = as.numeric(!is.na(c3_f_gap)),
+            earned26_zone = as.numeric(!is.na(c3_f_zone)))
 
 cmp_team_rb <- team26_split_rb %>%
   left_join(faced_team_rb, by = c("team_name", "det_position")) %>%
-  mutate(d_gap  = raw26_gap  - raw25_gap,
-         d_zone = raw26_zone - raw25_zone,
-         d_adj  = adj26      - adj25)
+  mutate(d_gap      = raw26_gap  - raw25_gap,
+         d_zone     = raw26_zone - raw25_zone,
+         d_adj_gap  = adj26_gap  - adj25_gap,
+         d_adj_zone = adj26_zone - adj25_zone)
 
-team_ord_rb <- cmp_team_rb %>%
+# each table sorts by ITS OWN adjusted delta, hardest first
+team_ord_gap_rb <- cmp_team_rb %>%
   group_by(team_name) %>%
-  summarise(o = dplyr::na_if(mean(d_adj, na.rm = TRUE), NaN),
+  summarise(o = dplyr::na_if(mean(d_adj_gap, na.rm = TRUE), NaN),
             .groups = "drop") %>%
   arrange(desc(dplyr::coalesce(o, -Inf))) %>% pull(team_name)
-
-cmp_team_rb <- cmp_team_rb %>%
-  mutate(team_name = factor(team_name, levels = team_ord_rb)) %>%
-  arrange(team_name, match(det_position, ol_pos_levels))
+team_ord_zone_rb <- cmp_team_rb %>%
+  group_by(team_name) %>%
+  summarise(o = dplyr::na_if(mean(d_adj_zone, na.rm = TRUE), NaN),
+            .groups = "drop") %>%
+  arrange(desc(dplyr::coalesce(o, -Inf))) %>% pull(team_name)
 
 cat("\n-- the team split: what does each 2026 opponent's run",
     "blocking look like, vs what NE faced from it in 2025? --\n")
@@ -1064,65 +1215,73 @@ print(cmp_team_rb %>%
         mutate(across(where(is.numeric), ~ round(.x, 3))),
       n = Inf)
 
-# -- table 1: GAP lens (raw + adjusted) -------------------------
+# -- table 1: GAP lens (raw + GAP adjusted) ----------------------
 gt_gap_team_rb <- cmp_team_rb %>%
+  mutate(team_name = factor(team_name, levels = team_ord_gap_rb)) %>%
+  arrange(team_name, match(det_position, ol_pos_levels)) %>%
   select(team_name, det_position, raw25_gap, raw26_gap, d_gap,
-         adj25, adj26, d_adj, fill_pct, interp) %>%
+         adj25_gap, adj26_gap, d_adj_gap, earned25_gap, earned26_gap) %>%
   gt(groupname_col = "team_name") %>%
   tab_spanner(label = "Raw",
               columns = c(raw25_gap, raw26_gap, d_gap)) %>%
-  tab_spanner(label = "Adjusted (same-slate)",
-              columns = c(adj25, adj26, d_adj)) %>%
+  tab_spanner(label = "Adjusted (same-slate, gap)",
+              columns = c(adj25_gap, adj26_gap, d_adj_gap)) %>%
   cols_label(det_position = "",
              raw25_gap = "'25", raw26_gap = "'26",
              d_gap = "\u0394",
-             adj25 = "'25", adj26 = "'26", d_adj = "\u0394",
-             fill_pct = "fill %", interp = "interp %") %>%
-  fmt_percent(columns = c(raw25_gap, raw26_gap, adj25, adj26,
-                          fill_pct, interp), decimals = 0) %>%
-  fmt_percent(columns = c(d_gap, d_adj), decimals = 0,
+             adj25_gap = "'25", adj26_gap = "'26",
+             d_adj_gap = "\u0394",
+             earned25_gap = "earned '25",
+             earned26_gap = "earned '26") %>%
+  fmt_percent(columns = c(raw25_gap, raw26_gap, adj25_gap, adj26_gap,
+                          earned25_gap, earned26_gap), decimals = 0) %>%
+  fmt_percent(columns = c(d_gap, d_adj_gap), decimals = 0,
               force_sign = TRUE) %>%
   sub_missing(missing_text = "--") %>%
-  data_color(columns = c(d_gap, d_adj),
+  data_color(columns = c(d_gap, d_adj_gap),
              fn = scales::col_numeric(
                c("#6baed6", "#f7f7f7", "#C60C30"),
                domain = c(-0.3, 0.3), na.color = "#f7f7f7"),
              autocolor_text = TRUE) %>%
   tab_header(
     title = "Opposing run-blocking, per team \u2014 raw vs adjusted",
-    subtitle = "'--' = not faced in 2025 ('25 side) or canon hole (raw '26) | teams sorted by adjusted \u0394, hardest first | one member per slot, equal-game law | gap lens \u2014 the adjusted columns repeat in the zone table (one adjusted lens)") %>%
+    subtitle = "'--' = not faced in 2025 ('25 side), canon hole (raw '26), or no earned gap currency (adjusted side \u2014 holes never fill) | adjusted '25 = mean over earned games | teams sorted by adjusted \u0394, hardest first | gap lens") %>%
   tab_options(table.font.size = px(12), data_row.padding = px(3),
               column_labels.font.weight = "bold",
               row_group.font.weight = "bold")
 print(gt_gap_team_rb)
 
-# -- table 2: ZONE lens (raw + the same adjusted columns) -------
+# -- table 2: ZONE lens (raw + ZONE adjusted) ---------------------
 gt_zone_team_rb <- cmp_team_rb %>%
+  mutate(team_name = factor(team_name, levels = team_ord_zone_rb)) %>%
+  arrange(team_name, match(det_position, ol_pos_levels)) %>%
   select(team_name, det_position, raw25_zone, raw26_zone, d_zone,
-         adj25, adj26, d_adj, fill_pct, interp) %>%
+         adj25_zone, adj26_zone, d_adj_zone, earned25_zone, earned26_zone) %>%
   gt(groupname_col = "team_name") %>%
   tab_spanner(label = "Raw",
               columns = c(raw25_zone, raw26_zone, d_zone)) %>%
-  tab_spanner(label = "Adjusted (same-slate)",
-              columns = c(adj25, adj26, d_adj)) %>%
+  tab_spanner(label = "Adjusted (same-slate, zone)",
+              columns = c(adj25_zone, adj26_zone, d_adj_zone)) %>%
   cols_label(det_position = "",
              raw25_zone = "'25", raw26_zone = "'26",
              d_zone = "\u0394",
-             adj25 = "'25", adj26 = "'26", d_adj = "\u0394",
-             fill_pct = "fill %", interp = "interp %") %>%
-  fmt_percent(columns = c(raw25_zone, raw26_zone, adj25, adj26,
-                          fill_pct, interp), decimals = 0) %>%
-  fmt_percent(columns = c(d_zone, d_adj), decimals = 0,
+             adj25_zone = "'25", adj26_zone = "'26",
+             d_adj_zone = "\u0394",
+             earned25_zone = "earned '25",
+             earned26_zone = "earned '26") %>%
+  fmt_percent(columns = c(raw25_zone, raw26_zone, adj25_zone, adj26_zone,
+                          earned25_zone, earned26_zone), decimals = 0) %>%
+  fmt_percent(columns = c(d_zone, d_adj_zone), decimals = 0,
               force_sign = TRUE) %>%
   sub_missing(missing_text = "--") %>%
-  data_color(columns = c(d_zone, d_adj),
+  data_color(columns = c(d_zone, d_adj_zone),
              fn = scales::col_numeric(
                c("#6baed6", "#f7f7f7", "#C60C30"),
                domain = c(-0.3, 0.3), na.color = "#f7f7f7"),
              autocolor_text = TRUE) %>%
   tab_header(
     title = "Opposing run-blocking, per team \u2014 raw vs adjusted",
-    subtitle = "'--' = not faced in 2025 ('25 side) or canon hole (raw '26) | teams sorted by adjusted \u0394, hardest first | one member per slot, equal-game law | zone lens \u2014 adjusted columns repeated from the gap table") %>%
+    subtitle = "'--' = not faced in 2025 ('25 side), canon hole (raw '26), or no earned zone currency (adjusted side \u2014 holes never fill) | adjusted '25 = mean over earned games | teams sorted by adjusted \u0394, hardest first | zone lens") %>%
   tab_options(table.font.size = px(12), data_row.padding = px(3),
               column_labels.font.weight = "bold",
               row_group.font.weight = "bold")
@@ -1131,8 +1290,8 @@ print(gt_zone_team_rb)
 cat("\nnote: the viewer shows ONE gt table at a time -- each new",
     "table replaces the last.\n  both tables stay in session;",
     "bring either back with one line:\n",
-    '  print(gt_gap_team_rb)    # gap lens: raw + adjusted\n',
-    '  print(gt_zone_team_rb)   # zone lens: raw + adjusted\n',
+    '  print(gt_gap_team_rb)    # gap lens: raw + gap adjusted\n',
+    '  print(gt_zone_team_rb)   # zone lens: raw + zone adjusted\n',
     sep = "")
 
 # Checkpoint: gtsave("run_block_team_split_gap.png", gt_gap_team_rb,

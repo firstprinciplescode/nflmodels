@@ -16,8 +16,8 @@ show_player_onfield <- function(player_id_in,
            align_cluster_name, rte_cluster_name, tgt_cluster_name, man_zone_grp_cluster)
 }
 
-show_player_onfield(145059, qbgrp_filter = "NEMaye-2025")$onfield_perc %>% sort()
-show_player_onfield(84329, season_filter = 2025)$onfield_perc %>% sort()
+show_player_onfield(97199, qbgrp_filter = "SEADarnold-2025")$onfield_perc %>% sort()
+show_player_onfield(97199, season_filter = 2025)$onfield_perc %>% sort()
 
 #receiving_clustering_base <- run_athena_query("
 #    SELECT  *
@@ -392,13 +392,13 @@ get_offense_receiver_identity <- function(qbgrp_ssn_in,
 }
 
 # usage:
-get_player_cluster_neighbors(84329, 2025, distance_mult = 7)
-get_player_cluster_neighbors(84329, 2024, distance_mult = 3.5)
-get_player_identity_history(84329, c(2023, 2024, 2025))
+get_player_cluster_neighbors(97630, 2025, distance_mult = 4)
+get_player_cluster_neighbors(97630, 2024, distance_mult = 4)
+get_player_identity_history(97630, c(2023, 2024, 2025))
 
-get_offense_receiver_identity(c("NEMaye-2025", "NEMaye-2024", "NEBrissett-2024"),
+get_offense_receiver_identity(c("SEADarnold-2025"),
                               position_group_input = c("WR"),
-                              tgt_cluster_input    = c("ML")) %>% View(.)
+                              rte_cluster_input    = c("SMT")) %>% View(.)
 
 
 ####
@@ -406,67 +406,67 @@ get_offense_receiver_identity(c("NEMaye-2025", "NEMaye-2024", "NEBrissett-2024")
 ####
 
 # Season aggregate (default)
-doubs_season_view <- compare_receiver_cohort_logged(
-  focal_player_id      = 84329 ,
+charbonnet_season_view <- compare_receiver_cohort_logged(
+  focal_player_id      = 97630,
   focal_season         = 2025,
-  rte_cluster_input    = c("BT","DT","RB"),
-  tgt_cluster_input    = c("ML"),
-  align_cluster_input  = c("WWR"),
-  position_group_input = c("WR"),
-  man_zone_grp_input   = c("WR_DEEP"),
-  man_z_vec_input      = c(0, 100),
+  rte_cluster_input    = c("RB","SMT","ST"),
+  tgt_cluster_input    = c("RB","ST"),
+  align_cluster_input  = c("RB"),
+  position_group_input = c("BACK"),
+  man_zone_grp_input   = c("HB_DEEP"),
+  man_z_vec_input      = c(0, 45),
   man_z_na             = FALSE,
-  xpass_vec_input      = c(30, 80),
+  xpass_vec_input      = c(50, 100),
   xpass_na             = FALSE,
   xtd_grp_input        = c("TD_LOW"),
   xtd_vec_input        = c(0, 100),
   xtd_grp_na           = FALSE,
-  onfield_min          = 0.55,
-  onfield_max          = 1.00,
+  onfield_min          = 0.20,
+  onfield_max          = 0.60,
   grain                = "season")
 
-doubs_season_view_lowtd <- compare_receiver_cohort_logged(
+jsn_season_view_lowtd <- compare_receiver_cohort_logged(
   focal_player_id      = 48327,
   focal_season         = 2025,
   rte_cluster_input    = c("ST","DT","SMT","RB"),
   tgt_cluster_input    = c("ML"),
   align_cluster_input  = c("WWR"),
   position_group_input = c("WR"),
-  man_zone_grp_input   = c("WR_DEEP"),
+  man_zone_grp_input   = c("WR_DEEP","WR_SHORT"),
   man_z_vec_input      = c(50, 100),
   man_z_na             = FALSE,
-  xpass_vec_input      = c(0, 65),
+  xpass_vec_input      = c(50, 85),
   xpass_na             = FALSE,
-  xtd_grp_input        = c("TD_LOW"),
+  xtd_grp_input        = c("TD_HIGH"),
   xtd_vec_input        = c(70, 100),
   xtd_grp_na           = FALSE,
-  onfield_min          = 0.65,
+  onfield_min          = 0.70,
   onfield_max          = 1.00,
   grain                = "season")
 
-receiver_registry <- log_view(doubs_season_view, "doubs_season_view",
+receiver_registry <- log_view(charbonnet_season_view, "charbonnet_season_view",
                               if (exists("receiver_registry")) receiver_registry else NULL)
 
 doubs_season_view <- rbind(doubs_season_view_hightd, doubs_season_view_lowtd)
 
 # Per-game view
-doubs_game_view <- compare_receiver_cohort_logged(
-  focal_player_id      = 84329 ,
+charbonnet_game_view <- compare_receiver_cohort_logged(
+  focal_player_id      = 97630,
   focal_season         = 2025,
-  rte_cluster_input    = c("BT","DT","RB"),
-  tgt_cluster_input    = c("ML"),
-  align_cluster_input  = c("WWR"),
-  position_group_input = c("WR"),
-  man_zone_grp_input   = c("WR_DEEP"),
-  man_z_vec_input      = c(0, 100),
+  rte_cluster_input    = c("RB","SMT","ST"),
+  tgt_cluster_input    = c("RB","ST"),
+  align_cluster_input  = c("RB"),
+  position_group_input = c("BACK"),
+  man_zone_grp_input   = c("HB_DEEP"),
+  man_z_vec_input      = c(0, 45),
   man_z_na             = FALSE,
-  xpass_vec_input      = c(30, 80),
+  xpass_vec_input      = c(50, 100),
   xpass_na             = FALSE,
   xtd_grp_input        = c("TD_LOW"),
   xtd_vec_input        = c(0, 100),
   xtd_grp_na           = FALSE,
-  onfield_min          = 0.55,
-  onfield_max          = 1.00,
+  onfield_min          = 0.20,
+  onfield_max          = 0.60,
   grain                = "game")
 
 doubs_game_view_lowtd <- compare_receiver_cohort_logged(
@@ -488,28 +488,28 @@ doubs_game_view_lowtd <- compare_receiver_cohort_logged(
   onfield_max          = 1.00,
   grain                = "game")
 
-receiver_registry <- log_view(doubs_game_view, "doubs_game_view", receiver_registry)
+receiver_registry <- log_view(charbonnet_game_view, "charbonnet_game_view", receiver_registry)
 
 doubs_game_view <- rbind(doubs_game_view_hightd, doubs_game_view_lowtd)
 
 # Wide pool for common-opponent work (looser filters)
-doubs_wide_game <- compare_receiver_cohort_logged(
-  focal_player_id      = 84329 ,
+charbonnet_wide_game <- compare_receiver_cohort_logged(
+  focal_player_id      = 97630,
   focal_season         = 2025,
-  rte_cluster_input    = c("BT","DT","RB","SMT"),
-  tgt_cluster_input    = c("ML"),
-  align_cluster_input  = c("WWR"),
-  position_group_input = c("WR"),
-  man_zone_grp_input   = c("WR_DEEP"),
-  man_z_vec_input      = c(0, 100),
+  rte_cluster_input    = c("RB","SMT","ST"),
+  tgt_cluster_input    = c("RB","ST"),
+  align_cluster_input  = c("RB"),
+  position_group_input = c("BACK"),
+  man_zone_grp_input   = c("HB_DEEP"),
+  man_z_vec_input      = c(0, 55),
   man_z_na             = FALSE,
-  xpass_vec_input      = c(30, 80),
+  xpass_vec_input      = c(40, 100),
   xpass_na             = FALSE,
   xtd_grp_input        = c("TD_LOW"),
   xtd_vec_input        = c(0, 100),
   xtd_grp_na           = FALSE,
-  onfield_min          = 0.55,
-  onfield_max          = 1.00,
+  onfield_min          = 0.10,
+  onfield_max          = 0.70,
   grain                = "game")
 
 doubs_wide_game_lowtd <- compare_receiver_cohort_logged(
@@ -531,7 +531,7 @@ doubs_wide_game_lowtd <- compare_receiver_cohort_logged(
   onfield_max          = 1.00,
   grain                = "game")
 
-receiver_registry <- log_view(doubs_wide_game, "doubs_wide_game", receiver_registry)
+receiver_registry <- log_view(charbonnet_wide_game, "charbonnet_wide_game", receiver_registry)
 
 doubs_wide_game <- rbind(doubs_wide_game_hightd, doubs_wide_game_lowtd)
 
@@ -625,8 +625,8 @@ plot_cohort_dots <- function(cohort_df,
           panel.grid.minor   = element_blank())
 }
 
-plot_cohort_dots(doubs_season_view, title_suffix = "Season")
-plot_cohort_dots(doubs_game_view,   title_suffix = "Game")
+plot_cohort_dots(charbonnet_season_view, title_suffix = "Season")
+plot_cohort_dots(charbonnet_game_view,   title_suffix = "Game")
 
 
 # metric -> label; both season (*_avg) and game names listed, existence-filtered
@@ -712,7 +712,7 @@ plot_receiver_pctl_heatmap <- function(cohort_df, spec = RECV_PCTL_SPEC, title =
     )
 }
 
-plot_receiver_pctl_heatmap(doubs_season_view)
+plot_receiver_pctl_heatmap(charbonnet_season_view)
 
 
 ####
@@ -760,10 +760,10 @@ common_opp_pctl <- function(game_cohort, metrics = RECV_CO_METRICS, min_comp = 3
        focal_season = if (nrow(focal_id)) focal_id$season[1] else NA)
 }
 
-doubs_co <- common_opp_pctl(doubs_wide_game, min_comp = 3)
+charbonnet_co <- common_opp_pctl(charbonnet_wide_game, min_comp = 2)
 
 # DIAGNOSTIC - is there enough per defense?
-def_n <- doubs_co$per_game %>% distinct(def_ssn, n_comp) %>% arrange(n_comp)
+def_n <- charbonnet_co$per_game %>% distinct(def_ssn, n_comp) %>% arrange(n_comp)
 cat("comp games per focal-defense:\n"); print(def_n)
 cat("\nmedian comp games/def:", median(def_n$n_comp),
     "| defenses with >=3:", sum(def_n$n_comp >= 3), "of", nrow(def_n), "\n")
@@ -788,11 +788,11 @@ threshold_sweep <- function(game_cohort, metrics = RECV_CO_METRICS, thresholds =
   }))
 }
 
-sweep <- threshold_sweep(doubs_wide_game)
+sweep <- threshold_sweep(charbonnet_wide_game)
 print(sweep)
 
-focal <- doubs_wide_game %>% filter(is_focal)
-comp  <- doubs_wide_game %>% filter(!is_focal)
+focal <- charbonnet_wide_game %>% filter(is_focal)
+comp  <- charbonnet_wide_game %>% filter(!is_focal)
 pool_n <- tibble(def_ssn = focal$def_ssn,
                  n_comp  = sapply(focal$def_ssn, function(d) sum(comp$def_ssn == d))) %>%
   arrange(n_comp)
@@ -830,7 +830,7 @@ plot_co_pctl_heatmap <- function(co_obj, title = NULL) {
           legend.key.height = unit(1.4, "cm"))
 }
 
-plot_co_pctl_heatmap(doubs_co)
+plot_co_pctl_heatmap(charbonnet_co)
 
 
 RECV_CO_ORDER <- c("On-Field %", "Tgt Share", "Tgt/Route",

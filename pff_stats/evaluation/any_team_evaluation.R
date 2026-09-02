@@ -133,6 +133,12 @@ wfill_tr <- function(x, w = NULL)
 # itself ships c1_obj_rblk = NULL, so that cell stays '--'
 # until Andy names it. Prints which frame rode, or what was
 # tried. NEVER fills silently.
+# ROUND THREE (Andy, 2026-08-30): run block's scheme split is
+# wired -- the own-table rows and the yoy / lastyear boards
+# prefer gap_c3_pctl / zone_c3_pctl (2025 side, rblk_c3_pctl)
+# and V_c3_gap(_av) / V_c3_zone(_av) (2026 side,
+# slot_value_26_rb_build). Old frames in session -> blended
+# fallback + a printed note, never a silent fill.
 frame_pick_tr <- function(label, cands, cols) {
   for (fn in cands) {
     if (exists(fn) && all(cols %in% names(get(fn)))) {
@@ -301,6 +307,18 @@ code_in_tr <- function(vals, cd) {
   if (cd %in% vals) return(cd)
   alt <- ros_code_tr(cd)
   if (alt %in% vals) return(alt)
+  # THIRD spelling (Andy's probe, 2026-08-30): members_rc /
+  # members_pa carry AZ, but the name-vote bridge only learns
+  # ARZ <-> ARI from its training frames. Without this hop ARZ
+  # filters to zero rows in those frames and the unit prints
+  # '--' (the receiving / pass-rush 2026 holes on the ARZ yoy
+  # board). Scoped to the ARZ family -- the probe showed every
+  # other team agrees across feeds.
+  fam <- c("ARZ", "ARI", "AZ")
+  if (cd %in% fam) {
+    hit <- intersect(fam, vals)
+    if (length(hit)) return(hit[1])
+  }
   cd
 }
 
@@ -900,6 +918,9 @@ team_own <- function(code) {
                 uw = NA_real_) %>%
       mutate(pord = match(role, ol_pos_levels))
   }
+  rb_split_tr <- exists("slot_value_26_rb_build") &&
+    all(c("V_c3_gap", "V_c3_gap_av", "V_c3_zone",
+          "V_c3_zone_av") %in% names(slot_value_26_rb_build))
   ok_u <- gate_tr("slot_value_26_rb_build", c("team_name",
                                               "roster_name", "slot", "avail", "V_gap",
                                               "V_gap_av", "V_zone", "V_zone_av", "V_c3",
@@ -909,19 +930,34 @@ team_own <- function(code) {
     rb_ne <- slot_value_26_rb_build %>% filter(team_name == rb_cd)
     if (!nrow(rb_ne)) cat("   [Run block] no", rb_cd,
                           "rows in slot_value_26_rb_build -- unit skipped\n")
-    if (nrow(rb_ne)) parts_tr$rb <- bind_rows(
-      rb_ne %>% transmute(unit = "Run block", player = roster_name,
-                          lens = "gap", role = slot, avail,
-                          bef = V_gap, aft = V_gap_av,
-                          abef = V_c3, aaft = V_c3_av,
-                          uw = NA_real_),
-      rb_ne %>% transmute(unit = "Run block", player = roster_name,
-                          lens = "zone", role = slot, avail,
-                          bef = V_zone, aft = V_zone_av,
-                          abef = V_c3, aaft = V_c3_av,
-                          uw = NA_real_)) %>%
-      mutate(pord = match(role, ol_pos_levels))
+    if (nrow(rb_ne)) {
+      if (!rb_split_tr)
+        cat("   [Run block] V_c3_gap/V_c3_zone not on",
+            "slot_value_26_rb_build -- adjusted repeats blended;",
+            "re-source the availability layer for the split\n")
+      rb_ne <- rb_ne %>% mutate(
+        abef_g = if (rb_split_tr) V_c3_gap     else V_c3,
+        aaft_g = if (rb_split_tr) V_c3_gap_av  else V_c3_av,
+        abef_z = if (rb_split_tr) V_c3_zone    else V_c3,
+        aaft_z = if (rb_split_tr) V_c3_zone_av else V_c3_av)
+      parts_tr$rb <- bind_rows(
+        rb_ne %>% transmute(unit = "Run block", player = roster_name,
+                            lens = "gap", role = slot, avail,
+                            bef = V_gap, aft = V_gap_av,
+                            abef = abef_g, aaft = aaft_g,
+                            uw = NA_real_),
+        rb_ne %>% transmute(unit = "Run block", player = roster_name,
+                            lens = "zone", role = slot, avail,
+                            bef = V_zone, aft = V_zone_av,
+                            abef = abef_z, aaft = aaft_z,
+                            uw = NA_real_)) %>%
+        mutate(pord = match(role, ol_pos_levels))
+    }
   }
+  rb_note_own_tr <- if (rb_split_tr)
+    "run block's adjusted value is scheme-split (gap/zone currency)"
+  else
+    "run block's adjusted value is scheme-neutral and repeats on both rows"
   ok_u <- gate_tr("memb_lg_ru", c("team", "roster_name",
                                   "avail", "gf", "gf_av", "V_c3", "V_c3_av",
                                   "uw"))
@@ -1059,8 +1095,7 @@ team_own <- function(code) {
         "priced by that history (misses route to the measured ",
         "backup level) | OUR side now: red = ", cd, " loses ",
         "quality, the colors flip from the opponent tables | ",
-        "'--' = canon box-score hole | run block's adjusted ",
-        "value is scheme-neutral and repeats on both rows | ",
+        "'--' = canon box-score hole | ", rb_note_own_tr, " | ",
         "* = new to ", cd, " in 2026")) %>%
     tab_spanner(label = "availability",
                 columns = c(avail, emiss)) %>%
@@ -1121,10 +1156,11 @@ team_own <- function(code) {
                                  "Pass block", "gf_raw", "gf_raw_av", "gf_adj", "gf_adj_av")
   if (!is.null(parts_tr$rb)) {
     agg_rows_tr$rbg <- agg_row_tr(rb_ne, NULL,
-                                  "Run block (gap)", "V_gap", "V_gap_av", "V_c3", "V_c3_av")
+                                  "Run block (gap)", "V_gap", "V_gap_av",
+                                  "abef_g", "aaft_g")
     agg_rows_tr$rbz <- agg_row_tr(rb_ne, NULL,
                                   "Run block (zone)", "V_zone", "V_zone_av",
-                                  "V_c3", "V_c3_av")
+                                  "abef_z", "aaft_z")
   }
   if (!is.null(parts_tr$pa))
     agg_rows_tr$pa <- agg_row_tr(pa_ne, "uw",
@@ -1203,8 +1239,8 @@ team_own <- function(code) {
                      "before vs after"),
       subtitle = paste0(
         "one row per unit-lens, each unit's own weight law | ",
-        "both lenses shown for split units; run block's ",
-        "adjusted value is scheme-neutral and repeats | OUR ",
+        "both lenses shown for split units; ", rb_note_own_tr,
+        " | OUR ",
         "side: red = quality lost once injuries are ",
         "priced, colors flip from the opponent tables | ALL ",
         "UNITS row = simple average of the unit-lens rows shown")) %>%
@@ -1400,22 +1436,54 @@ team_yoy <- function(code) {
   
   # -- RUN BLOCK, both schemes. 2026 = slot builds priced;
   #    2025 = modal starters' adjusted c3 (the unit's stamped
-  #    2025 currency), scheme-neutral, repeats on both rows --
+  #    2025 currency). ROUND THREE (Andy, 2026-08-30): each row
+  #    prefers ITS OWN scheme currency -- gap_c3_pctl /
+  #    zone_c3_pctl on the 2025 side, V_c3_gap_av / V_c3_zone_av
+  #    on the 2026 side. Honest holes drop out of the 2025 means,
+  #    never filled. Missing columns (old frames in session) fall
+  #    back to blended + a printed note --
+  rb_c3_split_tr <- exists("rblk_c3_pctl") &&
+    all(c("gap_c3_pctl", "zone_c3_pctl") %in% names(rblk_c3_pctl))
+  rb_split26_tr <- exists("slot_value_26_rb_build") &&
+    all(c("V_c3_gap_av", "V_c3_zone_av") %in%
+          names(slot_value_26_rb_build))
   r25g <- a25g <- r26g <- a26g <- NA_real_
   r25z <- a25z <- r26z <- a26z <- NA_real_
   if (gate_tr("starters_all_rb", c("season", "team",
                                    "player_id", "det_position", "sn")) &
       gate_tr("rblk_c3_pctl", c("player_id", "season",
                                 "c3_pctl"))) {
+    if (!rb_c3_split_tr)
+      cat("   [Run block] gap_c3_pctl/zone_c3_pctl not on",
+          "rblk_c3_pctl -- 2025 adjusted repeats blended;",
+          "re-source the currency file for the split\n")
     b <- starters_all_rb %>% filter(season == 2025,
                                     team == cd) %>%
       left_join(rblk_c3_pctl %>% filter(season == 2025) %>%
-                  select(player_id, c3_pctl), by = "player_id")
+                  select(player_id, c3_pctl,
+                         dplyr::any_of(c("gap_c3_pctl",
+                                         "zone_c3_pctl"))),
+                by = "player_id")
     if (!nrow(b)) cat("   [Run block] no", cd,
                       "2025 rows -- 2025 side skipped\n")
     if (nrow(b)) {
-      a25g <- m_tr(b$c3_pctl)
-      a25z <- a25g
+      if (rb_c3_split_tr) {
+        hg <- sum(is.na(b$gap_c3_pctl))
+        hz <- sum(is.na(b$zone_c3_pctl))
+        if (hg > 0)
+          cat(sprintf(paste0("   [Run block] %d of %d modal starters",
+                             " carry no 2025 gap currency -- they drop",
+                             " out of the adjusted mean\n"), hg, nrow(b)))
+        if (hz > 0)
+          cat(sprintf(paste0("   [Run block] %d of %d modal starters",
+                             " carry no 2025 zone currency -- they drop",
+                             " out of the adjusted mean\n"), hz, nrow(b)))
+        a25g <- m_tr(b$gap_c3_pctl)
+        a25z <- m_tr(b$zone_c3_pctl)
+      } else {
+        a25g <- m_tr(b$c3_pctl)
+        a25z <- a25g
+      }
     }
     # the Phase-1 OL raw canon name is unrecorded (the
     # currency file ships c1_obj_rblk = NULL) -- a miss here
@@ -1464,8 +1532,17 @@ team_yoy <- function(code) {
     if (nrow(d)) {
       r26g <- m_tr(d$V_gap_av)
       r26z <- m_tr(d$V_zone_av)
-      a26g <- m_tr(d$V_c3_av)
-      a26z <- a26g
+      if (rb_split26_tr) {
+        a26g <- m_tr(d$V_c3_gap_av)
+        a26z <- m_tr(d$V_c3_zone_av)
+      } else {
+        cat("   [Run block] V_c3_gap_av/V_c3_zone_av not on",
+            "slot_value_26_rb_build -- 2026 adjusted repeats",
+            "blended; re-source the availability layer for the",
+            "split\n")
+        a26g <- m_tr(d$V_c3_av)
+        a26z <- a26g
+      }
     }
   }
   if (any(!is.na(c(r25g, a25g, r26g, a26g))))
@@ -1474,6 +1551,15 @@ team_yoy <- function(code) {
   if (any(!is.na(c(r25z, a25z, r26z, a26z))))
     rows_yt$rbz <- yt_row("Run block (zone)",
                           r25z, a25z, r26z, a26z)
+  rb_yoy_note_tr <-
+    if (rb_c3_split_tr && rb_split26_tr)
+      "run block's adjusted value is scheme-split (gap/zone currency)"
+  else if (!rb_c3_split_tr && !rb_split26_tr)
+    "run block's adjusted value is scheme-neutral and repeats on both rows"
+  else paste0("run block's adjusted value is scheme-split on the ",
+              if (rb_c3_split_tr) "2025 side only"
+              else "2026 side only",
+              " (re-source the other file for both)")
   
   # -- PASS RUSH. 2026 = members_pa priced; 2025 = qualified
   #    stints, snaps-weighted raw grade; adjusted 2025
@@ -1725,9 +1811,8 @@ team_yoy <- function(code) {
         "Phase-1 OL canon name is unrecorded | ",
         "deltas only where both years carry the currency | ",
         "receiving + run block 2025 are flat means (corps + ",
-        "OL laws), the rest playing-time-weighted | run ",
-        "block's adjusted value is scheme-neutral and ",
-        "repeats on both rows")) %>%
+        "OL laws), the rest playing-time-weighted | ",
+        rb_yoy_note_tr)) %>%
     grand_summary_rows(
       columns = c(r25, a25, r26, a26, d, ad),
       fns = list(`ALL UNITS (avg of rows)` ~ m_tr(.)),
@@ -1991,6 +2076,13 @@ team_lastyear <- function(code) {
             as.data.frame())
   }
   # -- RUN BLOCK (modal starters; adjusted 2025 value) --
+  #    ROUND THREE: the board carries the scheme columns (v1 =
+  #    gap, v2 = zone) when the currency frame has them; blended
+  #    stays on the console print. '--' = never earned that
+  #    scheme's currency -- honest hole, never filled. Fallback:
+  #    blended board + a printed note.
+  rb_ly_split_tr <- exists("rblk_c3_pctl") &&
+    all(c("gap_c3_pctl", "zone_c3_pctl") %in% names(rblk_c3_pctl))
   if (gate_tr("starters_all_rb", c("season", "team",
                                    "player_id", "det_position",
                                    "sn")) &
@@ -2000,21 +2092,48 @@ team_lastyear <- function(code) {
     b <- starters_all_rb %>% filter(season == 2025,
                                     team == cd) %>%
       left_join(rblk_c3_pctl %>% filter(season == 2025) %>%
-                  select(player_id, c3_pctl),
+                  select(player_id, c3_pctl,
+                         dplyr::any_of(c("gap_c3_pctl", "zone_c3_pctl",
+                                         "gap_qual_g", "zone_qual_g"))),
                 by = "player_id") %>%
       mutate(player = unname(nm_via_bridge_tr(player_id)),
              where = where_now_tr(player, cd)) %>%
       arrange(match(det_position, ol_pos_levels))
-    ly_rows$rb <- b %>% transmute(unit = "Run block", player,
-                                  lens = NA_character_, detail = det_position, g = NA_real_,
-                                  snaps = sn, v1 = c3_pctl, v2 = NA_real_, where)
-    cat("\n-- 2025 run-block starters (season-modal per slot;\n")
-    cat("   value = adjusted currency):\n")
-    print(b %>% transmute(player, slot = det_position,
-                          snaps = sn,
-                          adj_pctl = round(c3_pctl, 3),
-                          where) %>% as.data.frame())
+    if (rb_ly_split_tr) {
+      ly_rows$rb <- b %>% transmute(unit = "Run block", player,
+                                    lens = NA_character_, detail = det_position,
+                                    g = NA_real_, snaps = sn,
+                                    v1 = gap_c3_pctl, v2 = zone_c3_pctl,
+                                    where)
+      cat("\n-- 2025 run-block starters (season-modal per slot;\n")
+      cat("   value = adjusted currency; the board carries gap /\n")
+      cat("   zone, blended below; '--' = never earned that scheme's\n")
+      cat("   currency, honest hole; *_g = qualifying games):\n")
+      print(b %>% transmute(player, slot = det_position,
+                            snaps = sn,
+                            blended = round(c3_pctl, 3),
+                            gap = round(gap_c3_pctl, 3),
+                            zone = round(zone_c3_pctl, 3),
+                            gap_g = gap_qual_g, zone_g = zone_qual_g,
+                            where) %>% as.data.frame())
+    } else {
+      cat("   [Run block] gap_c3_pctl/zone_c3_pctl not on",
+          "rblk_c3_pctl -- board shows blended; re-source the",
+          "currency file for the split\n")
+      ly_rows$rb <- b %>% transmute(unit = "Run block", player,
+                                    lens = NA_character_, detail = det_position,
+                                    g = NA_real_, snaps = sn,
+                                    v1 = c3_pctl, v2 = NA_real_, where)
+      cat("\n-- 2025 run-block starters (season-modal per slot;\n")
+      cat("   value = adjusted currency):\n")
+      print(b %>% transmute(player, slot = det_position,
+                            snaps = sn,
+                            adj_pctl = round(c3_pctl, 3),
+                            where) %>% as.data.frame())
+    }
   }
+  rb_ly_note_tr <- if (rb_ly_split_tr)
+    "adjusted gap/zone" else "adjusted"
   cat("\nnote: a traded player appears under each 2025 team he\n")
   cat("qualified for; his season value is whole-season.\n")
   
@@ -2069,7 +2188,8 @@ team_lastyear <- function(code) {
         "receiving: ADJUSTED grade + YPRR (canon boundary: ",
         "receiving's stamped 2025 currency is the adjusted ",
         "one) | rushing: grade + missed-tackle | pass block: ",
-        "tps | run block: adjusted | red = moved on in 2026, ",
+        "tps | run block: ", rb_ly_note_tr, " | red = moved on ",
+        "in 2026, ",
         "grey = no 2026 roster | '--' = the unit doesn't ",
         "carry that column")) %>%
     tab_spanner(label = "2025 season",
@@ -2121,9 +2241,9 @@ team_report <- function(code) {
 
 check_pipeline_tr()
 team_slate("SEA")
-team_own("LA")
+team_own("SEA")
 team_lastyear("SEA")
-team_report("LA")
+team_report("SEA")
 # Andy: "I WANT THIS AS PART OF THE FILE" -- the year board
 # rides the tail too, last on screen (money position).
-team_yoy("CLV")
+team_yoy("SEA")

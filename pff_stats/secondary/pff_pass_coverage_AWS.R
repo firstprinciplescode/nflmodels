@@ -68,7 +68,7 @@ slot_coverage <- run_athena_query("
     FROM    nfl_data.slot_coverage
 ")
 
-receiving_coverage_versus <- run_athena_query("
+receiving_coverage_versus_raw <- run_athena_query("
     SELECT  *
     FROM    nfl_data.receiving_coverage_versus
 ")
@@ -646,10 +646,17 @@ receiving_coverage_rec_helper <- receiving_func_base %>%
   select(player_id, week, season, posteam, qbgrp_ssn, def_ssn, pos_rank, team_rank, final_position_group, align_cluster_name, rte_cluster_name, tgt_cluster_name, man_zone_grp_cluster, z_score_percentile, xpass_percentile, td_grp_cluster, xtd_percentile) %>%
   distinct()
 
-
-receiving_coverage_versus <- left_join(receiving_coverage_versus, receiving_coverage_rec_helper, by = c("player_id", "week", "season"))
-receiving_coverage_versus <- left_join(receiving_coverage_versus, receiving_coverage_defense_helper, by = c("coverage_player_id" = "player_id", "week" = "week", "season" = "season", "qbgrp_ssn" = "qbgrp_ssn", "def_ssn" = "def_ssn"))
-
+# joins rebuild from RAW every run -- rerunning this block any number of
+# times produces the identical result; stacking is impossible by construction
+receiving_coverage_versus <- receiving_coverage_versus_raw %>%
+  left_join(receiving_coverage_rec_helper,
+            by = c("player_id", "week", "season")) %>%
+  left_join(receiving_coverage_defense_helper,
+            by = c("coverage_player_id" = "player_id", "week", "season",
+                   "qbgrp_ssn", "def_ssn"))
+sfx <- grep("\\.x$|\\.y$", names(receiving_coverage_versus), value = TRUE)
+if (length(sfx)) { print(sfx); stop("these columns doubled -- collision, not rerun damage") }
+stopifnot(!any(endsWith(names(receiving_coverage_versus), ".y")))
 
 add_pctl_buckets <- function(df,
                              cols = c("z_score_percentile",
@@ -670,8 +677,8 @@ add_pctl_buckets <- function(df,
 receiving_coverage_versus <- add_pctl_buckets(receiving_coverage_versus)
 
 
-View(coverage_man_player_season_summary %>% filter(def_ssn == "NE2025"))
-View(coverage_zone_player_season_summary %>% filter(def_ssn == "NE2025"))
+View(coverage_man_player_season_summary %>% filter(def_ssn == "SEA2023"))
+View(coverage_zone_player_season_summary %>% filter(def_ssn == "SEA2025"))
 View(coverage_combined_player_season_summary %>% filter(def_ssn == "NE2025"))
 
 View(coverage_man_player_season_summary %>% filter(player_id == 10698))
@@ -802,10 +809,10 @@ coverage_archetype_profile <- function(defender_id,
 }
 
 
-coverage_archetype_profile(10698, dim = "man_zone_grp_cluster", def_ssn_filter = "CHI2025")
-coverage_archetype_profile(10698, dim = "pos_rank", def_ssn_filter = "CHI2025")
-coverage_archetype_profile(10698, dim = "rte_cluster_name", def_ssn_filter = "CHI2025")
-coverage_archetype_profile(10698, dim = "tgt_cluster_name", def_ssn_filter = "CHI2025")
+coverage_archetype_profile(55088, dim = "man_zone_grp_cluster", def_ssn_filter = "SEA2025")
+coverage_archetype_profile(55088, dim = "pos_rank", def_ssn_filter = "SEA2025")
+coverage_archetype_profile(55088, dim = "rte_cluster_name", def_ssn_filter = "SEA2025")
+coverage_archetype_profile(55088, dim = "tgt_cluster_name", def_ssn_filter = "SEA2025")
 
 # receiver baseline: how each receiver does across ALL coverage, per season
 receiving_coverage_rec_stats_base <- receiving_coverage_versus %>%
@@ -856,7 +863,12 @@ stopifnot(
 receiving_coverage_defender_final <- receiving_coverage_defender_base %>% 
   filter(!is.na(final_position))
 
-receiving_coverage_defender_base %>% filter(coverage_player_id == 61853)
+src <- readLines("C:/Users/vflre/Downloads/nflmodels_UPDATE/pff_stats/secondary/pff_pass_coverage_AWS.R")
+c(raw_pull    = any(grepl("receiving_coverage_versus_raw <- run_athena_query", src, fixed = TRUE)),
+  helper_full = any(grepl("posteam, qbgrp_ssn, def_ssn, pos_rank", src, fixed = TRUE)),
+  rebuild     = any(grepl("receiving_coverage_versus <- receiving_coverage_versus_raw", src, fixed = TRUE)),
+  print_wall  = any(grepl("these columns doubled", src, fixed = TRUE)),
+  canary      = any(grepl("coverage_player_id == 61790", src, fixed = TRUE)))
 
 
 
@@ -1019,10 +1031,9 @@ plot_coverage_card_player <- function(player_id_vec,
   )
 }
 
-plot_coverage_card_player(10698, family = "man")
-plot_coverage_card_player(10698, family = "zone")
+plot_coverage_card_player(51081, family = "man")
+plot_coverage_card_player(51081, family = "zone")
 # plot_coverage_card_player(61853, family = "slot")
-
 
 
 plot_coverage_archetype <- function(profile_df,
@@ -1124,12 +1135,12 @@ plot_coverage_archetype <- function(profile_df,
 }
 # rte_cluster_name (defaults are fine — order by tgt_share desc)
 
-prof <- coverage_archetype_profile(10698,
-                                   dim            = "pos_rank",
-                                   def_ssn_filter = "CHI2025")
+prof <- coverage_archetype_profile(55088,
+                                   dim            = "tgt_cluster_name",
+                                   def_ssn_filter = "SEA2025")
 plot_coverage_archetype(prof,
                         player_name = "Kevin Byard",
-                        dim_label   = "Pos Rank")
+                        dim_label   = "TGT Cluster Name")
 
 # pos_rank, WR-filtered (sort ascending so 1→5 reads naturally)
 prof <- coverage_archetype_profile(10698,
@@ -1333,7 +1344,8 @@ find_similar_defenders <- function(defender_id,
 
 defender_diet_matrix <- build_defender_diet_matrix()
 
-comps <- find_similar_defenders(10698, "CHI2025", defender_diet_matrix)
+comps <- find_similar_defenders(51081, "SEA2025", defender_diet_matrix, min_similarity = .955)
+nrow(comps)
 
 inspect_defender_comps <- function(defender_id,
                                    target_def_ssn,
@@ -1369,7 +1381,7 @@ inspect_defender_comps <- function(defender_id,
     arrange(desc(similarity))
 }
 
-inspect_defender_comps(10698, "CHI2025", defender_diet_matrix, min_similarity = .965, n_top = 25) %>% View()
+inspect_defender_comps(97525, "SEA2025", defender_diet_matrix, min_similarity = .97, n_top = 40) %>% View()
 
 
 compare_comps_performance <- function(comps_df,
@@ -1409,10 +1421,10 @@ compare_comps_performance <- function(comps_df,
 }
 
 
-cohort_perf <- compare_comps_performance(comps, 10698, "CHI2025", family = "man")
+cohort_perf <- compare_comps_performance(comps, 51081, "SEA2025", family = "man")
 
 # where does Reed land in the cohort distribution on each metric?
-focal_row <- cohort_perf %>% filter(player_id == 10698, def_ssn == "CHI2025")
+focal_row <- cohort_perf %>% filter(player_id == 51081, def_ssn == "SEA2025")
 pctl_cols <- names(cohort_perf)[grepl("_season_pctl$", names(cohort_perf))]
 
 vapply(pctl_cols, function(col) {
@@ -1420,10 +1432,10 @@ vapply(pctl_cols, function(col) {
 }, numeric(1)) %>% sort(decreasing = TRUE)
 
 
-cohort_perf <- compare_comps_performance(comps, 10698, "CHI2025", family = "zone")
+cohort_perf <- compare_comps_performance(comps, 51081, "SEA2025", family = "zone")
 
 # where does Reed land in the cohort distribution on each metric?
-focal_row <- cohort_perf %>% filter(player_id == 10698, def_ssn == "CHI2025")
+focal_row <- cohort_perf %>% filter(player_id == 51081, def_ssn == "SEA2025")
 pctl_cols <- names(cohort_perf)[grepl("_season_pctl$", names(cohort_perf))]
 
 vapply(pctl_cols, function(col) {
@@ -1525,11 +1537,11 @@ plot_comps_dots <- function(comps_df,
     )
 }
 
-comps <- find_similar_defenders(10698, "CHI2025", defender_diet_matrix,
-                                min_similarity = 0.97)
+comps <- find_similar_defenders(51081, "SEA2025", defender_diet_matrix,
+                                min_similarity = 0.955)
 
-plot_comps_dots(comps, 10698, "CHI2024", family = "zone")
-plot_comps_dots(comps, 10698, "CHI2024", family = "man")
+plot_comps_dots(comps, 51081, "SEA2025", family = "zone")
+plot_comps_dots(comps, 51081, "SEA2025", family = "man")
 plot_comps_dots(comps, 61853, "NE2025", family = "slot")
 
 
@@ -1658,12 +1670,12 @@ plot_defender_comp_card <- function(card_obj, title = NULL) {
           legend.key.height = unit(1.4, "cm"))
 }
 
-comps <- find_similar_defenders(10698, "CHI2025", defender_diet_matrix, min_similarity = 0.977)
+comps <- find_similar_defenders(51081, "SEA2025", defender_diet_matrix, min_similarity = 0.955)
 
-byard_zone_card <- defender_comp_card(comps, 10698, "CHI2024", family = "zone")
+byard_zone_card <- defender_comp_card(comps, 51081, "SEA2025", family = "zone")
 plot_defender_comp_card(byard_zone_card)
 
-byard_man_card <- defender_comp_card(comps, 10698, "CHI2025", family = "man")
+byard_man_card <- defender_comp_card(comps, 51081, "SEA2025", family = "man")
 plot_defender_comp_card(byard_man_card)
 
 
@@ -1742,8 +1754,8 @@ plot_coverage_season_heatmap <- function(player_id_in, seasons = NULL,
           legend.key.height = unit(1.2, "cm"))
 }
 
-plot_coverage_season_heatmap(10698, family = "man")
-plot_coverage_season_heatmap(10698, family = "zone")
+plot_coverage_season_heatmap(51081, family = "man")
+plot_coverage_season_heatmap(51081, family = "zone")
 
 
 
@@ -1788,8 +1800,8 @@ coverage_common_opp_pctl <- function(player_id_in, season_in,
        focal_name = focal$player[1], focal_season = season_in, family = family)
 }
 
-byard_co_man  <- coverage_common_opp_pctl(10698, 2024, "man")
-byard_co_zone <- coverage_common_opp_pctl(10698, 2024, "zone")
+byard_co_man  <- coverage_common_opp_pctl(51081, 2024, "man")
+byard_co_zone <- coverage_common_opp_pctl(56089, 2025, "zone")
 
 # SOS honesty check before trusting: comp games per opponent
 byard_co_man$per_game %>% distinct(qbgrp_ssn, n_comp) %>% arrange(n_comp)
@@ -1899,4 +1911,4 @@ plot_vs_exp_strip <- function(focal_id, focal_def_ssn, comps_df = NULL,
           legend.key.height = unit(1.2, "cm"))
 }
 
-plot_vs_exp_strip(10698, "CHI2025", comps_df = comps)
+plot_vs_exp_strip(101388, "SEA2025", comps_df = comps)

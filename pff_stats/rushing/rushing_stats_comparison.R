@@ -160,13 +160,15 @@ get_offense_rusher_identity <- function(qbgrp_ssn_in,
 }
 
 
-View(rush_stats_final %>% filter(qbgrp_ssn == "NEMaye-2025") %>% arrange(player, week))
+View(rush_stats_final %>% filter(qbgrp_ssn == "SEADarnold-2025") %>% arrange(player, week))
+View(combined_ids %>% filter(team == "SEA", season == 2025) %>% select(player, player_id, team, season, gsis_id) %>% distinct())
 
-
-get_rusher_cluster_neighbors("00-0040734", 2025, distance_mult = 2.25)   # situation + gap, per rank_grp
-get_rusher_cluster_neighbors("00-0036875", 2024, distance_mult = 2.25)
-get_rusher_identity_history("00-0040734", c(2025))         # drift across seasons + rank_grps
-get_offense_rusher_identity(c("NEMaye-2025", "NEMaye-2024", "NEBrissett-2024"), rush_prop_min = .25, rush_prop_max = .7)
+get_rusher_cluster_neighbors("00-0038134", 2025, distance_mult = 2.25)   # situation + gap, per rank_grp
+get_rusher_cluster_neighbors("00-0038134", 2024, distance_mult = 2.25)
+get_rusher_cluster_neighbors("00-0039165", 2025, distance_mult = 2.25)   # situation + gap, per rank_grp
+get_rusher_cluster_neighbors("00-0039165", 2024, distance_mult = 2.25)
+get_rusher_identity_history("00-0039165", c(2025))         # drift across seasons + rank_grps
+get_offense_rusher_identity(c("SEADarnold-2025"), rush_prop_min = .38, rush_prop_max = .7)
 
 
 
@@ -268,16 +270,16 @@ compare_rusher_cohort <- function(focal_player_id        = NULL,
   out
 }
 
-compare_rusher_cohort(focal_player_id        = 145059,
+compare_rusher_cohort(focal_player_id        = 97630,
                       focal_season           = 2025,
-                      rush_prop_vec          = c(.25, .7),   # PRIMARY usage filter (rush_proportion)
+                      rush_prop_vec          = c(.35, .65),   # PRIMARY usage filter (rush_proportion)
                       position_group_input   = c("HB"),      # HB / QB / REC
-                      rank_grp_input         = c("A", "B", "C"),      # A / B / C (standalone)
-                      gap_cluster_dict       = list(A = c(1,5), B = c(1,2,3,4)),      # named list keyed by rank_grp
-                      situation_cluster_dict = list(A = c(1,2,3), B = c(2,5)),      # named list keyed by rank_grp
-                      pos_rank_vec           = c(1, 99),
-                      team_rank_vec          = c(1, 99),
-                      gap_z_vec              = c(.5, 999),
+                      rank_grp_input         = c("A", "B"),      # A / B / C (standalone)
+                      gap_cluster_dict       = list(A = c(1,2,6), B = c(1,2,3,4)),      # named list keyed by rank_grp
+                      situation_cluster_dict = list(A = c(1,2), B = c(2,5)),      # named list keyed by rank_grp
+                      pos_rank_vec           = c(1, 2),
+                      team_rank_vec          = c(1, 2),
+                      gap_z_vec              = c(-99, 0),
                       gap_z_na               = FALSE,
                       xtd_vec_input          = c(0, 70),# xtd_percentile
                       xtd_na                 = FALSE,
@@ -287,16 +289,16 @@ compare_rusher_cohort(focal_player_id        = 145059,
                       df                     = rush_stats_final)
 
 
-rhamondre_season_view <- compare_rusher_cohort(focal_player_id        = 145059,
+charbonnet_season_view <- compare_rusher_cohort(focal_player_id        = 97630,
                                                focal_season           = 2025,
-                                               rush_prop_vec          = c(.25, .7),   # PRIMARY usage filter (rush_proportion)
+                                               rush_prop_vec          = c(.25, .65),   # PRIMARY usage filter (rush_proportion)
                                                position_group_input   = c("HB"),      # HB / QB / REC
-                                               rank_grp_input         = c("A", "B", "C"),      # A / B / C (standalone)
-                                               gap_cluster_dict       = list(A = c(1,5), B = c(1,2,3,4)),      # named list keyed by rank_grp
-                                               situation_cluster_dict = list(A = c(1,2,3), B = c(2,5)),      # named list keyed by rank_grp
-                                               pos_rank_vec           = c(1, 99),
-                                               team_rank_vec          = c(1, 99),
-                                               gap_z_vec              = c(.5, 999),
+                                               rank_grp_input         = c("A", "B"),      # A / B / C (standalone)
+                                               gap_cluster_dict       = list(A = c(1,2,6), B = c(1,2,3,4)),      # named list keyed by rank_grp
+                                               situation_cluster_dict = list(A = c(1,2), B = c(2,5)),      # named list keyed by rank_grp
+                                               pos_rank_vec           = c(1, 2),
+                                               team_rank_vec          = c(1, 2),
+                                               gap_z_vec              = c(-99, 0),
                                                gap_z_na               = FALSE,
                                                xtd_vec_input          = c(0, 70),# xtd_percentile
                                                xtd_na                 = FALSE,
@@ -305,16 +307,16 @@ rhamondre_season_view <- compare_rusher_cohort(focal_player_id        = 145059,
                                                drop_part_cols         = FALSE,
                                                df                     = rush_stats_final)
 
-rhamondre_game_view <- compare_rusher_cohort(focal_player_id        = 145059,
+charbonnet_game_view <- compare_rusher_cohort(focal_player_id        = 97630,
                                              focal_season           = 2025,
-                                             rush_prop_vec          = c(.25, .7),   # PRIMARY usage filter (rush_proportion)
+                                             rush_prop_vec          = c(.25, .65),   # PRIMARY usage filter (rush_proportion)
                                              position_group_input   = c("HB"),      # HB / QB / REC
-                                             rank_grp_input         = c("A", "B", "C"),      # A / B / C (standalone)
-                                             gap_cluster_dict       = list(A = c(1,5), B = c(1,2,3,4)),      # named list keyed by rank_grp
-                                             situation_cluster_dict = list(A = c(1,2,3), B = c(2,5)),      # named list keyed by rank_grp
-                                             pos_rank_vec           = c(1, 99),
-                                             team_rank_vec          = c(1, 99),
-                                             gap_z_vec              = c(.5, 999),
+                                             rank_grp_input         = c("A", "B"),      # A / B / C (standalone)
+                                             gap_cluster_dict       = list(A = c(1,2,6), B = c(1,2,3,4)),      # named list keyed by rank_grp
+                                             situation_cluster_dict = list(A = c(1,2), B = c(2,5)),      # named list keyed by rank_grp
+                                             pos_rank_vec           = c(1, 2),
+                                             team_rank_vec          = c(1, 2),
+                                             gap_z_vec              = c(-99, 0),
                                              gap_z_na               = FALSE,
                                              xtd_vec_input          = c(0, 70),# xtd_percentile
                                              xtd_na                 = FALSE,
@@ -408,8 +410,8 @@ plot_rusher_cohort_dots <- function(cohort_df,
           panel.grid.minor   = element_blank())
 }
 
-plot_rusher_cohort_dots(rhamondre_season_view, title_suffix = "Season")
-plot_rusher_cohort_dots(rhamondre_game_view,   title_suffix = "Game")
+plot_rusher_cohort_dots(charbonnet_season_view, title_suffix = "Season")
+plot_rusher_cohort_dots(charbonnet_game_view,   title_suffix = "Game")
 
 
 
@@ -479,8 +481,8 @@ plot_rusher_ybc_yac <- function(cohort_df,
           panel.grid.minor = element_blank())
 }
 
-plot_rusher_ybc_yac(rhamondre_season_view, title_suffix = "Season")
-plot_rusher_ybc_yac(rhamondre_game_view,   title_suffix = "Game")
+plot_rusher_ybc_yac(charbonnet_season_view, title_suffix = "Season")
+plot_rusher_ybc_yac(charbonnet_game_view,   title_suffix = "Game")
 
 
 rusher_ybc_yac_scorecard <- function(cohort_df) {
@@ -502,8 +504,8 @@ rusher_ybc_yac_scorecard <- function(cohort_df) {
            yac_share, yac_share_pct, yac_resid, yac_resid_pct)
 }
 
-rhamondre_season_scorecard <- rusher_ybc_yac_scorecard(rhamondre_season_view)
-rhamondre_game_scorecard <- rusher_ybc_yac_scorecard(rhamondre_game_view)
+charbonnet_season_scorecard <- rusher_ybc_yac_scorecard(charbonnet_season_view)
+charbonnet_game_scorecard <- rusher_ybc_yac_scorecard(charbonnet_game_view)
 
 
 SCORECARD_SPEC <- tibble::tribble(
@@ -563,5 +565,5 @@ plot_rusher_scorecard <- function(scorecard_df, spec = SCORECARD_SPEC, title_suf
           axis.text.y        = element_text(size = 12, face = "bold"))
 }
 
-plot_rusher_scorecard(rhamondre_season_scorecard,  title_suffix = "Season")
-plot_rusher_scorecard(rhamondre_game_scorecard, title_suffix = "Game")
+plot_rusher_scorecard(charbonnet_season_scorecard,  title_suffix = "Season")
+plot_rusher_scorecard(charbonnet_game_scorecard, title_suffix = "Game")

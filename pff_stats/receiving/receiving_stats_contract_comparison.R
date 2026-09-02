@@ -3,7 +3,7 @@
 # id_bridge <- combined_ids %>%
 #  distinct(player_id, player, gsis_id)
 
-cohort_gsis <- doubs_season_view %>%
+cohort_gsis <- barner_season_view %>%
  left_join(id_bridge %>% distinct(player_id, gsis_id), by = "player_id")
 
 cohort_contracts <- cohort_gsis %>%
@@ -13,7 +13,7 @@ cohort_contracts <- cohort_gsis %>%
 # cohort_gsis %>% filter(is.na(gsis_id)) %>% distinct(player_id, player)          # no gsis bridge
 # setdiff(cohort_gsis$gsis_id, contracts$gsis_id)                                  # gsis with no OTC contract
 
-cohort_seasons <- doubs_season_view %>% distinct(player_id, season)
+cohort_seasons <- barner_season_view %>% distinct(player_id, season)
 
 # contract active DURING each row's season (most recent signing if deals overlap)
 active_contracts <- cohort_seasons %>%
@@ -32,7 +32,7 @@ next_contracts <- cohort_seasons %>%
   ungroup() %>%
   select(player_id, season, next_apy = apy, next_apy_pct = apy_cap_pct, next_year = year_signed)
 
-cohort_pay <- doubs_season_view %>%
+cohort_pay <- barner_season_view %>%
   left_join(active_contracts, by = c("player_id","season")) %>%
   left_join(next_contracts,   by = c("player_id","season")) %>%
   mutate(apy_pct_rank = (rank(active_apy_pct, ties.method = "average", na.last = "keep") - 1) /

@@ -248,14 +248,14 @@ plot_ybc_yac_quadrants_def <- function(team_season, data = rush_stats_high) {
     )
 }
 
-plot_ybc_yac_quadrants_def("NE2025")
+plot_ybc_yac_quadrants_def("SEA2025")
 
 
-View(gap_opp_position_percentile %>% filter(def_ssn == "NE2025"))
-View(zone_opp_position_percentile %>% filter(def_ssn == "NE2025"))
+View(gap_opp_position_percentile %>% filter(def_ssn == "SEA2025"))
+View(zone_opp_position_percentile %>% filter(def_ssn == "SEA2025"))
 
 
-View(run_defense_player_season_summary %>% filter(def_ssn == "NE2025") %>%
+View(run_defense_player_season_summary %>% filter(def_ssn == "SEA2025") %>%
        select(player:def_ssn, ends_with("_pctl")))
 
 
@@ -341,7 +341,7 @@ plot_run_def_card <- function(team_season,
   )
 }
 
-plot_run_def_card("NE2025")
+plot_run_def_card("SEA2025")
 
 
 plot_run_def_card_player <- function(player_id_vec,
@@ -436,9 +436,10 @@ plot_run_def_card_player <- function(player_id_vec,
 }
 
 
-plot_run_def_card_player(c(100612, 49335, 131679, 50918, 82198, 55717, 56976, 48600, 61853, 56682)) # PLAYERS STILL WITH NE
-plot_run_def_card_player(c(51423, 57662, 57945, 52000, 25449, 51055)) # PLAYERS WHO LEFT NE
-plot_run_def_card_player(c(28075, 10698, 57727, 49346, 56054)) # NEW PLAYERS
+plot_run_def_card_player(c(131252, 9439, 8669, 50084, 10683, 98130)) # STILL HERE - DL / ED SEA
+plot_run_def_card_player(c(81399, 97525, 158121, 56089, 51081)) # STILL HERE - LB / S SEA
+plot_run_def_card_player(c(55088, 55220)) # PLAYERS WHO LEFT SEA
+plot_run_def_card_player(c(9436)) # NEW PLAYERS SEA
 
 
 
@@ -760,10 +761,10 @@ plot_def_ssn_dist <- function(def_ssn,
 }
 
 # single bucket — deciles really shine here
-plot_def_ssn_dist("NE2025", outcome = "epa", bucket = "yardline_100")
+plot_def_ssn_dist("SEA2025", outcome = "epa", bucket = "yardline_100")
 
 # all faceted (dense at deciles, but there if you want the overview)
-plot_def_ssn_dist("NE2025", outcome = "ypc_oe_part", bucket = "part_predicted_xpass")
+plot_def_ssn_dist("SEA2025", outcome = "ypc_oe_part", bucket = "part_predicted_xpass")
 
 # all faceted (dense at deciles, but there if you want the overview)
-plot_def_ssn_dist("NE2025", outcome = "ypc_oe_part", bucket = "yardline_100")
+plot_def_ssn_dist("SEA2025", outcome = "ypc_oe_part", bucket = "yardline_100")

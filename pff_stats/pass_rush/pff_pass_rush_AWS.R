@@ -358,7 +358,7 @@ tps_pass_block_opp_position_pctl <- tps_pass_block_opp_position_percentile %>%
 
 
 det_def_games <- qb_stats_df_final %>%
-  filter(defteam == "DET", season == 2025)
+  filter(defteam == "SEA", season == 2025)
 
 ggplot(det_def_games, aes(adot_rank_def, pbp_xtds_rank_def)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey60") +
@@ -369,7 +369,7 @@ ggplot(det_def_games, aes(adot_rank_def, pbp_xtds_rank_def)) +
                            size = 2.8, color = "grey25", segment.size = 0.2) +
   scale_x_continuous(limits = c(0, 1), labels = scales::percent_format(accuracy = 1)) +
   scale_y_continuous(limits = c(0, 1), labels = scales::percent_format(accuracy = 1)) +
-  labs(title = "NE2025 Defense: pressure level → offensive TD output",
+  labs(title = "SEA2025 Defense: pressure level → offensive TD output",
        subtitle = "Bottom-left = DET pressured + suppressed scoring  |  Top-right = no pressure + offense rolled",
        x = "Pressure suppression by offense (high = DET didn't pressure)",
        y = "Expected TDs by offense (high = offense scored a lot)") +
@@ -382,7 +382,7 @@ tps_pblk_z <- tps_pass_block_opp_position_pctl %>%
 
 # Pivot long, filter to cohort
 tps_pblk_long <- tps_pblk_z %>%
-  filter(def_ssn %in% c(sim_def$QB, "NE2025")) %>%
+  filter(def_ssn %in% c(sim_def$QB, "SEA2025")) %>%
   pivot_longer(ends_with("_rank"), names_to = "var", values_to = "z") %>%
   mutate(
     position = sub(".*_([A-Z]{1,2})_rank$", "\\1", var),
@@ -415,28 +415,28 @@ tps_pblk_agg <- tps_pblk_long %>%
 tps_pblk_summary <- tps_pblk_long %>%
   group_by(var_label, bucket) %>%
   summarise(
-    vs      = z[def_ssn == "NE2025"],
-    cc      = median(z[def_ssn != "NE2025"], na.rm = TRUE),
-    cc_mean = mean(z[def_ssn != "NE2025"], na.rm = TRUE),
+    vs      = z[def_ssn == "SEA2025"],
+    cc      = median(z[def_ssn != "SEA2025"], na.rm = TRUE),
+    cc_mean = mean(z[def_ssn != "SEA2025"], na.rm = TRUE),
     .groups = "drop"
   )
 
 tps_pblk_agg_summary <- tps_pblk_agg %>%
   group_by(var_label, bucket) %>%
   summarise(
-    vs      = z[def_ssn == "NE2025"],
-    cc      = median(z[def_ssn != "NE2025"], na.rm = TRUE),
-    cc_mean = mean(z[def_ssn != "NE2025"], na.rm = TRUE),
+    vs      = z[def_ssn == "SEA2025"],
+    cc      = median(z[def_ssn != "SEA2025"], na.rm = TRUE),
+    cc_mean = mean(z[def_ssn != "SEA2025"], na.rm = TRUE),
     .groups = "drop"
   )
 
 # Aggregate (3 rows)
-plot_strip(df = tps_pblk_agg,         bkt = "TPS", focal = "NE2025", id_col = "def_ssn")
-plot_dumb(df  = tps_pblk_agg_summary, bkt = "TPS", focal = "NE2025")
+plot_strip(df = tps_pblk_agg,         bkt = "TPS", focal = "SEA2025", id_col = "def_ssn")
+plot_dumb(df  = tps_pblk_agg_summary, bkt = "TPS", focal = "SEA2025")
 
 # Position-split (15 rows)
-plot_strip(df = tps_pblk_long,        bkt = "TPS", focal = "NE2025", id_col = "def_ssn")
-plot_dumb(df  = tps_pblk_summary,     bkt = "TPS", focal = "NE2025")
+plot_strip(df = tps_pblk_long,        bkt = "TPS", focal = "SEA2025", id_col = "def_ssn")
+plot_dumb(df  = tps_pblk_summary,     bkt = "TPS", focal = "SEA2025")
 
 
 all_pblk_z <- all_pass_block_opp_position_pctl %>%
@@ -450,7 +450,7 @@ ordered_pblk_all <- c(
 )
 
 all_pblk_long <- all_pblk_z %>%
-  filter(def_ssn %in% c(sim_def$QB, "NE2025")) %>%
+  filter(def_ssn %in% c(sim_def$QB, "SEA2025")) %>%
   pivot_longer(ends_with("_rank"), names_to = "var", values_to = "z") %>%
   mutate(
     position  = sub(".*_([A-Z]{1,2})_rank$", "\\1", var),
@@ -468,7 +468,7 @@ all_pblk_long <- all_pblk_z %>%
 # Build summary + agg same way, run plot_strip/plot_dumb
 
 plot_pblk_games <- function(df = all_pass_block_summary,
-                            focal = "NE2025",
+                            focal = "SEA2025",
                             pos = "LT",
                             metric = "grade",
                             sort_by = "week") {
@@ -515,31 +515,31 @@ plot_pblk_games <- function(df = all_pass_block_summary,
 
 
 # Usage
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "LT", metric = "grade", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "LT", metric = "pressure", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "LT", metric = "hurries", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LT", metric = "grade", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LT", metric = "pressure", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LT", metric = "hurries", sort_by = "perc")
 
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "LG", metric = "grade", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "LG", metric = "pressure", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "LG", metric = "hurries", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LG", metric = "grade", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LG", metric = "pressure", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LG", metric = "hurries", sort_by = "perc")
 
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "C", metric = "grade", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "C", metric = "pressure", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "C", metric = "hurries", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "C", metric = "grade", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "C", metric = "pressure", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "C", metric = "hurries", sort_by = "perc")
 
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "RG",  metric = "grade", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "RG",  metric = "pressure", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "RG",  metric = "hurries", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RG",  metric = "grade", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RG",  metric = "pressure", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RG",  metric = "hurries", sort_by = "perc")
 
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "RT",  metric = "grade", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "RT",  metric = "pressure", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "NE2025", pos = "RT",  metric = "hurries", sort_by = "perc")
-
-
-View(tps_pass_block_opp_position_pctl %>% filter(def_ssn %in% c("NE2025")))
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RT",  metric = "grade", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RT",  metric = "pressure", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RT",  metric = "hurries", sort_by = "perc")
 
 
-View(qb_stats_df_final %>% filter(def_ssn == "NE2025"))
+View(tps_pass_block_opp_position_pctl %>% filter(def_ssn %in% c("SEA2025")))
+
+
+View(qb_stats_df_final %>% filter(def_ssn == "SEA2025"))
 
 
 plot_prush_card <- function(team_season,
@@ -693,13 +693,13 @@ plot_prush_players <- function(team_season,
 }
 
 
-# plot_prush_card("NE2025")                          # all snaps
-plot_prush_card("NE2025", view = "tps")            # true pass set
+# plot_prush_card("SEA2025")                          # all snaps
+plot_prush_card("SEA2025", view = "tps")            # true pass set
 
 
-plot_prush_players("NE2025", metric = "hit_rate", view = "tps")
+plot_prush_players("SEA2025", metric = "hit_rate", view = "tps")
 plot_prush_players("PHI2024", metric = "hit_rate", view = "tps")
-plot_prush_players("NE2025", metric = "grade_pass_rush", view = "tps")
+plot_prush_players("SEA2025", metric = "grade_pass_rush", view = "tps")
 
 # metrics: grade_pass_rush, prp, pass_rush_win_rate, pressure_rate, hit_rate, hurry_rate, batted_pass_rate
 
@@ -886,11 +886,10 @@ plot_prush_players_player <- function(player_id_vec,
   )
 }
 
-plot_prush_card_player(82330)                              # Hutch, all seasons, all snaps
-plot_prush_card_player(82330, view = "tps")                # Hutch, TPS
-plot_prush_card_player(c(82198, 48600, 56682, 56976, 142819), view = "tps")    # NE PLAYERS WHO STAYED                
-plot_prush_card_player(c(57945, 52000, 25449), view = "tps") # NE PLAYERS WHO LEFT
-plot_prush_card_player(c(28075), view = "tps") # INCOMING NE PLAYERS. 
+
+plot_prush_card_player(c(9439, 131252, 8669, 50084, 98130, 10683), view = "tps")    # NE PLAYERS WHO STAYED                
+plot_prush_card_player(c(55220), view = "tps") # NE PLAYERS WHO LEFT
+plot_prush_card_player(c(9436), view = "tps") # INCOMING NE PLAYERS. 
 # ALSO GABE JACAS - 77 NGS, 
 
 
@@ -909,7 +908,7 @@ det_blue   <- "#002244"  # Honolulu Blue
 det_silver <- "#B0B7BC"  # Silver
 
 plot_ne_opp_tps_long <- tps_pass_block_opp_position_pctl %>%
-  filter(def_ssn %in% c("NE2025")) %>%
+  filter(def_ssn %in% c("SEA2025")) %>%
   pivot_longer(ends_with("_rank"),
                names_to = c("metric", "position"),
                names_pattern = "player_tps_(.+)_perc_(.+)_rank") %>%
@@ -925,13 +924,13 @@ plot_det_opp_tps_seg <- plot_det_opp_tps_long %>%
 ggplot() +
   geom_vline(xintercept = 0.5, color = "grey92", linewidth = 0.3) +
   geom_segment(data = plot_det_opp_tps_seg,
-               aes(x = DET2024, xend = NE2025,
+               aes(x = DET2024, xend = SEA2025,
                    y = fct_rev(position), yend = fct_rev(position)),
                color = "grey70", linewidth = 1.2) +
   geom_point(data = plot_det_opp_tps_long,
              aes(x = value, y = fct_rev(position), color = def_ssn),
              size = 5.5, stroke = 0) +
-  scale_color_manual(values = c("NE2025" = det_blue)) +
+  scale_color_manual(values = c("SEA2025" = det_blue)) +
   scale_x_continuous(limits = c(0, 1),
                      breaks = c(0, .25, .5, .75, 1),
                      labels = c("0", ".25", ".5", ".75", "1"),

@@ -242,16 +242,16 @@ zone_player_season_summary <- zone_block_summary %>%
   ungroup()
 
 
-View(gap_player_season_summary %>% filter(season == 2025, player_id %in% c(124034, 81788, 10650, 10729, 98261, 44909, 12307)))
-View(zone_player_season_summary %>% filter(season == 2025, player_id %in% c(124034, 81788, 10650, 10729, 98261, 44909, 12307)))
+View(gap_player_season_summary %>% filter(season == 2025, player_id %in% c(60218, 125314, 99103, 98401, 91396)))
+View(zone_player_season_summary %>% filter(season == 2025, player_id %in% c(60218, 125314, 99103, 98401, 91396)))
 
-View(gap_player_season_summary %>% filter(player_id %in% c(124034, 81788, 10650, 10729, 98261, 44909, 12307)) %>% arrange(player_id, season))
-View(zone_player_season_summary %>% filter(player_id %in% c(124034, 81788, 10650, 10729, 98261, 44909, 12307)) %>% arrange(player_id, season))
+View(gap_player_season_summary %>% filter(player_id %in% c(60218, 125314, 99103, 98401, 91396)) %>% arrange(player_id, season))
+View(zone_player_season_summary %>% filter(player_id %in% c(60218, 125314, 99103, 98401, 91396)) %>% arrange(player_id, season))
 
 View(gap_player_season_summary %>% filter(player_id %in% c(81995, 59879)))
 View(zone_player_season_summary %>% filter(player_id %in% c(81995, 59879)))
 
-View(run_defense_opp_position_percentile %>% filter(qbgrp_ssn == "DETGoff-2025"))
+View(run_defense_opp_position_percentile %>% filter(qbgrp_ssn == "SEADarnold-2025"))
 
 
 View(gap_player_season_summary %>% filter(player_id == 98261))
@@ -260,9 +260,9 @@ View(gap_opp_position_percentile %>% filter(def_ssn == "PHI2025"))
 View(zone_opp_position_percentile %>% filter(def_ssn == "PHI2025"))
 
 
-View(rush_stats_high %>% filter(off_ssn == "DET2025"))
+View(rush_stats_high %>% filter(off_ssn == "SEA2025"))
 
-View(rush_stats_final %>% filter(team == "DET", season == 2025))
+View(rush_stats_final %>% filter(team == "SEA", season == 2025))
 
 
 # install.packages("nflplotR")  # if needed
