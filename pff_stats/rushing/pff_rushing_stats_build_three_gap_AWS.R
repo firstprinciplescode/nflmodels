@@ -1,3 +1,8 @@
+# pff_rushing_stats_build_three_gap_AWS.R -> THIS COPY IS PROPOSED -- Claude, UNSIGNED, 2026-09-09. Andy stamps or corrects.
+# Canon file untouched. Change set: seed 100 immediately before EVERY kmeans() call (12 edits)
+# Diff against canon: only the lines listed in rush_pipeline_order.md section 5.
+
+set.seed(100)
 
 # pbp_rush$center_ind = ifelse(pbp_rush$run_gap == 0, 1, 0)
 
@@ -50,13 +55,14 @@ cat("Rows:", nrow(run_gap_a_for_clustering), "\n")
 cat("Any NAs:", sum(is.na(run_gap_a_for_clustering)), "\n")
 
 library(cluster)
-set.seed(42)
+set.seed(100)
 max_k <- 10
 
 metrics_a <- data.frame(k = 2:max_k, wss = NA, bss_tss = NA, silhouette = NA)
 
 for (i in 1:nrow(metrics_a)) {
   k <- metrics_a$k[i]
+  set.seed(100)
   km <- kmeans(run_gap_a_for_clustering, centers = k, nstart = 25, iter.max = 50)
   metrics_a$wss[i] <- km$tot.withinss
   metrics_a$bss_tss[i] <- km$betweenss / km$totss
@@ -83,7 +89,7 @@ par(mfrow = c(1, 1))
 candidate_ks <- c(4,5,6,7,8)
 cat("\n=== RANK A CANDIDATES ===\n")
 for (k in candidate_ks) {
-  set.seed(42)
+  set.seed(100)
   km <- kmeans(run_gap_a_for_clustering, centers = k, nstart = 25)
   sil <- silhouette(km$cluster, dist(run_gap_a_for_clustering))
   cat(sprintf("\nk = %d:\n", k))
@@ -94,6 +100,7 @@ for (k in candidate_ks) {
 # GONNA GO WITH 8
 
 # APPLY CHOSEN K (update after seeing results)
+set.seed(100)
 km_gap_a_final <- kmeans(run_gap_a_for_clustering, centers = 8, nstart = 25)  # UPDATE K
 run_gap_a_full$cluster <- km_gap_a_final$cluster
 
@@ -110,14 +117,14 @@ run_gap_a_full %>%
   ) %>%
   arrange(desc(center))
 
-# 1 - GUARD / TACKLE
-# 2 - GUARD
-# 3 - OUTSIDE
+# 1 - NOT CENTER
+# 2 - MID
+# 3 - NOT OUTSIDE
 # 4 - CENTER / TACKLE
-# 5 - TACKLE / OUTSIDE
-# 6 - CENTER / OUTSIDE
-# 7 - CENTER
-# 8 - GUARD / TACKLE
+# 5 - GUARD / TACKLE
+# 6 - CENTER
+# 7 - OUTSIDE
+# 8 - GUARD
 
 ###
 ### B
@@ -136,11 +143,12 @@ run_gap_b_for_clustering <- run_gap_b_full %>% dplyr::select(ends_with("_scaled"
 cat("Rows:", nrow(run_gap_b_for_clustering), "\n")
 cat("Any NAs:", sum(is.na(run_gap_b_for_clustering)), "\n")
 
-set.seed(42)
+set.seed(100)
 metrics_b <- data.frame(k = 2:max_k, wss = NA, bss_tss = NA, silhouette = NA)
 
 for (i in 1:nrow(metrics_b)) {
   k <- metrics_b$k[i]
+  set.seed(100)
   km <- kmeans(run_gap_b_for_clustering, centers = k, nstart = 25, iter.max = 50)
   metrics_b$wss[i] <- km$tot.withinss
   metrics_b$bss_tss[i] <- km$betweenss / km$totss
@@ -167,6 +175,7 @@ par(mfrow = c(1, 1))
 candidate_ks <- c(3,4)
 cat("\n=== RANK B CANDIDATES ===\n")
 for (k in candidate_ks) {
+  set.seed(100)
   km <- kmeans(run_gap_b_for_clustering, centers = k, nstart = 25)
   sil <- silhouette(km$cluster, dist(run_gap_b_for_clustering))
   cat(sprintf("\nk = %d:\n", k))
@@ -176,6 +185,7 @@ for (k in candidate_ks) {
 }
 
 # APPLY CHOSEN K
+set.seed(100)
 km_gap_b_final <- kmeans(run_gap_b_for_clustering, centers = 4, nstart = 25)  # UPDATE K
 run_gap_b_full$cluster <- km_gap_b_final$cluster
 
@@ -192,10 +202,10 @@ run_gap_b_full %>%
   ) %>%
   arrange(desc(center))
 
-# 1 - OUTSIDE
-# 2 - TACKLE
-# 3 - CENTER
-# 4 - GUARD
+# 1 - TACKLE-ISH
+# 2 - CENTER
+# 3 - GUARD
+# 4 - OUTSIDE
 
 
 #######################
@@ -210,11 +220,12 @@ run_gap_c_for_clustering <- run_gap_c_full %>% dplyr::select(ends_with("_scaled"
 cat("Rows:", nrow(run_gap_c_for_clustering), "\n")
 cat("Any NAs:", sum(is.na(run_gap_c_for_clustering)), "\n")
 
-set.seed(42)
+set.seed(100)
 metrics_c <- data.frame(k = 2:max_k, wss = NA, bss_tss = NA, silhouette = NA)
 
 for (i in 1:nrow(metrics_c)) {
   k <- metrics_c$k[i]
+  set.seed(100)
   km <- kmeans(run_gap_c_for_clustering, centers = k, nstart = 25, iter.max = 50)
   metrics_c$wss[i] <- km$tot.withinss
   metrics_c$bss_tss[i] <- km$betweenss / km$totss
@@ -241,7 +252,7 @@ par(mfrow = c(1, 1))
 candidate_ks <- c(3, 4, 5)
 cat("\n=== RANK C CANDIDATES ===\n")
 for (k in candidate_ks) {
-  set.seed(42)
+  set.seed(100)
   km <- kmeans(run_gap_c_for_clustering, centers = k, nstart = 25)
   sil <- silhouette(km$cluster, dist(run_gap_c_for_clustering))
   cat(sprintf("\nk = %d:\n", k))
@@ -252,6 +263,7 @@ for (k in candidate_ks) {
 
 # APPLY CHOSEN K
 
+set.seed(100)
 km_gap_c_final <- kmeans(run_gap_c_for_clustering, centers = 4, nstart = 25)  # UPDATE K
 run_gap_c_full$cluster <- km_gap_c_final$cluster
 
@@ -268,10 +280,10 @@ run_gap_c_full %>%
   ) %>%
   arrange(desc(center))
 
-# 1 - OUTSIDE
-# 2 - GUARD
-# 3 - TACKLE
-# 4 - CENTER
+# 1 - CENTER / GUARD
+# 2 - CENTER
+# 3 - TACKLE-ISH
+# 4 - OUTSIDE
 
 
 ###
@@ -280,4 +292,3 @@ run_gap_c_full %>%
 
 gap_cluster_df <- 
   rbind(run_gap_a_full, run_gap_b_full, run_gap_c_full)
-

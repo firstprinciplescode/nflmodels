@@ -4,7 +4,7 @@ bucket <- "nfl-pff-data-lucas"
 
 # Option 1: Specify what to KEEP, remove everything else
 keep_objects <- c("qb_stats_df_final", "con", "bucket")
-rm(list = setdiff(ls(), keep_objects))
+# rm(list = setdiff(ls(), keep_objects))   # commented 2026-09-13: never wipe the session
 
 '%ni%' <- Negate('%in%')
 

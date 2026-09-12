@@ -248,11 +248,11 @@ plot_ybc_yac_quadrants_def <- function(team_season, data = rush_stats_high) {
     )
 }
 
-plot_ybc_yac_quadrants_def("SEA2025")
+plot_ybc_yac_quadrants_def("DEN2025")
 
 
-View(gap_opp_position_percentile %>% filter(def_ssn == "SEA2025"))
-View(zone_opp_position_percentile %>% filter(def_ssn == "SEA2025"))
+View(gap_opp_position_percentile %>% filter(def_ssn == "DEN2025"))
+View(zone_opp_position_percentile %>% filter(def_ssn == "DEN2025"))
 
 
 View(run_defense_player_season_summary %>% filter(def_ssn == "SEA2025") %>%
@@ -341,7 +341,7 @@ plot_run_def_card <- function(team_season,
   )
 }
 
-plot_run_def_card("SEA2025")
+plot_run_def_card("DEN2025")
 
 
 plot_run_def_card_player <- function(player_id_vec,
@@ -436,10 +436,10 @@ plot_run_def_card_player <- function(player_id_vec,
 }
 
 
-plot_run_def_card_player(c(131252, 9439, 8669, 50084, 10683, 98130)) # STILL HERE - DL / ED SEA
-plot_run_def_card_player(c(81399, 97525, 158121, 56089, 51081)) # STILL HERE - LB / S SEA
-plot_run_def_card_player(c(55088, 55220)) # PLAYERS WHO LEFT SEA
-plot_run_def_card_player(c(9436)) # NEW PLAYERS SEA
+plot_run_def_card_player(c(49605, 11953, 43021, 77196, 45414, 50191, 156124)) # STILL HERE - DL / ED SEA
+plot_run_def_card_player(c(83903, 83259, 9994, 83119, 43049, 42659, 100931)) # STILL HERE - CB / LB / S SEA
+plot_run_def_card_player(c(51503, 50088)) # PLAYERS WHO LEFT SEA
+plot_run_def_card_player(c(51172)) # NEW PLAYERS SEA
 
 
 

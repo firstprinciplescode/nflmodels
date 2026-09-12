@@ -4,7 +4,7 @@ options(scipen = 999)
 '%ni%' <- Negate('%in%')
 
 keep_objects <- c("con", "combined_ids", "combined_pbp")
-rm(list = setdiff(ls(), keep_objects))
+# rm(list = setdiff(ls(), keep_objects))   # commented 2026-09-13: never wipe the session
 
 '%ni%' <- Negate('%in%')
 

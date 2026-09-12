@@ -85,7 +85,7 @@ View(rush_stats_high %>%
                 ybc_rank = mean(ybc_rank_def),
                 yac_rank = mean(yac_rank_def)))
 
-View(rush_stats_high %>% filter(off_ssn == "NE2025"))
+View(rush_stats_high %>% filter(off_ssn == "KC2025"))
 View(rush_stats_rec %>% filter(off_ssn == "NE2025"))
 
 View(rush_stats_high %>% filter(def_ssn == "SEA2025"))

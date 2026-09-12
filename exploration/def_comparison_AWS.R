@@ -1,25 +1,25 @@
-comparison_blitz_def_func("NE2025", .955) # 89
-comparison_depth_def_func("NE2025", 1.01) # 53
-comparison_less_def_func("NE2025", 1) # 59
-comparison_pa_def_func("NE2025", .96) # 83
-comparison_pressure_def_func("NE2025", .96) # 89
+comparison_blitz_def_func("DEN2025", 1.13) # 12
+comparison_depth_def_func("DEN2025", 1.075) # 25
+comparison_less_def_func("DEN2025", 1.11) # 15
+comparison_pa_def_func("DEN2025", 1.03) # 46
+comparison_pressure_def_func("DEN2025", 1.07) # 28
 
-all_def <- rbind(as.data.frame(comparison_blitz_def_func("NE2025", .915)), 
-                 as.data.frame(comparison_depth_def_func("NE2025", .97)), 
-                 as.data.frame(comparison_less_def_func("NE2025", .96)), 
-                 as.data.frame(comparison_pa_def_func("NE2025", .94)), 
-                 as.data.frame(comparison_pressure_def_func("NE2025", .94)))
+all_def <- rbind(as.data.frame(comparison_blitz_def_func("DEN2025", 1.11)), 
+                 as.data.frame(comparison_depth_def_func("DEN2025", 1.055)), 
+                 as.data.frame(comparison_less_def_func("DEN2025", 1.09)), 
+                 as.data.frame(comparison_pa_def_func("DEN2025", 1.01)), 
+                 as.data.frame(comparison_pressure_def_func("DEN2025", 1.05)))
 
 sim_def <- sqldf("SELECT QB, COUNT(*) AS CNT
         FROM  all_def 
         GROUP BY  QB
-        HAVING  CNT >= 4") %>% select(QB) %>% distinct()
+        HAVING  CNT >= 3") %>% select(QB) %>% distinct()
 
 sim_def
 
 
-ne_blitz_def <- df_blitz_def_scaled_z %>%
-  filter(def_ssn %in% c(sim_def$QB, "NE2025")) %>%
+ne_blitz_def <- df_pressure_def_scaled_z %>%
+  filter(def_ssn %in% c(sim_def$QB, "DEN2025")) %>%
   select(-contains("snaps"), -contains("int_rate")) 
 
 # Preserve original column order from the CSV as the y-axis order
@@ -48,9 +48,9 @@ ne_long_def <- ne_blitz_def %>%
 ne_summary_def <- ne_long_def %>%
   group_by(var_label, bucket) %>%
   summarise(
-    vs      = z[def_ssn == "NE2025"],
-    cc      = median(z[def_ssn != "NE2025"], na.rm = TRUE),   # FIX: !=
-    cc_mean = mean(z[def_ssn != "NE2025"], na.rm = TRUE),     # FIX: !=
+    vs      = z[def_ssn == "DEN2025"],
+    cc      = median(z[def_ssn != "DEN2025"], na.rm = TRUE),   # FIX: !=
+    cc_mean = mean(z[def_ssn != "DEN2025"], na.rm = TRUE),     # FIX: !=
     .groups = "drop"
   )
 
@@ -133,33 +133,44 @@ plot_dumb <- function(df, bkt = "Good", focal = "DETGoff-2025") {
 }
 
 # Calls
-plot_strip(df = ne_long_def,    bkt = "Good", focal = "NE2025", id_col = "def_ssn")
-plot_dumb(df = ne_summary_def,  bkt = "Good", focal = "NE2025")
+plot_strip(df = ne_long_def,    bkt = "Good", focal = "DEN2025", id_col = "def_ssn")
+plot_dumb(df = ne_summary_def,  bkt = "Good", focal = "DEN2025")
 
-plot_strip(df = ne_long_def,    bkt = "Bad",  focal = "NE2025", id_col = "def_ssn")
-plot_dumb(df = ne_summary_def,  bkt = "Bad",  focal = "NE2025")
+plot_strip(df = ne_long_def,    bkt = "Bad",  focal = "DEN2025", id_col = "def_ssn")
+plot_dumb(df = ne_summary_def,  bkt = "Bad",  focal = "DEN2025")
 
-plot_strip(df = ne_long_def,    bkt = "Diff (G-B)", focal = "NE2025", id_col = "def_ssn")
-plot_dumb(df = ne_summary_def,  bkt = "Diff (G-B)", focal = "NE2025")
-
-
+plot_strip(df = ne_long_def,    bkt = "Diff (G-B)", focal = "DEN2025", id_col = "def_ssn")
+plot_dumb(df = ne_summary_def,  bkt = "Diff (G-B)", focal = "DEN2025")
 
 
-df_blitz_def_scaled_z %>%
-  filter(def_ssn %in% c(sim_def$QB, "NE2025")) %>%
-  aws.s3::s3write_using(write.csv, row.names = FALSE,
-                        object = "outputs/tb2025_blitz_comps.csv",
-                        bucket = "nfl-pff-data-lucas")
+df_depth_def_scaled_z %>% 
+  filter(def_ssn %in% c("DEN2025", "SEA2024", "BLT2023")) %>%
+  select(-contains("snaps"), -contains("int_rate"))
+
 
 df_blitz_def_scaled_z %>%
-  filter(def_ssn %in% c("WAS2024", "TB2024", "TB2025")) %>%
+  filter(def_ssn %in% c("DEN2025", "TB2024", "TB2025")) %>%
   select(def_ssn, blitz_rate_Good)
 
 
-df_blitz_def_scaled_z %>%
-  filter(blitz_rate_diff <= .25, no_blitz_twp_rate_Bad <= -.25, no_blitz_adot_Good >= -.25, blitz_grade_Bad <= .5) %>% 
+df_depth_def_scaled_z %>%
+  filter(medium_rate_Bad >= -1.6, medium_rate_Bad <= .2, ms_qbr_difference_diff >= -1, ms_qbr_difference_diff <= 1.2, ms_acc_pct_difference_diff >= -1.2, ms_acc_pct_difference_diff <= .8, deep_twp_rate_Bad >= -1.1, deep_twp_rate_Bad <= .8, medium_grade_Bad >= -1.7, medium_grade_Bad <= .2, ypa_difference_diff >= -.2, ypa_difference_diff <= 1.6) %>% 
   pull(def_ssn)
  
-df_pa_def_scaled_z %>%
-  filter(pa_time_to_throw_Good >= -.8, pa_scr_rate_Bad >= .5, ttt_difference_Bad >= .35, qbr_difference_diff >= -.45) %>% 
+df_less_def_scaled_z %>%
+  filter(pressure_rate_difference_Bad >= -.8, pressure_rate_difference_Bad <= .6, less_time_to_throw_diff <= .8, less_time_to_throw_diff >= -.35, less_rate_Bad >= -1.1, less_rate_Bad <= .05, more_scr_rate_Bad >= -.6, more_scr_rate_Bad <= .8) %>% 
   pull(def_ssn)  
+
+
+sqldf("SELECT def_ssn,
+              AVG(tds) AS mn_tds,
+              AVG(pbp_xtds_rank)  AS mn_pbp_xtds_rank,
+              AVG(part_xtds_rank) AS mn_part_xtds_rank,
+              AVG(ypa_rank)       AS mn_ypa_rank,
+              AVG(pbp_xypa_rank)  AS mn_pbp_xypa_rank,
+              AVG(part_xypa_rank) AS mn_part_xypa_rank
+       FROM   qb_stats_df_final
+       WHERE  def_ssn IN ('BLT2023', 'SEA2024', 'DEN2025', 'LAC2025', 'MIA2025')
+       GROUP BY def_ssn")
+      
+      

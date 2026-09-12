@@ -5,7 +5,7 @@ library(ggtext)
 conflicts_prefer(dplyr::filter, dplyr::select, dplyr::lag, dplyr::arrange, dplyr::summarise, dplyr::mutate)
 
 keep_objects <- c("qb_stats_df_final", "con", "bucket", "run_athena_query")
-rm(list = setdiff(ls(), keep_objects))
+# rm(list = setdiff(ls(), keep_objects))   # commented 2026-09-13: never wipe the session
 
 run_athena_query <- function(sql, max_wait = 120) {
   # Start query

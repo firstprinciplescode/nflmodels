@@ -69,41 +69,39 @@ df_pressure_def_scaled_z <- list_dependencies_pressure_def[[1]]
 
 ### A
 
-# 1: LOW AF
-# 2: BELLCOW 
-# 3: MID
-# 4: LONG YARDAGE ONLY
+# 1: MID
+# 2: BELLCOW
+# 3: LONG YARDAGE
+# 4: LOW AF
 
 ### B
 
-# 1: BELLCOW
-# 2: LONG YARDAGE
-# 3: EARLY DOWN
-# 4: MID
-# 5: SHORT YARDAGE 
+# 1: 3RD DOWN
+# 2: EARLY DOWN 
+# 3: BELLCOW MID
+# 4: LONGER DOWN / YARDAGE MID
+# 5: SHORT YARDAGE
 
 ### C
 
-# 1: MID
-# 2: SHORT YARDAGE
-# 3: MOSTLY EARLY DOWN
-# 4: MOSTLY SHORT YARDAGE
-# 5: LONG YARDAGE
-# 6: BELLCOW
+# 1: ONLY SHORT YARDAGE
+# 2: LONG YARDAGE / LATER DOWN
+# 3: SHORT YARDAGE MID
+# 4: MID
 
 
 ####
 #### GAP
 ####
 
-# 1 - GUARD
-# 2 - GUARD
-# 3 - OUTSIDE
+# 1 - NOT CENTER
+# 2 - MID
+# 3 - NOT OUTSIDE
 # 4 - CENTER / TACKLE
-# 5 - MID
-# 6 - CENTER / OUTSIDE
-# 7 - CENTER
-# 8 - GUARD / TACKLE
+# 5 - GUARD / TACKLE
+# 6 - CENTER
+# 7 - OUTSIDE
+# 8 - GUARD
 
 ###
 ### B
@@ -115,20 +113,20 @@ df_pressure_def_scaled_z <- list_dependencies_pressure_def[[1]]
 #######################
 
 
-# 1 - TACKLE
-# 2 - GUARD
-# 3 - OUTSIDE
-# 4 - CENTER
+# 1 - TACKLE-ISH
+# 2 - CENTER
+# 3 - GUARD
+# 4 - OUTSIDE
 
 
 #######################
 # RUN GAP CLUSTERING - RANK C
 #######################
 
-# 1 - OUTSIDE
-# 2 - GUARD
-# 3 - TACKLE
-# 4 - CENTER
+# 1 - CENTER / GUARD
+# 2 - CENTER
+# 3 - TACKLE-ISH
+# 4 - OUTSIDE
 
 
 rush_stats_final %>%
@@ -273,14 +271,20 @@ rush_func("TENWard-2025",
           player_name = 'TEN REC')
 
 
+
 rush_stats_final %>%
-  filter(qbgrp_ssn == "TENWard-2025", 
-         (rank_grp == "C" & position_group == "QB" ), rush_proportion >= 0, rush_proportion <= 1) %>%
+  filter(position_group == "REC", qbgrp_ssn == "SEADarnold-2025") %>%
+  select(season, rank_grp, gap_cluster, situation_cluster, gap_z, xtd_percentile) %>%
+  arrange(season) %>%
+  distinct()
+
+rush_stats_final %>%
+  filter(qbgrp_ssn == "SEADarnold-2025", 
+         (rank_grp == "A" & position_group == "HB" & situation_cluster %in% c(3,4)), rush_proportion >= 0, rush_proportion <= 1) %>%
   mutate(pbp_xtd_ratio = pbp_xtd_share / rush_proportion,
          part_xtd_ratio = part_xtd_share / rush_proportion) %>%
   filter(pbp_xtd_ratio != Inf) %>%
-  dplyr::summarise(mn_ypc = mean(ypc),
-                   mn_pbp_xypc = mean(pbp_xypc))
+  dplyr::summarise(mn_pbp_xtd = mean(pbp_xtd_ratio))
 
 ::summarise(mn_pbp_xtd = mean(pbp_xtd_ratio))
 
@@ -288,10 +292,12 @@ dplyr::summarise(mn_ypc = mean(ypc),
                  mn_pbp_xypc = mean(pbp_xypc))
 
 rush_stats_final %>%
-  filter(def_ssn == "JAX2025", 
-         (rank_grp == "C" & position_group == "QB" ), rush_proportion >= 0, rush_proportion <= 1) %>%
+  filter(def_ssn %in% c("SEA2025"), 
+         (rank_grp == "A" & position_group == "HB" & situation_cluster %in% c(3)), rush_proportion >= 0, rush_proportion <= 1) %>%
   mutate(pbp_xtd_ratio = pbp_xtd_share / rush_proportion,
          part_xtd_ratio = part_xtd_share / rush_proportion) %>%
+  dplyr::summarise(mn_pbp_xtd = mean(pbp_xtd_ratio))
+  
   filter(pbp_xtd_ratio != Inf) %>%
   dplyr::summarise(mn_ypc = mean(ypc),
                    mn_pbp_xypc = mean(pbp_xypc))
@@ -302,7 +308,7 @@ rush_stats_final %>%
                    mn_pbp_xypc = mean(pbp_xypc))
 
 rush_stats_final %>%
-  filter(qbgrp_ssn == "TENWard-2025", player == "Tony Pollard", rush_proportion >= 0, rush_proportion <= 1) %>%
+  filter(qbgrp_ssn == "NEMaye-2025", player == "Tony Pollard", rush_proportion >= 0, rush_proportion <= 1) %>%
   arrange(pbp_xtd_share ) %>%
   pull(pbp_xtd_share )
 

@@ -3,8 +3,8 @@
 # pff_ids
 
 # Option 1: Specify what to KEEP, remove everything else
-keep_objects <- c("combined_pbp", "con", "cluster_join", "combined_ids", "run_athena_query", "rushing_summary", "combined_ids")
-rm(list = setdiff(ls(), keep_objects))
+# keep_objects <- c("combined_pbp", "con", "cluster_join", "combined_ids", "run_athena_query", "rushing_summary", "combined_ids")
+# rm(list = setdiff(ls(), keep_objects))   # commented 2026-09-13: never wipe the session
 
 conflict_prefer_all("dplyr", quiet = TRUE)
 

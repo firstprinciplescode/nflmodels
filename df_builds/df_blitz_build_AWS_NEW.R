@@ -3,7 +3,7 @@
 # ============================================================================
 
 keep_objects <- c("con")
-rm(list = setdiff(ls(), keep_objects))
+# rm(list = setdiff(ls(), keep_objects))   # commented 2026-09-13: never wipe the session
 
 conflict_prefer_all("dplyr", quiet = TRUE)
 

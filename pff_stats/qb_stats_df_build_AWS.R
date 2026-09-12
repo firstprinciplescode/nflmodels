@@ -6,51 +6,51 @@ conflicts_prefer(nflfastR::load_pbp)
 conflict_prefer_all("dplyr", quiet = TRUE)
 
 # Option 1: Specify what to KEEP, remove everything else
-keep_objects <- c("combined_pbp", "qb_stats_df_base", "real_scores", "run_athena_query", "con")
-rm(list = setdiff(ls(), keep_objects))
+# keep_objects <- c("combined_pbp", "qb_stats_df_base", "real_scores", "run_athena_query", "con")
+# rm(list = setdiff(ls(), keep_objects))
 
 '%ni%' <- Negate('%in%')
 
-pbp_base <- load_pbp(c(2016:2025))
+pbp_base_rs <- load_pbp(c(2016:2025))
 
-pbp_base$posteam[which(pbp_base$posteam == "ARI")] = "ARZ"
-pbp_base$posteam[which(pbp_base$posteam == "BAL")] = "BLT"
-pbp_base$posteam[which(pbp_base$posteam == "CLE")] = "CLV"
-pbp_base$posteam[which(pbp_base$posteam == "HOU")] = "HST"
-pbp_base$posteam[which(pbp_base$posteam == "LAC" & pbp_base$season == 2016)] = "SD"
-pbp_base$posteam[which(pbp_base$posteam == "LV" & pbp_base$season <= 2019)] = "OAK"
+pbp_base_rs$posteam[which(pbp_base_rs$posteam == "ARI")] = "ARZ"
+pbp_base_rs$posteam[which(pbp_base_rs$posteam == "BAL")] = "BLT"
+pbp_base_rs$posteam[which(pbp_base_rs$posteam == "CLE")] = "CLV"
+pbp_base_rs$posteam[which(pbp_base_rs$posteam == "HOU")] = "HST"
+pbp_base_rs$posteam[which(pbp_base_rs$posteam == "LAC" & pbp_base_rs$season == 2016)] = "SD"
+pbp_base_rs$posteam[which(pbp_base_rs$posteam == "LV" & pbp_base_rs$season <= 2019)] = "OAK"
 
-pbp_base$defteam[which(pbp_base$defteam == "ARI")] = "ARZ"
-pbp_base$defteam[which(pbp_base$posteam == "BAL")] = "BLT"
-pbp_base$defteam[which(pbp_base$defteam == "CLE")] = "CLV"
-pbp_base$defteam[which(pbp_base$defteam == "HOU")] = "HST"
-pbp_base$defteam[which(pbp_base$defteam == "LAC" & pbp_base$season == 2016)] = "SD"
-pbp_base$defteam[which(pbp_base$defteam == "LV" & pbp_base$season <= 2019)] = "OAK"
+pbp_base_rs$defteam[which(pbp_base_rs$defteam == "ARI")] = "ARZ"
+pbp_base_rs$defteam[which(pbp_base_rs$defteam == "BAL")] = "BLT"
+pbp_base_rs$defteam[which(pbp_base_rs$defteam == "CLE")] = "CLV"
+pbp_base_rs$defteam[which(pbp_base_rs$defteam == "HOU")] = "HST"
+pbp_base_rs$defteam[which(pbp_base_rs$defteam == "LAC" & pbp_base_rs$season == 2016)] = "SD"
+pbp_base_rs$defteam[which(pbp_base_rs$defteam == "LV" & pbp_base_rs$season <= 2019)] = "OAK"
 
-pbp_base$td_team[which(pbp_base$td_team == "ARI")] = "ARZ"
-pbp_base$td_team[which(pbp_base$td_team == "BAL")] = "BLT"
-pbp_base$td_team[which(pbp_base$td_team == "CLE")] = "CLV"
-pbp_base$td_team[which(pbp_base$td_team == "HOU")] = "HST"
-pbp_base$td_team[which(pbp_base$td_team == "LAC" & pbp_base$season == 2016)] = "SD"
-pbp_base$td_team[which(pbp_base$td_team == "LV" & pbp_base$season <= 2019)] = "OAK"
+pbp_base_rs$td_team[which(pbp_base_rs$td_team == "ARI")] = "ARZ"
+pbp_base_rs$td_team[which(pbp_base_rs$td_team == "BAL")] = "BLT"
+pbp_base_rs$td_team[which(pbp_base_rs$td_team == "CLE")] = "CLV"
+pbp_base_rs$td_team[which(pbp_base_rs$td_team == "HOU")] = "HST"
+pbp_base_rs$td_team[which(pbp_base_rs$td_team == "LAC" & pbp_base_rs$season == 2016)] = "SD"
+pbp_base_rs$td_team[which(pbp_base_rs$td_team == "LV" & pbp_base_rs$season <= 2019)] = "OAK"
 
-pbp_base$td_side = ifelse((!is.na(pbp_base$td_team) & pbp_base$posteam == pbp_base$td_team), 1, 0)
+pbp_base_rs$td_side = ifelse((!is.na(pbp_base_rs$td_team) & pbp_base_rs$posteam == pbp_base_rs$td_team), 1, 0)
 
-pbp_base$week <- ifelse(pbp_base$week == 18 & pbp_base$season <= 2020, 28, pbp_base$week)
-pbp_base$week <- ifelse(pbp_base$week == 19 & pbp_base$season <= 2020, 29, pbp_base$week)
-pbp_base$week <- ifelse(pbp_base$week == 19 & pbp_base$season > 2020, 28, pbp_base$week)
-pbp_base$week <- ifelse(pbp_base$week == 20 & pbp_base$season <= 2020, 30, pbp_base$week)
-pbp_base$week <- ifelse(pbp_base$week == 20 & pbp_base$season > 2020, 29, pbp_base$week)
-pbp_base$week <- ifelse(pbp_base$week == 21 & pbp_base$season <= 2020, 32, pbp_base$week)
-pbp_base$week <- ifelse(pbp_base$week == 21 & pbp_base$season > 2020, 30, pbp_base$week)
-pbp_base$week <- ifelse(pbp_base$week == 22, 32, pbp_base$week)
+pbp_base_rs$week <- ifelse(pbp_base_rs$week == 18 & pbp_base_rs$season <= 2020, 28, pbp_base_rs$week)
+pbp_base_rs$week <- ifelse(pbp_base_rs$week == 19 & pbp_base_rs$season <= 2020, 29, pbp_base_rs$week)
+pbp_base_rs$week <- ifelse(pbp_base_rs$week == 19 & pbp_base_rs$season > 2020, 28, pbp_base_rs$week)
+pbp_base_rs$week <- ifelse(pbp_base_rs$week == 20 & pbp_base_rs$season <= 2020, 30, pbp_base_rs$week)
+pbp_base_rs$week <- ifelse(pbp_base_rs$week == 20 & pbp_base_rs$season > 2020, 29, pbp_base_rs$week)
+pbp_base_rs$week <- ifelse(pbp_base_rs$week == 21 & pbp_base_rs$season <= 2020, 32, pbp_base_rs$week)
+pbp_base_rs$week <- ifelse(pbp_base_rs$week == 21 & pbp_base_rs$season > 2020, 30, pbp_base_rs$week)
+pbp_base_rs$week <- ifelse(pbp_base_rs$week == 22, 32, pbp_base_rs$week)
 
 
-real_scores <- pbp_base %>% group_by(posteam, week, season) %>% 
-  dplyr::summarise(tds = sum(touchdown, na.rm = T), 
+real_scores <- pbp_base_rs %>% group_by(posteam, week, season) %>% 
+  dplyr::summarise(tds = sum(td_side, na.rm = T), 
                    fgs = sum(field_goal_attempt, na.rm = T))
 
-rm(pbp_base)
+rm(pbp_base_rs)
 
 # combined_pbp <- combined_pbp[,-c(513:514)]
 # colnames(combined_pbp)[c(511:512)] <- c("qbgrp_ssn", "def_ssn")
@@ -90,11 +90,11 @@ qb_stats_df_base <- combined_pbp %>%
     adot = sum(air_yards, na.rm = T) / (sum(pass_attempt, na.rm = TRUE) - sum(sack, na.rm = TRUE)),
     plays = sum(play, na.rm = TRUE),
     no_huddle = sum(no_huddle, na.rm = TRUE) / sum(play, na.rm = TRUE),
-    pbp_xtds = sum(pbp_after_new_xtd, na.rm = T),
-    part_xtds = sum(part_after_new_xtd, na.rm = T)
+    pbp_xtds  = sum(dplyr::coalesce(pbp_predicted_after_run_xtd,  pbp_predicted_after_pass_xtd,  pbp_predicted_after_scramble_xtd),  na.rm = T),
+    part_xtds = sum(dplyr::coalesce(part_predicted_after_run_xtd, part_predicted_after_pass_xtd, part_predicted_after_scramble_xtd), na.rm = T)
   ) 
 
-rm(combined_pbp)
+# rm(combined_pbp)
 
 qb_stats_df_base <- left_join(qb_stats_df_base, real_scores, by = c("posteam", "week", "season"))
 
@@ -121,8 +121,8 @@ qb_stats_df_base$wind[which(is.na(qb_stats_df_base$wind))] <- 0
 
 
 # Option 1: Specify what to KEEP, remove everything else
-keep_objects <- c("combined_pbp", "qb_stats_df_base", "real_scores")
-rm(list = setdiff(ls(), keep_objects))
+# keep_objects <- c("combined_pbp", "qb_stats_df_base", "real_scores")
+# rm(list = setdiff(ls(), keep_objects))
 
 
 run_athena_query <- function(sql, max_wait = 120) {

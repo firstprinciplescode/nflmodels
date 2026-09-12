@@ -1,25 +1,27 @@
+# pff_rushing_stats_build_five_xtd_AWS.R -> THIS COPY IS PROPOSED -- Claude, UNSIGNED, 2026-09-09. Andy stamps or corrects.
+# Canon file untouched. Change set: seed 100 before every kmeans(); index renames [529]/[530] -> rename(cluster) with loud fail; View() removed
+# Diff against canon: only the lines listed in rush_pipeline_order.md section 5.
+
 pbp_rush <- pbp_rush %>% group_by(game_id, posteam) %>% 
   mutate(med_run_xtd = mean(pbp_after_old_xtd, na.rm = T),
          run_xtd_diff = pbp_after_old_xtd - med_run_xtd)
 
 pbp_rush <- left_join(pbp_rush, 
-          situation_cluster_df %>% select(rusher_player_id:rank_grp, cluster), 
-          by = c("rusher_player_id", "posteam", "season", "rank_grp")
-          )
+                      situation_cluster_df %>% select(rusher_player_id:rank_grp, cluster), 
+                      by = c("rusher_player_id", "posteam", "season", "rank_grp")
+)
 
-colnames(pbp_rush)
-# WATCH THIS BELOW - MAY HAVE TO CHANGE INDEX
-colnames(pbp_rush)[529] <- "sit_cluster"
+if (!"cluster" %in% names(pbp_rush)) { print(names(pbp_rush)); stop("situation join did not add `cluster` -- names printed above") }
+pbp_rush <- dplyr::rename(pbp_rush, sit_cluster = cluster)
 
 pbp_rush <- left_join(pbp_rush, 
                       gap_cluster_df %>%
                         dplyr::select(rusher_player_id:rank_grp, cluster), 
                       by = c("rusher_player_id", "posteam", "season", "rank_grp")
-                      )
+)
 
-colnames(pbp_rush)
-# WATCH THIS BELOW - MAY HAVE TO CHANGE INDEX
-colnames(pbp_rush)[530] <- "gap_cluster"
+if (!"cluster" %in% names(pbp_rush)) { print(names(pbp_rush)); stop("gap join did not add `cluster` -- names printed above") }
+pbp_rush <- dplyr::rename(pbp_rush, gap_cluster = cluster)
 
 
 rusher_xtd_diff_df <- pbp_rush %>%
@@ -50,8 +52,9 @@ max_k <- 12
 wss <- numeric(max_k)
 sil <- numeric(max_k)
 
-set.seed(42)
+set.seed(100)
 for (k in 2:max_k) {
+  set.seed(100)
   km <- kmeans(rusher_xtd_cluster, centers = k, nstart = 25, iter.max = 100)
   wss[k] <- km$tot.withinss
   sil[k] <- mean(silhouette(km$cluster, dist(rusher_xtd_cluster))[, 3])
@@ -69,6 +72,7 @@ par(mfrow = c(1, 1))
 data.frame(k = 2:max_k, silhouette = sil[2:max_k]) %>% arrange(desc(silhouette))
 
 
+set.seed(100)
 km_final_xtd <- kmeans(rusher_xtd_cluster, centers = 2, nstart = 25, iter.max = 100)
 
 rusher_xtd_tree_data <- rusher_xtd_diff_df %>%
@@ -138,4 +142,4 @@ rusher_xtd_final <- rusher_xtd_diff_df %>%
   )
 
 
-View(rusher_xtd_final %>% filter(posteam == "DET", season == 2025))
+# View() removed -- no live demo calls in files (usage law)

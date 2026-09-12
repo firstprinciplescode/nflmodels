@@ -50,7 +50,7 @@ run_athena_query <- function(sql, max_wait = 120) {
 
 # Option 1: Specify what to KEEP, remove everything else
 keep_objects <- c("combined_pbp", "con", "cluster_join", "receiver_scheme_final", "combined_ids", "pbp_receiver_stats_one", "pbp_receiver_stats", "run_athena_query", "vw_receiving_enriched", "receiver_xtd_final_join", "receiver_xtd_final", "receiver_xpass_final_join", "receiver_xpass_final", "receiving_func_base")
-rm(list = setdiff(ls(), keep_objects))
+# rm(list = setdiff(ls(), keep_objects))   # commented 2026-09-13: never wipe the session
 
 '%ni%' <- Negate('%in%')
 
@@ -58,8 +58,8 @@ rm(list = setdiff(ls(), keep_objects))
 pbp_receiver_stats_one <- combined_pbp %>% 
   filter(!is.na(yards_gained) & play_type == "pass" & pass_attempt == 1 & sack == 0 & !is.na(air_yards)) %>%
   group_by(receiver_id, receiver_player_name, posteam, week, season, qbgrp_ssn, def_ssn, game_id, old_game_id.x) %>%
-  dplyr::summarise(pbp_rec_xtds = sum(pbp_after_new_xtd, na.rm = T),
-                   part_rec_xtds = sum(part_after_new_xtd, na.rm = T),
+  dplyr::summarise(pbp_rec_xtds = sum(pbp_predicted_after_pass_xtd, na.rm = T),
+                   part_rec_xtds = sum(part_predicted_after_pass_xtd, na.rm = T),
                    acc_rate = mean(complete_pass, na.rm = T),
                    fastr_cp = mean(cp, na.rm = T),
                    pbp_cp = mean(pbp_predicted_cp, na.rm = T),
@@ -307,7 +307,10 @@ receiving_func_base <- play_counts_receiving_stats_four
 
 
 receiving_func_base %>%
-  filter(week == 30, season == 2025, abbreviation == "SEA")
+  filter(week != 9, position == "WR", season == 2025, abbreviation == "SEA")
+
+receiving_func_base %>%
+  filter(week %ni% c(8,9,10), player_id %ni% c(9502, 47864, 129758), position == "WR", season == 2024, abbreviation == "SEA")
 
 rm(combined_pbp)
 rm(combined_ids)

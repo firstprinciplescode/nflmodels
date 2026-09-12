@@ -64,6 +64,9 @@ xgb_part_ypc_artifacts <- load_artifacts_from_s3("xgb_part_ypc", bucket, prefix)
 xgb_part_scramble_ypc <- load_model_from_s3("xgb_part_scramble_ypc_temp.model", bucket, prefix)
 xgb_part_scramble_ypc_artifacts <- load_artifacts_from_s3("xgb_part_scramble_ypc_temp", bucket, prefix)
 
+xgb_part_scramble_xtd <- load_model_from_s3("xgb_part_scramble_xtd_no_temp.model", bucket, prefix)
+xgb_part_scramble_xtd_artifacts <- load_artifacts_from_s3("xgb_part_scramble_xtd_no_temp", bucket, prefix)
+
 xgb_part_sack <- load_model_from_s3("xgb_part_sack_no_temp.model", bucket, prefix)
 xgb_part_sack_artifacts <- load_artifacts_from_s3("xgb_part_sack_no_temp", bucket, prefix)
 
@@ -169,6 +172,36 @@ part_nfl %>%
   mutate(bin = cut(predicted_after_pass_xtd, breaks = seq(0, 1, by = 0.04), include.lowest = TRUE, right = FALSE)) %>%
   group_by(bin) %>%
   summarize(mean_td = mean(td_side, na.rm = TRUE), n = n(), .groups = 'drop')
+
+
+# ============================================================================
+# SCRAMBLE xTD
+# ============================================================================
+
+print(xgb_part_scramble_xtd_artifacts$feature_names)
+
+part_nfl$predicted_after_scramble_xtd <- NA
+
+eligible_rows <- which(
+  part_nfl$two_point_attempt == 0 & 
+    part_nfl$rush_attempt == 1 &
+    part_nfl$qb_kneel == 0 &
+    part_nfl$qb_spike == 0 & 
+    part_nfl$qb_scramble == 1 & 
+    is.na(part_nfl$air_yards) &
+    part_nfl$pass_attempt == 0
+)
+
+if(length(eligible_rows) > 0) {
+  dtest <- create_dmatrix(part_nfl[eligible_rows, ], xgb_part_scramble_xtd_artifacts, use_weather = FALSE)
+  part_nfl$predicted_after_scramble_xtd[eligible_rows] <- predict(xgb_part_scramble_xtd, newdata = dtest)
+}
+
+part_nfl %>%
+  filter(!is.na(predicted_after_scramble_xtd)) %>%
+  summarize(n = n(), actual = mean(td_side, na.rm = TRUE), 
+            predicted = mean(predicted_after_scramble_xtd, na.rm = TRUE), 
+            ratio = actual / predicted)
 
 
 # ============================================================================
@@ -493,7 +526,7 @@ part_nfl %>%
 part_nfl$drive_id <- paste0(part_nfl$nflverse_game_id, "-", part_nfl$posteam, "-", part_nfl$fixed_drive)
 
 part_nfl$predicted_before_xtd[which(is.na(part_nfl$predicted_before_xtd))] <- 0
-part_nfl$predicted_after_xtd <- coalesce(part_nfl$predicted_after_run_xtd, part_nfl$predicted_after_pass_xtd)
+part_nfl$predicted_after_xtd <- coalesce(part_nfl$predicted_after_run_xtd, part_nfl$predicted_after_pass_xtd, part_nfl$predicted_after_scramble_xtd)
 part_nfl$predicted_after_xtd[which(is.na(part_nfl$predicted_after_xtd))] <- 0
 
 part_nfl <- part_nfl %>%
@@ -513,7 +546,7 @@ part_xtd <- part_nfl %>%
     before_new_xtd = sum(before_xtd_new),
     after_old_xtd = sum(predicted_after_xtd),
     after_new_xtd = sum(after_xtd_new),
-    actual_td = sum(touchdown, na.rm = T),
+    actual_td = sum(td_side, na.rm = T),
     actual_fg = sum(field_goal_attempt, na.rm = T),
     .groups = "drop"
   ) %>%

@@ -1,3 +1,9 @@
+# pff_rushing_stats_build_two_situation_AWS.R -> THIS COPY IS PROPOSED -- Claude, UNSIGNED, 2026-09-09. Andy stamps or corrects.
+# Canon file untouched. Change set: seed 100 immediately before EVERY kmeans() call (12 edits)
+# Diff against canon: only the lines listed in rush_pipeline_order.md section 5.
+
+
+set.seed(100)
 
 ####
 #### A
@@ -27,7 +33,7 @@ cat("Any NAs:", sum(is.na(rusher_a_for_clustering)), "\n")
 
 library(cluster)
 
-set.seed(69)
+set.seed(100)
 max_k <- 12
 
 metrics <- data.frame(
@@ -40,6 +46,7 @@ metrics <- data.frame(
 for (i in 1:nrow(metrics)) {
   k <- metrics$k[i]
   
+  set.seed(100)
   km <- kmeans(rusher_a_for_clustering, centers = k, nstart = 25, iter.max = 50)
   
   metrics$wss[i] <- km$tot.withinss
@@ -80,12 +87,12 @@ par(mfrow = c(1, 1))
 
 ###
 
-candidate_ks <- c(5, 6, 7)
+candidate_ks <- c(4, 5, 6, 7)
 
 cat("\n=== COMPARING CANDIDATES ===\n")
 
 for (k in candidate_ks) {
-  set.seed(42)
+  set.seed(100)
   km <- kmeans(rusher_a_for_clustering, centers = k, nstart = 25)
   sil <- silhouette(km$cluster, dist(rusher_a_for_clustering))
   
@@ -96,6 +103,7 @@ for (k in candidate_ks) {
 }
 
 
+set.seed(100)
 km_a_final <- kmeans(rusher_a_for_clustering, centers = 4, nstart = 25)
 rusher_xpass_diff_a_full$cluster <- km_a_final$cluster
 
@@ -144,7 +152,7 @@ cat("Any NAs:", sum(is.na(rusher_b_for_clustering)), "\n")
 
 library(cluster)
 
-set.seed(69)
+set.seed(100)
 max_k <- 12
 
 metrics <- data.frame(
@@ -157,6 +165,7 @@ metrics <- data.frame(
 for (i in 1:nrow(metrics)) {
   k <- metrics$k[i]
   
+  set.seed(100)
   km <- kmeans(rusher_b_for_clustering, centers = k, nstart = 25, iter.max = 50)
   
   metrics$wss[i] <- km$tot.withinss
@@ -202,7 +211,7 @@ candidate_ks <- c(2,3,4,5)
 cat("\n=== COMPARING CANDIDATES ===\n")
 
 for (k in candidate_ks) {
-  set.seed(42)
+  set.seed(100)
   km <- kmeans(rusher_b_for_clustering, centers = k, nstart = 25)
   sil <- silhouette(km$cluster, dist(rusher_b_for_clustering))
   
@@ -213,6 +222,7 @@ for (k in candidate_ks) {
 }
 
 
+set.seed(100)
 km_b_final <- kmeans(rusher_b_for_clustering, centers = 5, nstart = 25)
 rusher_xpass_diff_b_full$cluster <- km_b_final$cluster
 
@@ -261,7 +271,7 @@ cat("Any NAs:", sum(is.na(rusher_c_for_clustering)), "\n")
 
 library(cluster)
 
-set.seed(69)
+set.seed(100)
 max_k <- 12
 
 metrics <- data.frame(
@@ -274,6 +284,7 @@ metrics <- data.frame(
 for (i in 1:nrow(metrics)) {
   k <- metrics$k[i]
   
+  set.seed(100)
   km <- kmeans(rusher_c_for_clustering, centers = k, nstart = 25, iter.max = 50)
   
   metrics$wss[i] <- km$tot.withinss
@@ -319,7 +330,7 @@ candidate_ks <- c(4,5,6)
 cat("\n=== COMPARING CANDIDATES ===\n")
 
 for (k in candidate_ks) {
-  set.seed(42)
+  set.seed(100)
   km <- kmeans(rusher_c_for_clustering, centers = k, nstart = 25)
   sil <- silhouette(km$cluster, dist(rusher_c_for_clustering))
   
@@ -330,6 +341,7 @@ for (k in candidate_ks) {
 }
 
 
+set.seed(100)
 km_c_final <- kmeans(rusher_c_for_clustering, centers = 4, nstart = 25)
 rusher_xpass_diff_c_full$cluster <- km_c_final$cluster
 
@@ -609,7 +621,7 @@ combined_rush_summation_final_b <- validate_clusters(
   num_clusters = 5
 )
 
-# RANK C (k=5)
+# RANK C (k=4)
 combined_rush_summation_final_c <- validate_clusters(
   summation_df = combined_rush_summation_final,
   cluster_df = rusher_xpass_diff_c_full,
@@ -733,8 +745,8 @@ a_dashboard <- cluster_dashboard(combined_rush_summation_final_a, rusher_xpass_d
 a_dashboard$percs
 a_dashboard$pvals
 
-# 1: BELLCOW
-# 2: MID
+# 1: MID
+# 2: BELLCOW
 # 3: LONG YARDAGE
 # 4: LOW AF
 
@@ -745,11 +757,11 @@ b_dashboard <- cluster_dashboard(combined_rush_summation_final_b, rusher_xpass_d
 b_dashboard$percs
 b_dashboard$pvals
 
-# 1: LATER DOWN / LONGER YARDAGE
-# 2: MID 
-# 3: SHORT YARDAGE
-# 4: BELLCOW MID
-# 5: EARLY DOWN
+# 1: 3RD DOWN
+# 2: EARLY DOWN 
+# 3: BELLCOW MID
+# 4: LONGER DOWN / YARDAGE MID
+# 5: SHORT YARDAGE
 
 
 c_dashboard <- cluster_dashboard(combined_rush_summation_final_c, rusher_xpass_diff_c_full, 4)
@@ -757,9 +769,9 @@ c_dashboard <- cluster_dashboard(combined_rush_summation_final_c, rusher_xpass_d
 c_dashboard$percs
 c_dashboard$pvals
 
-# 1: SHORT YARDAGE
-# 2: EARLY DOWN
-# 3: LONG YARDAGE
+# 1: ONLY SHORT YARDAGE
+# 2: LONG YARDAGE / LATER DOWN
+# 3: SHORT YARDAGE MID
 # 4: MID
 
 

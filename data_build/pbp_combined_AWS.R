@@ -27,6 +27,7 @@ xgb_pbp_ypc <- load_model_from_s3("xgb_pbp_ypc.model", bucket, prefix)
 xgb_pbp_ypa <- load_model_from_s3("xgb_pbp_ypa.model", bucket, prefix)
 xgb_pbp_yac <- load_model_from_s3("xgb_pbp_yac.model", bucket, prefix)
 xgb_pbp_scramble_ypc <- load_model_from_s3("xgb_pbp_scramble_ypc.model", bucket, prefix)
+xgb_pbp_scramble_xtd <- load_model_from_s3("xgb_pbp_scramble_xtd.model", bucket, prefix)
 
 
 # ============================================================================
@@ -97,6 +98,7 @@ pbp_base$predicted_after_run_xtd <- NA
 eligible_rows <- pbp_base$two_point_attempt == 0 & 
   pbp_base$qb_kneel == 0 & 
   pbp_base$qb_spike == 0 & 
+  pbp_base$qb_scramble == 0 & 
   pbp_base$play_type == "run"
 
 if(sum(eligible_rows, na.rm = TRUE) > 0) {
@@ -147,6 +149,48 @@ pbp_base %>%
   mutate(bin = cut(predicted_after_pass_xtd, breaks = seq(0, 1, by = 0.04), include.lowest = TRUE, right = FALSE)) %>%
   group_by(bin) %>%
   summarize(mean_td = mean(td_side, na.rm = TRUE), n = n(), .groups = 'drop')
+
+
+# ============================================================================
+# SCRAMBLE XTD
+# ============================================================================
+
+
+create_dmatrix_scramble_xtd <- function(data) {
+  X <- data %>%
+    impute_weather() %>%
+    select(
+      yardline_100, season_type, half_seconds_remaining, down, down_one_ind,
+      down_two_ind, down_three_ind, mod_ydstogo, shotgun, no_huddle,
+      score_differential, surface, posteam_ind, end_ind, guard_ind, tackle_ind,
+      outside_ind, temp, wind, rain_ind, snow_ind
+    ) %>% as.matrix()
+  return(xgb.DMatrix(data = X))
+}
+
+pbp_base$predicted_after_scramble_xtd <- NA
+eligible_rows <- pbp_base$qb_scramble == 1 & pbp_base$rush_attempt == 1 &
+  pbp_base$qb_spike == 0 & pbp_base$qb_kneel == 0 &
+  pbp_base$two_point_attempt == 0 & pbp_base$pass_attempt == 0
+
+if(sum(eligible_rows, na.rm = TRUE) > 0) {
+  dtest <- create_dmatrix_scramble_xtd(pbp_base[eligible_rows, ])
+  pbp_base$predicted_after_scramble_xtd[eligible_rows] <- predict(xgb_pbp_scramble_xtd, newdata = dtest)
+}
+
+pbp_base %>%
+  filter(!is.na(predicted_after_scramble_xtd)) %>%
+  summarize(n = n(), actual = mean(td_side, na.rm = TRUE),
+            predicted = mean(predicted_after_scramble_xtd, na.rm = TRUE),
+            ratio = actual / predicted)
+
+eligible_rows <- pbp_base$two_point_attempt == 0 &
+  pbp_base$qb_kneel == 0 &
+  pbp_base$qb_spike == 0 &
+  pbp_base$play_type == "run" &
+  pbp_base$rush_attempt == 1 &
+  is.na(pbp_base$air_yards) &
+  pbp_base$qb_scramble == 0
 
 
 # ============================================================================
@@ -457,7 +501,7 @@ pbp_base %>%
 pbp_base$drive_id <- paste0(pbp_base$game_id, "-", pbp_base$posteam, "-", pbp_base$fixed_drive)
 
 pbp_base$predicted_before_xtd[which(is.na(pbp_base$predicted_before_xtd))] <- 0
-pbp_base$predicted_after_xtd <- coalesce(pbp_base$predicted_after_run_xtd, pbp_base$predicted_after_pass_xtd)
+pbp_base$predicted_after_xtd <- coalesce(pbp_base$predicted_after_run_xtd, pbp_base$predicted_after_pass_xtd, pbp_base$predicted_after_scramble_xtd)
 pbp_base$predicted_after_xtd[which(is.na(pbp_base$predicted_after_xtd))] <- 0
 
 pbp_base <- pbp_base %>%
@@ -477,7 +521,7 @@ pbp_xtd <- pbp_base %>%
     before_new_xtd = sum(before_xtd_new),
     after_old_xtd = sum(predicted_after_xtd),
     after_new_xtd = sum(after_xtd_new),
-    actual_td = sum(touchdown, na.rm = T),
+    actual_td = sum(td_side, na.rm = T),
     actual_fg = sum(field_goal_attempt, na.rm = T),
     .groups = "drop"
   ) %>%

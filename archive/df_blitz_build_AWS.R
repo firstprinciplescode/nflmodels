@@ -1,7 +1,7 @@
 # Get all offenses with >10 games
 
 keep_objects <- c("con")
-rm(list = setdiff(ls(), keep_objects))
+# rm(list = setdiff(ls(), keep_objects))   # commented 2026-09-13: never wipe the session
 
 run_athena_query <- function(sql, max_wait = 120) {
   # Start query

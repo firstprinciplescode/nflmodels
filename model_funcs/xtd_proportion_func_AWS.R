@@ -3,8 +3,8 @@ library(aws.s3)
 bucket <- "nfl-pff-data-lucas"
 
 # Option 1: Specify what to KEEP, remove everything else
-keep_objects <- c("qb_stats_df_final", "con", "bucket", "combined_pbp")
-rm(list = setdiff(ls(), keep_objects))
+# keep_objects <- c("qb_stats_df_final", "con", "bucket", "combined_pbp")
+# rm(list = setdiff(ls(), keep_objects))   # commented 2026-09-13: never wipe the session
 
 '%ni%' <- Negate('%in%')
 
@@ -82,12 +82,12 @@ comparison_pressure_def_func("TEN2025", 1) # 65
 
 xtd_proportion <- 
 sqldf("SELECT qbgrp_ssn, def_ssn, posteam, defteam, week, season, temp, wind, rain_ind, snow_ind, 
-              COALESCE(SUM(CASE WHEN play_type == 'pass' AND qb_scramble == 0 THEN pbp_after_new_xtd END), 0) AS pbp_pass_xtd,
-              COALESCE(SUM(CASE WHEN qb_scramble == 1 THEN pbp_after_new_xtd END), 0) AS pbp_qb_scramble_xtd,
-              COALESCE(SUM(CASE WHEN play_type == 'run' AND qb_scramble == 0 THEN pbp_after_new_xtd END), 0) AS pbp_run_xtd,
-              COALESCE(SUM(CASE WHEN play_type == 'pass' AND qb_scramble == 0 THEN part_after_new_xtd END), 0) AS part_pass_xtd,
-              COALESCE(SUM(CASE WHEN qb_scramble == 1 THEN part_after_new_xtd END), 0) AS part_qb_scramble_xtd,
-              COALESCE(SUM(CASE WHEN play_type == 'run' AND qb_scramble == 0 THEN part_after_new_xtd END), 0) AS part_run_xtd              
+              COALESCE(SUM(CASE WHEN play_type == 'pass' AND qb_scramble == 0 THEN pbp_predicted_after_pass_xtd END), 0) AS pbp_pass_xtd,
+              COALESCE(SUM(CASE WHEN qb_scramble == 1                          THEN pbp_predicted_after_scramble_xtd  END), 0) AS pbp_qb_scramble_xtd,
+              COALESCE(SUM(CASE WHEN play_type == 'run'  AND qb_scramble == 0 THEN pbp_predicted_after_run_xtd  END), 0) AS pbp_run_xtd,
+              COALESCE(SUM(CASE WHEN play_type == 'pass' AND qb_scramble == 0 THEN part_predicted_after_pass_xtd END), 0) AS part_pass_xtd,
+              COALESCE(SUM(CASE WHEN qb_scramble == 1                          THEN part_predicted_after_scramble_xtd END), 0) AS part_qb_scramble_xtd,
+              COALESCE(SUM(CASE WHEN play_type == 'run'  AND qb_scramble == 0 THEN part_predicted_after_run_xtd  END), 0) AS part_run_xtd
       FROM    combined_pbp
       GROUP BY  qbgrp_ssn, def_ssn, posteam, defteam, week, season, temp, wind, rain_ind, snow_ind")
 
@@ -125,12 +125,12 @@ xtd_proportion <- xtd_proportion %>%
     part_run_xtd_rank_def = (rank(part_run_xtd, ties.method = "average") - 1) / (n() - 1))
 
 
-xtd_proportion$part_pass_prop[which(xtd_proportion$season == 2025)] <- NA
-xtd_proportion$part_qb_scramble_prop_rank[which(xtd_proportion$season == 2025)] <- NA
-xtd_proportion$part_run_xtd_rank[which(xtd_proportion$season == 2025)] <- NA
-xtd_proportion$part_pass_prop_rank_def[which(xtd_proportion$season == 2025)] <- NA
-xtd_proportion$part_qb_scramble_prop_rank_def[which(xtd_proportion$season == 2025)] <- NA
-xtd_proportion$part_run_xtd_rank_def[which(xtd_proportion$season == 2025)] <- NA
+xtd_proportion$part_pass_prop[which(xtd_proportion$season == 2026)] <- NA
+xtd_proportion$part_qb_scramble_prop_rank[which(xtd_proportion$season == 2026)] <- NA
+xtd_proportion$part_run_xtd_rank[which(xtd_proportion$season == 2026)] <- NA
+xtd_proportion$part_pass_prop_rank_def[which(xtd_proportion$season == 2026)] <- NA
+xtd_proportion$part_qb_scramble_prop_rank_def[which(xtd_proportion$season == 2026)] <- NA
+xtd_proportion$part_run_xtd_rank_def[which(xtd_proportion$season == 2026)] <- NA
 
 
 xtd_proportion_func <- function(qbgrp_one, defgrp_one) {

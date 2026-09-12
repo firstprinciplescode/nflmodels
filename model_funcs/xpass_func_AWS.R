@@ -4,7 +4,7 @@ bucket <- "nfl-pff-data-lucas"
 
 # Option 1: Specify what to KEEP, remove everything else
 keep_objects <- c("qb_stats_df_final", "con", "bucket")
-rm(list = setdiff(ls(), keep_objects))
+# rm(list = setdiff(ls(), keep_objects))   # commented 2026-09-13: never wipe the session
 
 '%ni%' <- Negate('%in%')
 
@@ -530,14 +530,14 @@ xpass_calc_func <- function(qbgrp_one, defgrp_one) {
 
 xpass_calc_func("TENWard-2025", "JAX2025")
 
-qb_stats_df_final %>% filter(qbgrp_ssn == "TENWard-2025") %>%
+qb_stats_df_final %>% filter(qbgrp_ssn == "TENTannehill-2019") %>%
   dplyr::summarise(mn_pass_rate = mean(pass_rate, na.rm = T),
                    mn_fastr_xpass_rate = mean(fastr_xpass_rate, na.rm = T),
                    mn_pbp_xpass_rate = mean(pbp_xpass_rate, na.rm = T),
                    mn_part_xpass_rate = mean(part_xpass_rate, na.rm = T)
   )
 
-qb_stats_df_final %>% filter(def_ssn == "JAX2025") %>%
+qb_stats_df_final %>% filter(def_ssn == "SEA2024") %>%
   dplyr::summarise(mn_pass_rate = mean(pass_rate, na.rm = T),
                    mn_fastr_xpass_rate = mean(fastr_xpass_rate, na.rm = T),
                    mn_pbp_xpass_rate = mean(pbp_xpass_rate, na.rm = T),

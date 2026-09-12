@@ -1,20 +1,26 @@
 
 # WATCH THESE COLNAMES HERE
 
-colnames(pbp_base)[c(394:404, 406:410)]
-colnames(pbp_base)[c(394:404, 406:410)] <- paste0("pbp_", colnames(pbp_base)[c(394:404, 406:410)])
+pbp_prefix <- c("predicted_before_xtd", "predicted_after_run_xtd", "predicted_after_pass_xtd",
+                "predicted_after_scramble_xtd", "predicted_xpass", "predicted_pbp_pressure",
+                "predicted_sack", "predicted_cp", "predicted_ypc", "predicted_scramble_ypc",
+                "predicted_ypa", "predicted_yds_after_catch", "predicted_after_xtd",
+                "before_remaining_xtd", "after_remaining_xtd", "before_xtd_new", "after_xtd_new")
+stopifnot(all(pbp_prefix %in% colnames(pbp_base)))
+colnames(pbp_base)[match(pbp_prefix, colnames(pbp_base))] <- paste0("pbp_", pbp_prefix)
 
-colnames(part_nfl)[c(477:489, 491:495)] 
-colnames(part_nfl)[c(477:489, 491:495)] <- paste0("part_", colnames(part_nfl)[c(477:489, 491:495)])
+part_prefix <- c("predicted_before_xtd", "predicted_after_run_xtd", "predicted_after_pass_xtd",
+                 "predicted_after_scramble_xtd", "predicted_xpass", "predicted_cp",
+                 "predicted_pressure_before", "predicted_pressure_after_pass",
+                 "predicted_pressure_scramble", "predicted_sack", "predicted_ypc",
+                 "predicted_scramble_ypc", "predicted_ypa", "predicted_yds_after_catch",
+                 "predicted_after_xtd", "before_remaining_xtd", "after_remaining_xtd",
+                 "before_xtd_new", "after_xtd_new")
+stopifnot(all(part_prefix %in% colnames(part_nfl)))
+colnames(part_nfl)[match(part_prefix, colnames(part_nfl))] <- paste0("part_", part_prefix)
 
-part_nfl <- part_nfl %>% 
-  rename_with(~ gsub("^part_part_", "part_", .x))
-
-pbp_base <- pbp_base %>% 
-  rename_with(~ gsub("^pbp_pbp_", "pbp_", .x))
-
-keep_objects <- c("part_nfl", "con", "pbp_base")
-rm(list = setdiff(ls(), keep_objects))
+# keep_objects <- c("part_nfl", "con", "pbp_base")
+# rm(list = setdiff(ls(), keep_objects))
 
 '%ni%' <- Negate('%in%')
 

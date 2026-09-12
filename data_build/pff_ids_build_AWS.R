@@ -15,7 +15,7 @@
 # ============================================================
 
 keep_objects <- c("con")
-rm(list = setdiff(ls(), keep_objects))
+# rm(list = setdiff(ls(), keep_objects))   # commented 2026-09-13: never wipe the session
 
 SEASONS <- 2016:2025
 

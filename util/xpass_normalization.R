@@ -1,7 +1,7 @@
 
 # Option 1: Specify what to KEEP, remove everything else
 keep_objects <- c("combined_pbp", "con")
-rm(list = setdiff(ls(), keep_objects))
+# rm(list = setdiff(ls(), keep_objects))   # commented 2026-09-13: never wipe the session
 
 '%ni%' <- Negate('%in%')
 

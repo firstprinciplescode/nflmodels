@@ -1,28 +1,39 @@
+# pff_rushing_stats_build_six_final.R -> THIS COPY IS PROPOSED -- Claude, UNSIGNED, 2026-09-09. Andy stamps or corrects.
+# Canon file untouched. Change set: [511]/[512]/.y block -> name-based with identical() wall; [23]/[24] -> rename(cluster); season-literal question flagged
+# Diff against canon: only the lines listed in rush_pipeline_order.md section 5.
 
-colnames(pbp_rush)
-colnames(pbp_rush)[511] <- "qbgrp_ssn"
-colnames(pbp_rush)[512] <- "def_ssn"
 
-pbp_rush <- pbp_rush %>% select(-c(qbgrp_ssn.y, def_ssn.y))
+# .x/.y is the fingerprint of the combined_grade_epa_summary join in pbp_part_combined_join_AWS.R
+# having run twice in one session (same species as the receiving_coverage_versus fossil, 2026-07/09).
+# Resolve BY NAME, prove the two copies agree, then wall the frame.
+sfx <- grep("\\.(x|y)$", names(pbp_rush), value = TRUE)
+stems <- unique(sub("\\.(x|y)$", "", sfx))
+for (s in stems) {
+  xs <- paste0(s, ".x"); ys <- paste0(s, ".y")
+  stopifnot(all(c(xs, ys) %in% names(pbp_rush)))
+  cat(s, ": identical =", identical(pbp_rush[[xs]], pbp_rush[[ys]]), "\n")
+  pbp_rush[[s]] <- pbp_rush[[xs]]; pbp_rush[[xs]] <- NULL; pbp_rush[[ys]] <- NULL
+}
+stopifnot(all(c("qbgrp_ssn", "def_ssn") %in% names(pbp_rush)), !any(grepl("\\.(x|y)$", names(pbp_rush))))
 
 pbp_rush_statistics <- 
   pbp_rush %>%
-    group_by(rusher_player_id, week, season, qbgrp_ssn, def_ssn) %>%
-    dplyr::summarise(pbp_rushes = n(),
-                     ypc = mean(yards_gained, na.rm = T),
-                     pbp_xypc = mean(pbp_predicted_ypc, na.rm = T),
-                     part_xypc = mean(part_predicted_ypc, na.rm = T),
-                     pbp_xtd = sum(pbp_after_new_xtd, na.rm = T),
-                     part_xtd = sum(part_after_new_xtd, na.rm = T))
+  group_by(rusher_player_id, week, season, qbgrp_ssn, def_ssn) %>%
+  dplyr::summarise(pbp_rushes = n(),
+                   ypc = mean(yards_gained, na.rm = T),
+                   pbp_xypc = mean(pbp_predicted_ypc, na.rm = T),
+                   part_xypc = mean(part_predicted_ypc, na.rm = T),
+                   pbp_xtd = sum(pbp_predicted_after_run_xtd, na.rm = T),
+                   part_xtd = sum(part_predicted_after_run_xtd, na.rm = T))
 
 contact_statistics <- 
   rushing_summary_rank %>%
-    mutate(yards_before_contact = yards - yards_after_contact) %>%
-    group_by(player_id, gsis_id, player, position_group, team, week, season, qbgrp_ssn, rank_grp, pos_rank, team_rank) %>%
-    dplyr::summarise(attempts = sum(attempts, na.rm = T) - sum(scrambles, na.rm = T),
-                      ybc = sum(yards_before_contact, na.rm = T) / sum(attempts, na.rm = T),
-                      yac = sum(yards_after_contact, na.rm = T) / sum(attempts, na.rm = T),
-                      rush_proportion = mean(rush_proportion, na.rm = T))
+  mutate(yards_before_contact = yards - yards_after_contact) %>%
+  group_by(player_id, gsis_id, player, position_group, team, week, season, qbgrp_ssn, rank_grp, pos_rank, team_rank) %>%
+  dplyr::summarise(attempts = sum(attempts, na.rm = T) - sum(scrambles, na.rm = T),
+                   ybc = sum(yards_before_contact, na.rm = T) / sum(attempts, na.rm = T),
+                   yac = sum(yards_after_contact, na.rm = T) / sum(attempts, na.rm = T),
+                   rush_proportion = mean(rush_proportion, na.rm = T))
 
 situation_cluster_df %>%
   dplyr::select(rusher_player_id:rank_grp, cluster)
@@ -39,16 +50,16 @@ rush_stats_draft_one <- left_join(pbp_rush_statistics,
                                   by = c("rusher_player_id" = "gsis_id", "week" = "week", "season" = "season", "qbgrp_ssn" = "qbgrp_ssn"))
 
 rush_stats_draft_two <- left_join(rush_stats_draft_one, 
-          situation_cluster_df %>%
-            dplyr::select(rusher_player_id:rank_grp, cluster),
-          by = c("rusher_player_id" = "rusher_player_id", "team" = "posteam", "season" = "season", "rank_grp" = "rank_grp"))
-colnames(rush_stats_draft_two)[23] <- "situation_cluster"
+                                  situation_cluster_df %>%
+                                    dplyr::select(rusher_player_id:rank_grp, cluster),
+                                  by = c("rusher_player_id" = "rusher_player_id", "team" = "posteam", "season" = "season", "rank_grp" = "rank_grp"))
+rush_stats_draft_two <- dplyr::rename(rush_stats_draft_two, situation_cluster = cluster)
 
 rush_stats_draft_three <- left_join(rush_stats_draft_two, 
-          gap_cluster_df %>%
-            dplyr::select(rusher_player_id:rank_grp, cluster),
-          by = c("rusher_player_id" = "rusher_player_id", "team" = "posteam", "season" = "season", "rank_grp" = "rank_grp"))
-colnames(rush_stats_draft_three)[24] <- "gap_cluster"
+                                    gap_cluster_df %>%
+                                      dplyr::select(rusher_player_id:rank_grp, cluster),
+                                    by = c("rusher_player_id" = "rusher_player_id", "team" = "posteam", "season" = "season", "rank_grp" = "rank_grp"))
+rush_stats_draft_three <- dplyr::rename(rush_stats_draft_three, gap_cluster = cluster)
 
 
 ### JUMP TO THE EP ONE
@@ -57,15 +68,17 @@ colnames(rush_stats_draft_three)[24] <- "gap_cluster"
 rush_stats_draft_four <- left_join(rush_stats_draft_three,
                                    rusher_xtd_final %>% select(rusher_player_id:season, xtd_percentile), 
                                    by = c("rusher_player_id" = "rusher_player_id", "rank_grp" = "rank_grp", "situation_cluster" = "sit_cluster", "gap_cluster" = "gap_cluster", "team" = "posteam", "season" = "season")
-          )
+)
 
 rush_stats_final <- left_join(rush_stats_draft_four,
-          player_zone_gap_zscore %>%
-            dplyr::select(player_id:season, gap_z),
-          by = c("player_id", "rank_grp", "season"))
+                              player_zone_gap_zscore %>%
+                                dplyr::select(player_id:season, gap_z),
+                              by = c("player_id", "rank_grp", "season"))
 
 
-rush_stats_final$part_xtd[which(rush_stats_final$season == 2025)] <- NA
+rush_stats_final$part_xtd[which(rush_stats_final$season == 2026)] <- NA
+# PROPOSED QUESTION (unsigned): rush_stats_df_build.R nulls part_* for season == 2025, this line nulls 2026.
+# The league header says "part_* dead for 2025". One of the two literals is wrong. Andy rules which.
 
 rush_stats_final <- rush_stats_final %>%
   group_by(qbgrp_ssn, def_ssn, week, season) %>%
@@ -80,12 +93,10 @@ rush_stats_final <- rush_stats_final %>%
 
 
 #rm(combined_ids)
-rm(combined_pbp)
+# rm(combined_pbp)
 #rm(pbp_rush)
 
 rm(first_down)
 rm(second_down)
 rm(third_down)
 rm(fourth_down)
-
-

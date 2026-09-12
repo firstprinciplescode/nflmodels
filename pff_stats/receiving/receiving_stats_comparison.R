@@ -16,8 +16,8 @@ show_player_onfield <- function(player_id_in,
            align_cluster_name, rte_cluster_name, tgt_cluster_name, man_zone_grp_cluster)
 }
 
-show_player_onfield(97199, qbgrp_filter = "SEADarnold-2025")$onfield_perc %>% sort()
-show_player_onfield(97199, season_filter = 2025)$onfield_perc %>% sort()
+show_player_onfield(84329, qbgrp_filter = "SEADarnold-2025")$onfield_perc %>% sort()
+show_player_onfield(104155, season_filter = 2024)$pbp_xtds_share %>% sort()
 
 #receiving_clustering_base <- run_athena_query("
 #    SELECT  *
@@ -392,9 +392,10 @@ get_offense_receiver_identity <- function(qbgrp_ssn_in,
 }
 
 # usage:
-get_player_cluster_neighbors(97630, 2025, distance_mult = 4)
-get_player_cluster_neighbors(97630, 2024, distance_mult = 4)
-get_player_identity_history(97630, c(2023, 2024, 2025))
+get_player_cluster_neighbors(128232, 2025, distance_mult = 4)
+get_player_cluster_neighbors(63707, 2024, distance_mult = 4)
+get_player_cluster_neighbors(63707, 2023, distance_mult = 4)
+get_player_identity_history(11824, c(2023, 2024, 2025))
 
 get_offense_receiver_identity(c("SEADarnold-2025"),
                               position_group_input = c("WR"),

@@ -80,7 +80,7 @@ comparison_pressure_def_func("LAC2025", 1.06) # 39
 
 
 receiving_func_base %>%
-  filter(qbgrp_ssn %in% c("SEADarnold-2025"), position_group == "TE") %>%
+  filter((qbgrp_ssn %in% c("SEADarnold-2025") & week %in% c(3,30,32)) | (qbgrp_ssn %in% c("SEASmith-2024") & week %in% c(2,3,14,15,17,18)), position_group == "HB") %>%
   arrange(player, week)
 
 receiving_func_base %>%
@@ -629,18 +629,32 @@ align_closest_func <- function(counts, centroids = align_centroids) {
 
 rte_closest_func(c(13,60,22,11))
 
-tgt_closest_func(c(22,22,14,11))
+tgt_closest_func(c(1,2,5,4))
 
 align_closest_func(c(71, 42, 1, 1))
 
 
 # , "HSTStroud-2024"
+
+
 receiving_func_base %>%
-  filter(qbgrp_ssn %in% c("TENWard-2025"), 
-         position_group %in% c("WR"), 
-         pos_rank >= 4, pos_rank <= 99, team_rank >= 7, team_rank <= 99, 
-         (tgt_cluster_name %in% c("RB","ST","LT") | rte_cluster_name %in% c("RB","SMT","G","LR")) , 
-         ((onfield_perc >= 0 & onfield_perc <= .1) | (tgt_share <= .04 & tgt_share >= 0))
+  filter(qbgrp_ssn %in% c("SFPurdy-2023","SFGaroppolo-2021","SFGaroppolo-2019",
+                          "SEADarnold-2025","SEASmith-2024"),
+         final_position_group == "TE", pos_rank >= 2) %>%
+  group_by(qbgrp_ssn, player, pos_rank) %>%
+  summarise(g = n(), routes = mean(routes), tgt_share = mean(tgt_share),
+            onfield = mean(onfield_perc),
+            rte = names(which.max(table(rte_cluster_name))),
+            align = names(which.max(table(align_cluster_name))), .groups = "drop") %>%
+  arrange(qbgrp_ssn, pos_rank)
+
+receiving_func_base %>%
+  filter(# week != 9,
+         qbgrp_ssn == "SEADarnold-2025",
+         position_group %in% c("TE"), 
+         pos_rank >= 1, pos_rank <= 1, team_rank >= 1, team_rank <= 6, 
+         (tgt_cluster_name %in% c("ST","SMT") | rte_cluster_name %in% c("RB","SMT","ST")) , 
+         ((onfield_perc >= 0 & onfield_perc <= 1) & (tgt_share <= 1 & tgt_share >= 0))
          ) %>%
   mutate(tgt_per_snaps = targets / snap_counts_pass_route,
          pbp_td_tgt_ratio = pbp_xtds_share / tgt_share,
@@ -660,11 +674,13 @@ receiving_func_base %>%
   pull(pbp_xtds_share )
 
 receiving_func_base %>%
-  filter(def_ssn == "JAX2025", 
-         position_group %in% c("WR"), 
-         pos_rank >= 4, pos_rank <= 99, team_rank >= 7, team_rank <= 99, 
-         (tgt_cluster_name %in% c("RB","ST","LT") | rte_cluster_name %in% c("RB","SMT","G","LR")) , 
-         ((onfield_perc >= 0 & onfield_perc <= .1) | (tgt_share <= .04 & tgt_share >= 0))     ) %>%
+  filter(def_ssn == "NE2025", 
+         position_group %in% c("WR"),
+         (week >= 3 & week %ni% c(6,7,14)),
+         pos_rank >= 3, pos_rank <= 99, team_rank >= 6, team_rank <= 99, 
+         (tgt_cluster_name %in% c("DT","MT","ML","LT") | rte_cluster_name %in% c("RB","SMT","DT","MT","LR")) , 
+         ((onfield_perc >= 0 & onfield_perc <= .105) & (tgt_share <= 1 & tgt_share >= 0))
+         ) %>%
   mutate(tgt_per_snaps = targets / snap_counts_pass_route,
          pbp_td_tgt_ratio = pbp_xtds_share / tgt_share,
          part_td_tgt_ratio = part_xtds_share / tgt_share) %>%
@@ -674,9 +690,12 @@ receiving_func_base %>%
                    pbp_cp = mean(pbp_cp, na.rm = T),
                    part_cp = mean(part_cp, na.rm = T))
 
+dplyr::summarise(mn_tgt_share = mean(tgt_share, na.rm = T))
+
 ::summarise(mn_tgt_rate = mean(tgt_per_snaps, na.rm = T))
 
-dplyr::summarise(mn_pbp_td_tgt_ratio = mean(pbp_td_tgt_ratio, na.rm = T))
+dplyr::summarise(mn_pbp_td_tgt_ratio = mean(pbp_td_tgt_ratio, na.rm = T),
+                 mn_part_td_tgt_ratio = mean(part_td_tgt_ratio, na.rm = T))
 
 dplyr::summarise(ypa = mean(ypa, na.rm = T),
                  pbp_xypa = mean(pbp_xypa, na.rm = T),
@@ -686,3 +705,80 @@ dplyr::summarise(acc_rate = mean(acc_rate, na.rm = T),
                  fastr_cp = mean(fastr_cp, na.rm = T),
                  pbp_cp = mean(pbp_cp, na.rm = T),
                  part_cp = mean(part_cp, na.rm = T))
+
+
+receiving_func_base %>%
+  filter(week %in% c(6,14,18),
+        qbgrp_ssn == "NEMaye-2024",
+        position_group %in% c("HB","RB"), 
+        # player == "Cooper Kupp",
+        pos_rank >= 2, pos_rank <= 99, team_rank >= 6, team_rank <= 99, 
+        # (tgt_cluster_name %in% c("BT","RB","G") | rte_cluster_name %in% c("RB","SMT")) , 
+        ((onfield_perc >= 0 & onfield_perc <= 1) & (tgt_share <= 1 & tgt_share >= 0))
+  ) %>%
+  mutate(tgt_per_snaps = targets / snap_counts_pass_route,
+         pbp_td_tgt_ratio = pbp_xtds_share / tgt_share,
+         part_td_tgt_ratio = part_xtds_share / tgt_share) %>%
+  select(ypa, pbp_xypa, part_xypa) %>%
+  arrange(desc(ypa))
+
+receiving_func_base %>%
+  filter( # ((week %in% c(9,10,11) & qbgrp_ssn == "NEMaye-2025")),
+    qbgrp_ssn ==  "TENTannehill-2020",
+    week %ni% c(2,3,6),
+    position_group %in% c("WR"),
+    # player == "Jack Westover",
+    # player == "Cooper Kupp",
+    pos_rank >= 4, pos_rank <= 99, team_rank >= 7, team_rank <= 99, 
+    (tgt_cluster_name %in% c("ML","DT","MT","LT") | rte_cluster_name %in% c("SMT","MT","DT","LR")) , 
+    (((onfield_perc >= .1 & onfield_perc <= .27) & (tgt_share <= .1 & tgt_share >= .001)))
+  ) %>%
+  mutate(tgt_per_snaps = targets / snap_counts_pass_route,
+         pbp_td_tgt_ratio = pbp_xtds_share / tgt_share,
+         part_td_tgt_ratio = part_xtds_share / tgt_share) %>%
+  dplyr::summarise(acc_rate = mean(acc_rate, na.rm = T),
+                   fastr_cp = mean(fastr_cp, na.rm = T),
+                   pbp_cp = mean(pbp_cp, na.rm = T),
+                   part_cp = mean(part_cp, na.rm = T))
+
+receiving_func_base %>%
+  filter( # ((week %in% c(9,10,11) & qbgrp_ssn == "NEMaye-2025")),
+         qbgrp_ssn ==  "NEMaye-2025",
+         week %ni% c(14,17,18,28,29),
+         position_group %in% c("WR"),
+         # player == "Jack Westover",
+         # player == "Cooper Kupp",
+         pos_rank >= 4, pos_rank <= 99, team_rank >= 7, team_rank <= 99, 
+         (tgt_cluster_name %in% c("ML","DT","MT","LT") | rte_cluster_name %in% c("SMT","MT","DT","LR")) , 
+         (((onfield_perc >= .1 & onfield_perc <= .27) & (tgt_share <= .1 & tgt_share >= .001)))
+  ) %>%
+  mutate(tgt_per_snaps = targets / snap_counts_pass_route,
+         pbp_td_tgt_ratio = pbp_xtds_share / tgt_share,
+         part_td_tgt_ratio = part_xtds_share / tgt_share) %>%
+  dplyr::summarise(acc_rate = mean(acc_rate, na.rm = T),
+                   fastr_cp = mean(fastr_cp, na.rm = T),
+                   pbp_cp = mean(pbp_cp, na.rm = T),
+                   part_cp = mean(part_cp, na.rm = T))
+
+receiving_func_base %>%
+  filter( ((def_ssn == "SEA2025" & week %ni% c(5,6,7)) | def_ssn == "SEA2024"),
+         # position_group %in% c("HB","RB"), 
+         position %in% c("WR"),
+         pos_rank >= 4, pos_rank <= 99, team_rank >= 7, team_rank <= 99, 
+         (tgt_cluster_name %in% c("ML","DT","MT","LT") | rte_cluster_name %in% c("SMT","MT","DT","LR")) , 
+         (((onfield_perc >= .1 & onfield_perc <= .27) & (tgt_share <= .1 & tgt_share >= .001)))
+  ) %>%
+  mutate(tgt_per_snaps = targets / snap_counts_pass_route,
+         pbp_td_tgt_ratio = pbp_xtds_share / tgt_share,
+         part_td_tgt_ratio = part_xtds_share / tgt_share) %>% 
+  dplyr::summarise(acc_rate = mean(acc_rate, na.rm = T),
+                   fastr_cp = mean(fastr_cp, na.rm = T),
+                   pbp_cp = mean(pbp_cp, na.rm = T),
+                   part_cp = mean(part_cp, na.rm = T))
+  
+receiving_func_base %>% filter(player_id == 10669, week %ni% c(14,17,18,28,29), qbgrp_ssn == "NEMaye-2025", pos_rank <= 1, pos_rank >= 1, onfield_perc >= .7, onfield_perc <= 1) %>% 
+  arrange(pbp_xtds_share) %>% 
+  pull(pbp_xtds_share)   
+  
+  select(ypa, pbp_xypa, part_xypa) %>%
+  arrange(desc(ypa))

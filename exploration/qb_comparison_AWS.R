@@ -1,14 +1,14 @@
-comparison_blitz_func("SEADarnold-2025", .95) # 89
-comparison_depth_func("SEADarnold-2025", .91) # 109
-comparison_less_func("SEADarnold-2025", .94) # 90
-comparison_pa_func("SEADarnold-2025", 1.05) # 34
-comparison_pressure_func("SEADarnold-2025", .94) # 92
+comparison_blitz_func("DENNix-2025", .89) # 138
+comparison_depth_func("DENNix-2025", .995) # 69
+comparison_less_func("DENNix-2025", .915) # 123
+comparison_pa_func("DENNix-2025", .975) # 88
+comparison_pressure_func("DENNix-2025", .93) # 114
 
-all_qbs <- rbind(as.data.frame(comparison_blitz_func("SEADarnold-2025", .958)), 
-             as.data.frame(comparison_depth_func("SEADarnold-2025", .918)), 
-             as.data.frame(comparison_less_func("SEADarnold-2025", .948)), 
-             as.data.frame(comparison_pa_func("SEADarnold-2025", 1.058)), 
-             as.data.frame(comparison_pressure_func("SEADarnold-2025", .948)))
+all_qbs <- rbind(as.data.frame(comparison_blitz_func("DENNix-2025", .84)), 
+             as.data.frame(comparison_depth_func("DENNix-2025", .945)), 
+             as.data.frame(comparison_less_func("DENNix-2025", .865)), 
+             as.data.frame(comparison_pa_func("DENNix-2025", .925)), 
+             as.data.frame(comparison_pressure_func("DENNix-2025", .88)))
 
 sim_qb <- sqldf("SELECT QB, COUNT(*) AS CNT
         FROM  all_qbs 
@@ -18,8 +18,8 @@ sim_qb <- sqldf("SELECT QB, COUNT(*) AS CNT
 sim_qb
 
 ### UPDATE THIS FIRST ####
-det_blitz <- df_pressure_scaled_z %>%
-  filter(qbgrp_ssn %in% c(sim_qb$QB, "SEADarnold-2025")) %>%
+det_blitz <- df_blitz_scaled_z %>%
+  filter(qbgrp_ssn %in% c(sim_qb$QB, "DENNix-2025")) %>%
   select(-contains("snaps"), -contains("int_rate"))
   # %>%
   # select(-contains("adot"))
@@ -30,6 +30,7 @@ setup_team_logos <- function(dest_dir = "team_logos") {
   
   teams <- nflreadr::load_teams() %>%
     dplyr::filter(!is.na(team_logo_espn) & nzchar(team_logo_espn)) %>%
+    
     dplyr::select(team_abbr, team_logo_espn)
   
   for (i in seq_len(nrow(teams))) {
@@ -83,9 +84,9 @@ det_long <- det_blitz %>%
 det_summary <- det_long %>%
   group_by(var_label, bucket) %>%
   summarise(
-    vs      = z[qbgrp_ssn == "NEMaye-2025"],
-    cc      = median(z[qbgrp_ssn != "NEMaye-2025"], na.rm = TRUE),
-    cc_mean = mean(z[qbgrp_ssn != "NEMaye-2025"], na.rm = TRUE),
+    vs      = z[qbgrp_ssn == "DENNix-2025"],
+    cc      = median(z[qbgrp_ssn != "DENNix-2025"], na.rm = TRUE),
+    cc_mean = mean(z[qbgrp_ssn != "DENNix-2025"], na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -109,7 +110,7 @@ col_seq <- scales::col_numeric(
 gradient_raster <- matrix(blend_white(col_seq, 0.4), nrow = 1)
 
 
-plot_strip <- function(df = det_long, bkt = "Good", focal = "NEMaye-2025") {
+plot_strip <- function(df = det_long, bkt = "Good", focal = "DENNix-2025") {
   ggplot(df %>% filter(bucket == bkt),
          aes(x = z, y = var_label)) +
     annotation_raster(gradient_raster,
@@ -139,7 +140,7 @@ plot_strip <- function(df = det_long, bkt = "Good", focal = "NEMaye-2025") {
           axis.text.y       = element_text(size = 7))
 }
 
-plot_dumb <- function(df = det_summary, bkt = "Good", focal = "NEMaye-2025") {
+plot_dumb <- function(df = det_summary, bkt = "Good", focal = "DENNix-2025") {
   ggplot(df %>% filter(bucket == bkt), aes(y = var_label)) +
     annotation_raster(gradient_raster,
                       xmin = -2.5, xmax = 2.5,
@@ -173,14 +174,14 @@ plot_dumb <- function(df = det_summary, bkt = "Good", focal = "NEMaye-2025") {
 }
 
 # Call however you want
-plot_strip(df = det_long,    bkt = "Good", focal = "NEMaye-2025")
-plot_dumb(df = det_summary,  bkt = "Good", focal = "NEMaye-2025")
+plot_strip(df = det_long,    bkt = "Good", focal = "DENNix-2025")
+plot_dumb(df = det_summary,  bkt = "Good", focal = "DENNix-2025")
 
-plot_strip(df = det_long,    bkt = "Bad",  focal = "NEMaye-2025")
-plot_dumb(df = det_summary,  bkt = "Bad",  focal = "NEMaye-2025")
+plot_strip(df = det_long,    bkt = "Bad",  focal = "DENNix-2025")
+plot_dumb(df = det_summary,  bkt = "Bad",  focal = "DENNix-2025")
 
-plot_strip(df = det_long,    bkt = "Diff (G-B)", focal = "NEMaye-2025")
-plot_dumb(df = det_summary,  bkt = "Diff (G-B)", focal = "NEMaye-2025")
+plot_strip(df = det_long,    bkt = "Diff (G-B)", focal = "DENNix-2025")
+plot_dumb(df = det_summary,  bkt = "Diff (G-B)", focal = "DENNix-2025")
 
 
 
@@ -191,15 +192,21 @@ sim_qb2 <- sqldf("SELECT QB, COUNT(*) AS CNT
 
 sim_qb2
 
-### UPDATE THIS FIRST ####
-det_blitz2 <- df_pressure_scaled_z %>%
-  filter(qbgrp_ssn %in% c(sim_qb2$QB, "NEMaye-2025")) %>%
+
+df_less_scaled_z %>%
+  filter(qbgrp_ssn %in% c("NEMaye-2025", "NEMaye-2024", "HSTWatson-2019", "TENMariota-2018")) %>%
   select(-contains("snaps"), -contains("int_rate"))
 
-# BLTJackson-2024, SEADarnold-2025, HSTWatson-2020
+
+### UPDATE THIS FIRST ####
+det_blitz2 <- df_pressure_scaled_z %>%
+  filter(qbgrp_ssn %in% c(sim_qb2$QB, "DENNix-2025")) %>%
+  select(-contains("snaps"), -contains("int_rate"))
+
+# BLTJackson-2024, DENNix-2025, HSTWatson-2020
 
 df_pressure_scaled_z %>%
-  filter(qbgrp_ssn %in% c("BLTJackson-2024", "SEADarnold-2025", "HSTWatson-2020")) %>%
+  filter(qbgrp_ssn %in% c("BLTJackson-2024", "DENNix-2025", "HSTWatson-2020")) %>%
   select(pressure_ypa_Good, pressure_ypa_Bad, pressure_ypa_diff)
 
 
@@ -219,10 +226,87 @@ df_pa_scaled_z %>%
                         bucket = "nfl-pff-data-lucas")
 
 
-df_depth_scaled_z %>%
-  filter(short_qbr_Good >= -.15, ypa_difference_diff >= -.25, ms_acc_pct_difference_diff >= 0, medium_twp_rate_Bad >= 0) %>%
+df_less_scaled_z %>%
+  filter(less_rate_Bad >= -1.1, less_rate_Bad <= .7, adot_difference_Bad >= -1, adot_difference_Bad <= 1, less_sack_pct_Bad <= .9, less_sack_pct_Bad >= -1.1, less_pressure_rate_Good <= .6, less_pressure_rate_Good >= -1.4, qbr_difference_Bad >= -1.1, qbr_difference_Bad <= .9, less_qbr_Bad >= .4) %>%
   pull(qbgrp_ssn)
 
-df_pa_scaled_z %>%
-  filter(pa_grade_Good >= -.75, pa_grade_Good <= .65, npa_grade_diff >= -.2, npa_twp_rate_diff <= 0, pressure_rate_difference_Bad <= -.1) %>%
+df_pressure_scaled_z %>%
+  filter(pressure_rate_Good <= .65, pressure_rate_Good >= -1.15, no_pressure_qbr_Good >= .05, no_pressure_qbr_Good <= 1.95, pressure_time_to_throw_Bad <= 1.05, pressure_time_to_throw_Bad >= -.85, pressure_grade_Bad >= -1.45, pressure_grade_Bad <= .45, acc_pct_difference_Bad <= 1.65, acc_pct_difference_Bad >= -.35) %>%
   pull(qbgrp_ssn)
+
+
+sqldf("SELECT qbgrp_ssn,
+              AVG(pass_rate_rank_def)              AS mn_pass_rate_rank_def,
+              --XPASS_DEF METRICS
+              AVG(fastr_xpass_rate_rank_def)       AS mn_fastr_xpass_rate_rank_def,
+              AVG(pbp_xpass_rate_rank_def)         AS mn_pbp_xpass_rate_rank_def,
+              AVG(part_xpass_rate_rank_def)        AS mn_part_xpass_rate_rank_def,
+              --SCR_RATE_DEF METRICS
+              AVG(scr_rate_rank_def)               AS mn_scr_rate_rank_def,
+              --XTDS_DEF METRICS
+              AVG(pbp_xtds_rank_def)               AS mn_pbp_xtds_rank_def,
+              AVG(part_xtds_rank_def)              AS mn_part_xtds_rank_def,
+              --PRESSURE_RATE_DEF METRICS (all of them)
+              AVG(pressure_rate_rank_def)          AS mn_pressure_rate_rank_def,
+              AVG(less_pressure_rate_rank_def)     AS mn_less_pressure_rate_rank_def,
+              AVG(more_pressure_rate_rank_def)     AS mn_more_pressure_rate_rank_def,
+              AVG(blitz_pressure_rate_rank_def)    AS mn_blitz_pressure_rate_rank_def,
+              AVG(no_blitz_pressure_rate_rank_def) AS mn_no_blitz_pressure_rate_rank_def,
+              AVG(npa_pressure_rate_rank_def)      AS mn_npa_pressure_rate_rank_def,
+              AVG(pa_pressure_rate_rank_def)       AS mn_pa_pressure_rate_rank_def,
+              AVG(pbp_pressure_rank_def)           AS mn_pbp_pressure_rank_def,
+              AVG(part_pressure_before_rank_def)   AS mn_part_pressure_before_rank_def,
+              AVG(part_pressure_after_rank_def)    AS mn_part_pressure_after_rank_def,
+              --QBR_DEF METRICS
+              AVG(pressure_qbr_rank_def)           AS mn_pressure_qbr_rank_def,
+              AVG(no_pressure_qbr_rank_def)        AS mn_no_pressure_qbr_rank_def,
+              AVG(blitz_qbr_rank_def)              AS mn_blitz_qbr_rank_def,
+              AVG(no_blitz_qbr_rank_def)           AS mn_no_blitz_qbr_rank_def,
+              AVG(less_qbr_rank_def)               AS mn_less_qbr_rank_def,
+              AVG(more_qbr_rank_def)               AS mn_more_qbr_rank_def,
+              AVG(pa_qbr_rank_def)                 AS mn_pa_qbr_rank_def,
+              AVG(npa_qbr_rank_def)                AS mn_npa_qbr_rank_def
+       FROM   qb_stats_df_final
+       WHERE  qbgrp_ssn IN ('NEMaye-2025', 'NEMaye-2024', 'CARNewton-2017', 'CARNewton-2018',
+                            'PHIWentz-2018', 'PHIWentz-2019', 'SFGaroppolo-2019', 
+                            'DALPrescott-2022', 'DALPrescott-2025', 'PHIHurts-2024', 'PHIHurts-2025',
+                            'SFGaroppolo-2020', 'SFGaroppolo-2021',
+                            'TENMariota-2018', 'TENTannehill-2019')
+       GROUP BY qbgrp_ssn")
+
+
+
+sqldf("SELECT qbgrp_ssn,
+              AVG(pass_rate_rank_def)              AS mn_pass_rate_rank_def,
+              --XPASS_DEF METRICS
+              AVG(fastr_xpass_rate_rank_def)       AS mn_fastr_xpass_rate_rank_def,
+              AVG(pbp_xpass_rate_rank_def)         AS mn_pbp_xpass_rate_rank_def,
+              AVG(part_xpass_rate_rank_def)        AS mn_part_xpass_rate_rank_def,
+              --SCR_RATE_DEF METRICS
+              AVG(scr_rate_rank_def)               AS mn_scr_rate_rank_def,
+              --XTDS_DEF METRICS
+              AVG(pbp_xtds_rank_def)               AS mn_pbp_xtds_rank_def,
+              AVG(part_xtds_rank_def)              AS mn_part_xtds_rank_def,
+              --PRESSURE_RATE_DEF METRICS (all of them)
+              AVG(pressure_rate_rank_def)          AS mn_pressure_rate_rank_def,
+              AVG(less_pressure_rate_rank_def)     AS mn_less_pressure_rate_rank_def,
+              AVG(more_pressure_rate_rank_def)     AS mn_more_pressure_rate_rank_def,
+              AVG(blitz_pressure_rate_rank_def)    AS mn_blitz_pressure_rate_rank_def,
+              AVG(no_blitz_pressure_rate_rank_def) AS mn_no_blitz_pressure_rate_rank_def,
+              AVG(npa_pressure_rate_rank_def)      AS mn_npa_pressure_rate_rank_def,
+              AVG(pa_pressure_rate_rank_def)       AS mn_pa_pressure_rate_rank_def,
+              AVG(pbp_pressure_rank_def)           AS mn_pbp_pressure_rank_def,
+              AVG(part_pressure_before_rank_def)   AS mn_part_pressure_before_rank_def,
+              AVG(part_pressure_after_rank_def)    AS mn_part_pressure_after_rank_def,
+              --QBR_DEF METRICS
+              AVG(pressure_qbr_rank_def)           AS mn_pressure_qbr_rank_def,
+              AVG(no_pressure_qbr_rank_def)        AS mn_no_pressure_qbr_rank_def,
+              AVG(blitz_qbr_rank_def)              AS mn_blitz_qbr_rank_def,
+              AVG(no_blitz_qbr_rank_def)           AS mn_no_blitz_qbr_rank_def,
+              AVG(less_qbr_rank_def)               AS mn_less_qbr_rank_def,
+              AVG(more_qbr_rank_def)               AS mn_more_qbr_rank_def,
+              AVG(pa_qbr_rank_def)                 AS mn_pa_qbr_rank_def,
+              AVG(npa_qbr_rank_def)                AS mn_npa_qbr_rank_def
+       FROM   qb_stats_df_final
+       WHERE  qbgrp_ssn IN ('NEMaye-2025', 'DALPrescott-2025', 'TENTannehill-2019')
+       GROUP BY qbgrp_ssn")
