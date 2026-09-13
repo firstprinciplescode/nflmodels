@@ -131,7 +131,7 @@ source("pff_stats/rushing/league_rushing_availability.R")
 ### 4.3 Pass rush
 
 ```r
-source("pff_stats/pass_rush/pff_pass_rush_AWS.R")                        # canon step-0: full_pass_rush_qbgrp, percent_rank_avg
+source("pff_stats/pass_rush/pff_pass_rush_qbgrp_step0_AWS.R")            # = pff_pass_rush_AWS.R lines 50-191, receipts, no exploration tail
 source("pff_stats/pass_rush/new_england_opp_pass_rush_schedule.R")      # needs combined_ids_defense (Stage 2)
 source("pff_stats/pass_rush/league_pass_rush_evaluating_currency_three.R")
 source("pff_stats/pass_rush/league_opp_pass_rush_schedule.R")
@@ -139,9 +139,10 @@ source("pff_stats/pass_rush/league_pass_rush_final_evaluation.R")
 source("pff_stats/pass_rush/league_pass_rush_availability.R")
 ```
 
-`pff_pass_rush_AWS.R` starts with `conflicts_prefer(...)` — it needs
-`library(conflicted)` loaded (Stage 0 does that). It contains `View()` calls;
-fine in RStudio.
+`pff_pass_rush_AWS.R` is still the canon source (its lines 50–191 are what the
+step-0 file is); sourcing the whole thing also works but ends in an error at
+line 385 (`sim_def`, from the dead SEA study) after the frame is built. Both
+need `library(conflicted)` attached if you use the AWS file.
 
 ### 4.4 OL — pass block + run block (one schedule, two currencies)
 

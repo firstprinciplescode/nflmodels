@@ -51,7 +51,7 @@ PIPELINE_MAP <- tibble::tribble(
   "rushing",     "availability","starters_all_ru",                       "pff_stats/rushing/league_rushing_availability.R",
   "rushing",     "availability","sweep_ru",                              "pff_stats/rushing/league_rushing_availability.R",
   # ---- pass rush -----------------------------------------------------------
-  "pass_rush",   "step0",       "full_pass_rush_qbgrp",                  "pff_stats/pass_rush/pff_pass_rush_AWS.R",
+  "pass_rush",   "step0",       "full_pass_rush_qbgrp",                  "pff_stats/pass_rush/pff_pass_rush_qbgrp_step0_AWS.R  (= pff_pass_rush_AWS.R:50-191 without the SEA-study tail)",
   "pass_rush",   "schedule",    "prush_tps_season_pctl_sos",             "pff_stats/pass_rush/new_england_opp_pass_rush_schedule.R",
   "pass_rush",   "schedule",    "cmp_prush_slate",                       "pff_stats/pass_rush/new_england_opp_pass_rush_schedule.R",
   "pass_rush",   "c3",          "prush_c3_pctl",                         "pff_stats/pass_rush/league_pass_rush_evaluating_currency_three.R",
