@@ -156,15 +156,45 @@ source("pff_stats/receiving/league_opp_receiving_schedule.R")
 source("pff_stats/receiving/league_receiving_availability.R")
 ```
 
-### 4.6 Secondary — **blocked, step-0 lost**
+### 4.6 Secondary
 
-`new_england_opp_secondary_schedule.R:171-173` requires
-`coverage_raw_build_cache_cov.rds` in the working directory and stops with
-"run phase6_step0_secondary_gate_ritual.txt first". That ritual file is not in
-the repo and the `.rds` is not on this machine. Until that step-0 is rebuilt as
-a file (same job as 4.1), the secondary unit cannot run. The Sept 9 workspace
-does hold `coverage_scheme`, `coverage_summary`, `final_coverage_df_qbgrp` from
-`pff_pass_coverage_AWS.R` — the likely raw material; **not verified**.
+```r
+source("pff_stats/secondary/pff_secondary_cache_step0_AWS.R")            # NEW 2026-09-12 — writes coverage_raw_build_cache_cov.rds; needs Andy's stamp
+source("pff_stats/secondary/new_england_opp_secondary_schedule.R")      # needs combined_grade_epa_summary + combined_ids_defense; feed 2 = coverage_scheme (in session, else cached, else pulled)
+source("pff_stats/secondary/league_secondary_evaluating_currency_three.R")
+source("pff_stats/secondary/league_opp_secondary_schedule.R")
+source("pff_stats/secondary/league_secondary_availability.R")
+```
+
+Why the step-0 is new: both secondary schedule files stop with "cache absent
+-- run phase6_step0_secondary_gate_ritual.txt first". That ritual was console
+code in a `.txt`, never committed; the `.rds` it wrote is on no machine. The
+file rebuilds what the consumers demand (read off their code, not memory):
+raw `coverage_summary`, **un-gated** (the modal-band law needs the un-gated
+frame), `final_position` with the SCB class derived from
+`coverage_summary_by_game` exactly as the tower does at
+`pff_pass_coverage_AWS.R:128-139`, team-fixed. Receipts to match from the
+ritual header: 69,250 rows; band4 vocab LB 24,279 / S 16,948 / CB 14,503 /
+SCB 5,686.
+
+## Any team, and comparing two
+
+The league-wide `_lg` frames cover all 32 teams, so once a unit is in session
+the viewer works for any code — nothing is re-run per team:
+
+```r
+team_yoy("DEN");  team_yoy("NE")
+team_report("DEN")          # all five views: slate, sched, lastyear, yoy, own
+```
+
+There is no side-by-side function yet; run the two calls and read across.
+
+## Seeing what is loaded
+
+```r
+source("util/pipeline_status.R")
+pipeline_status()           # every unit x stage: LOADED (rows x cols) / MISSING, and the file that makes it
+```
 
 ## Stage 5 — the viewer
 

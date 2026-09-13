@@ -308,7 +308,7 @@ rush_stats_final %>%
                    mn_pbp_xypc = mean(pbp_xypc))
 
 rush_stats_final %>%
-  filter(qbgrp_ssn == "NEMaye-2025", player == "Tony Pollard", rush_proportion >= 0, rush_proportion <= 1) %>%
+  filter(qbgrp_ssn == "SEADarnold-2025", player == "Kenneth Walker III", rush_proportion >= 0, rush_proportion <= 1) %>%
   arrange(pbp_xtd_share ) %>%
   pull(pbp_xtd_share )
 
