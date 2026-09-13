@@ -102,6 +102,25 @@ cat("--- coverage_summary_by_game pulled: ", nrow(by_game_raw), " rows x ",
     ncol(by_game_raw), " cols ---\n", sep = "")
 
 # ------------------------------------------------------------
+# 1b. coverage_scheme -- FEED 2 of both schedule files. They take an
+#     in-session object over the cache over a pull, so a stale session
+#     copy wins silently (the Sept 9 workspace's stops at week 28 -- a
+#     Jan-13 pull; NE's 2025 faced diet would come up 18 weeks, not 21).
+#     Pull fresh here, replace the session copy, write the cache the
+#     schedule files name.
+# ------------------------------------------------------------
+SCHEME_CACHE <- "coverage_scheme_cache_mz.rds"
+coverage_scheme <- tibble::as_tibble(run_athena_query("
+    SELECT  *
+    FROM    nfl_data.coverage_scheme
+"))
+w25_sch <- sort(unique(coverage_scheme$week[coverage_scheme$season == 2025]))
+cat("--- coverage_scheme pulled: ", nrow(coverage_scheme), " rows; 2025 playoff weeks: ",
+    paste(w25_sch[w25_sch > 18], collapse = ","), "  (want 28,29,30,32) ---\n", sep = "")
+saveRDS(coverage_scheme, SCHEME_CACHE)
+cat("scheme cache written -> ", normalizePath(SCHEME_CACHE), "\n", sep = "")
+
+# ------------------------------------------------------------
 # 2. column walls -- BY NAME (tower landmine: it renamed by index)
 # ------------------------------------------------------------
 req_cov <- c("player", "player_id", "franchise_id", "week", "season",
@@ -200,6 +219,9 @@ print(cov_built %>%
         summarise(rows = n(), players = n_distinct(player_id),
                   weeks = n_distinct(week),
                   no_adv = sum(is.na(adv_position)), .groups = "drop"), n = Inf)
+w25_cov <- sort(unique(cov_built$week[cov_built$season == 2025]))
+cat("2025 playoff weeks in the cache: ", paste(w25_cov[w25_cov > 18], collapse = ","),
+    "  (want 28,29,30,32 -- NE faced 21 weeks)\n", sep = "")
 
 # ------------------------------------------------------------
 # 5. write the cache the consumers read + leave it in session

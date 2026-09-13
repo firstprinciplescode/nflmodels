@@ -35,6 +35,17 @@ load("nfl_the_everything_workspace.RData")
 It carries a **stale `combined_ids`** — Stage 2 overwrites it. Don't use its
 `combined_ids` for anything.
 
+**It also carries stale unit frames.** Its pass-rush, pass-block, run-block and
+coverage frames (and `play_counts` / `games`) were pulled **Jan 13, 2026** and
+stop at 2025 week 28 — the divisional round, conference championships and
+Super Bowl (weeks 29, 30, 32) are missing. NE's faced diet comes up 18 weeks
+instead of 21; the pass-rush and secondary league files wall on that, pass
+block and run block **don't** and would price a wrong slate silently. Verified
+2026-09-12. So: the workspace is for `combined_pbp` and
+`combined_grade_epa_summary` (current through week 32); **every unit's step-0
+file is re-run, always.** `pipeline_status()` shows a `wk25` column — 32 is
+complete, 28 is a stale copy.
+
 **B. Rebuild** (per `Lineage One.md`; order not re-verified today):
 `data_build/pbp_nfl_base.R` → `data_build/part_nfl_base.R` →
 `data_build/pbp_part_combined_join_AWS.R` → `combined_pbp`.

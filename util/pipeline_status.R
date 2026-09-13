@@ -118,20 +118,40 @@ PIPELINE_MAP <- tibble::tribble(
   paste0(class(x)[1], "[", length(x), "]")
 }
 
+# the last 2025 week a game-level frame carries. 32 = through the Super
+# Bowl (complete). 28 = a Jan-13 pull that stopped at wild-card weekend --
+# the Sept 9 workspace's pass-rush / pass-block / run-block / coverage
+# frames all did, and NE's faced diet came up 18 weeks instead of 21.
+.wk25_of <- function(nm) {
+  if (!exists(nm, envir = .GlobalEnv)) return("")
+  x <- get(nm, envir = .GlobalEnv)
+  if (!is.data.frame(x) || !all(c("week", "season") %in% names(x))) return("")
+  w <- x$week[x$season == 2025]
+  if (!length(w) || all(is.na(w))) return("")
+  as.character(max(w, na.rm = TRUE))
+}
+
 pipeline_status <- function(units = NULL) {
   m <- PIPELINE_MAP
   if (!is.null(units)) m <- m[m$unit %in% units, ]
   m$status <- ifelse(vapply(m$object, exists, logical(1), envir = .GlobalEnv),
                      "LOADED", "MISSING")
   m$shape  <- vapply(m$object, .shape_of, character(1))
+  m$wk25   <- vapply(m$object, .wk25_of, character(1))
 
+  cat(sprintf("  %-13s %-8s %-38s %-14s %-5s %s\n", "stage", "status", "object", "shape",
+              "wk25", "file   (wk25 = last 2025 week carried; 32 = complete, 28 = stale Jan-13 pull)"))
   for (u in unique(m$unit)) {
     sub <- m[m$unit == u, ]
     cat("\n== ", u, " ==\n", sep = "")
     for (i in seq_len(nrow(sub)))
-      cat(sprintf("  %-13s %-8s %-38s %-14s %s\n", sub$stage[i], sub$status[i],
-                  sub$object[i], sub$shape[i], sub$file[i]))
+      cat(sprintf("  %-13s %-8s %-38s %-14s %-5s %s\n", sub$stage[i], sub$status[i],
+                  sub$object[i], sub$shape[i], sub$wk25[i], sub$file[i]))
   }
+  stale <- m$object[m$status == "LOADED" & m$wk25 != "" & suppressWarnings(as.numeric(m$wk25)) < 32]
+  if (length(stale))
+    cat("\n  STALE -- 2025 stops before the Super Bowl (week 32): ",
+        paste(stale, collapse = ", "), "\n  re-run those step-0 files; do not trust the workspace copies\n", sep = "")
 
   cat("\n== verdict (the viewer prints a unit only when its availability stage is loaded) ==\n")
   for (u in setdiff(unique(m$unit), c("shared", "viewer"))) {
