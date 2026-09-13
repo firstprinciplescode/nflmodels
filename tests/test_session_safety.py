@@ -9,13 +9,17 @@ Two things cost a day's work on 2026-09-12:
 2. Chain files walled on objects (``rushing_qbgrp``, ``run_defense_qbgrp``)
    that were built by "step-0" code living only in an old session -- no file in
    the repo produced them, so a fresh session could never rebuild them. This
-   test parses every ``needed_* <- c("...")`` wall in ``pff_stats/`` and fails
+   test parses every ``*needed* <- c("...")`` wall in ``pff_stats/`` and fails
    if any listed object is assigned nowhere in the repo.
 
+The producer / wall parsing lives in scripts/build_lineage.py (the same code
+that generates LINEAGE.md), so the guard and the map can never disagree.
 Both are pure text scans over ``*.R`` -- no R, no AWS, no data.
 """
 import re
 from pathlib import Path
+
+from build_lineage import needs, producers  # scripts/ is on pythonpath via pytest.ini
 
 REPO = Path(__file__).resolve().parents[1]
 SKIP_DIRS = {".git", "archive"}
@@ -52,46 +56,16 @@ def test_no_file_wipes_the_session():
 
 # --- 2. every walled-on object must have a producer somewhere ------------
 
-NEEDED_VEC = re.compile(r"^\s*needed\w*\s*<-\s*c\(([^)]*)\)", re.M)
-STRING = re.compile(r'"([^"]+)"')
-# `name <- ...` / `name <<- ...` at line start or after a `;` (canon writes
-# constants as `X_RB <- 4; G_RB <- 6; N_RB <- 2L`), or assign("name", ...).
-# `name = ...` is deliberately NOT counted: at line start it is almost always a
-# named argument inside list(...) / a call (the availability files' column
-# contracts are `rushing_qbgrp = c("player", ...)`), and canon assigns with `<-`.
-PRODUCER = re.compile(r"(?:^|;)\s*([A-Za-z_.][A-Za-z0-9_.]*)\s*<<?-", re.M)
-ASSIGN_CALL = re.compile(r'assign\(\s*"([^"]+)"')
-
 # Objects a wall lists that no file in the repo produces, with the reason.
 # Adding a NEW name here needs a comment saying where the object comes from.
 KNOWN_HOLES = {
-    # (none as of 2026-09-12 -- rushing_qbgrp and run_defense_qbgrp got their
-    #  step-0 files; opp_2026_teams & co. got pff_stats/shared_ne_2026_constants.R)
+    # league_pass_rush_final_evaluation.R:374 lists opp25_lg in a SOFT gate
+    # (`if (all(vapply(lg_needed, exists, ...)))`). Nothing in the repo ever
+    # creates opp25_lg, so that gate can never pass and the rot26_full /
+    # slate_view block behind it is dead code. Found 2026-09-13 by the lineage
+    # verification; Andy to rule (build opp25_lg, or retire the block).
+    "opp25_lg": "never created; soft gate in league_pass_rush_final_evaluation.R is dead",
 }
-
-
-def producers(txt: str):
-    """Names genuinely CREATED in this text.
-
-    `x <- tibble::as_tibble(x)` and `x <- x %>% ...` are re-assignments of an
-    object that must already exist -- every chain file opens with a page of
-    them -- so an assignment whose right-hand side mentions the same name is
-    NOT a producer. The RHS is the rest of the line, or the next line when the
-    `<-` ends the line (canon style: `frame <-` newline `left_join(...)`).
-    """
-    lines = txt.splitlines()
-    out = set()
-    for i, line in enumerate(lines):
-        for m in PRODUCER.finditer(line):
-            name = m.group(1)
-            rhs = line[m.end():]
-            if not rhs.strip() and i + 1 < len(lines):
-                rhs = lines[i + 1]
-            if re.search(rf"\b{re.escape(name)}\b", rhs):
-                continue          # self-referential: re-assignment, not creation
-            out.add(name)
-    out.update(ASSIGN_CALL.findall(txt))
-    return out
 
 
 def test_every_walled_object_has_a_producer():
@@ -102,11 +76,10 @@ def test_every_walled_object_has_a_producer():
         produced.update(producers(txt))
         if "pff_stats" in p.parts:
             rel = str(p.relative_to(REPO)).replace("\\", "/")
-            for vec in NEEDED_VEC.finditer(txt):
-                for name in STRING.findall(vec.group(1)):
-                    needed.setdefault(name, set()).add(rel)
+            for name in needs(txt):
+                needed.setdefault(name, set()).add(rel)
 
-    assert needed, "no needed_* walls found -- the scan regex is broken"
+    assert needed, "no *needed* walls found -- the scan regex is broken"
 
     orphans = {
         name: sorted(files)

@@ -313,6 +313,12 @@ rates and row receipts do not depend on it.
 
 ## Known holes (2026-09-12)
 
+- **`opp25_lg` is never created.** `league_pass_rush_final_evaluation.R:374`
+  lists it in a soft gate (`if (all(vapply(lg_needed, exists, ...)))`); nothing
+  in the repo builds it, so the gate never passes and the `rot26_full` /
+  `slate_view` block behind it is dead code. Found by the lineage verification
+  2026-09-13. Ruling needed: build it or retire the block.
+
 - **Sept 9 workspace receiving frames carry SHIFTED cluster labels.**
   `receiver_scheme_final`, `cluster_join` and `receiving_func_base` in that
   workspace have five alignment labels (no SWR): every canon **SWR is labelled

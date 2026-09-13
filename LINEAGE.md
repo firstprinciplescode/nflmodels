@@ -143,6 +143,7 @@ flowchart LR
   t_combined_grade_epa_summary --> f_pff_stats_pass_rush_pff_pass_rush_qbgrp_step0_AWS_R
   t_play_counts --> f_pff_stats_pass_rush_pff_pass_rush_qbgrp_step0_AWS_R
   t_vw_passing_tip --> f_pff_stats_qb_stats_df_build_AWS_R
+  t_combined_grade_epa_summary --> f_pff_stats_qb_stats_df_build_AWS_R
   t_vw_combined_pa --> f_pff_stats_qb_stats_df_build_AWS_R
   t_vw_combined_depth --> f_pff_stats_qb_stats_df_build_AWS_R
   t_vw_combined_blitz --> f_pff_stats_qb_stats_df_build_AWS_R
@@ -213,6 +214,8 @@ flowchart LR
   n_load_rosters -.-> f_data_build_pff_ids_validate_cross_R
   f_data_build_pbp_nfl_base_R -->|"combined_grade_epa_summary"| f_pff_stats_secondary_league_opp_secondary_schedule_R
   f_data_build_pbp_nfl_base_R -->|"combined_grade_epa_summary"| f_pff_stats_secondary_new_england_opp_secondary_schedule_R
+  f_data_build_pbp_part_combined_join_AWS_R -->|"combined_grade_epa_summary"| f_pff_stats_secondary_league_opp_secondary_schedule_R
+  f_data_build_pbp_part_combined_join_AWS_R -->|"combined_grade_epa_summary"| f_pff_stats_secondary_new_england_opp_secondary_schedule_R
   f_data_build_pff_ids_build_AWS_R -->|"combined_ids"| f_pff_stats_receiving_new_england_opp_receiving_schedule_R
   f_data_build_pff_ids_build_AWS_R -->|"combined_ids"| f_pff_stats_rushing_league_opp_rushing_schedule_R
   f_data_build_pff_ids_build_AWS_R -->|"combined_ids"| f_pff_stats_rushing_new_england_opp_rushing_schedule_R
@@ -239,32 +242,16 @@ flowchart LR
   f_data_build_pff_ids_validate_cross_R -->|"pff_team_lookup"| f_pff_stats_secondary_league_opp_secondary_schedule_R
   f_data_build_pff_ids_validate_cross_R -->|"pff_team_lookup"| f_pff_stats_secondary_new_england_opp_secondary_schedule_R
   f_pff_stats_pass_block_league_opp_pass_blocking_schedule_R -->|"opp_map_ol, pff32_ol, slots_full"| f_pff_stats_pass_block_league_pass_block_availability_R
+  f_pff_stats_pass_block_league_opp_pass_blocking_schedule_R -->|"opp_map_ol, pff32_ol, slots_full"| f_pff_stats_pass_block_league_pass_block_final_evaluation_R
   f_pff_stats_pass_block_league_pass_block_availability_R -->|"slot_value_26_pb_build"| f_pff_stats_evaluation_ne_players_evaluation_R
   f_pff_stats_pass_block_league_pass_block_evaluating_currency_three_R -->|"pblk_c3_pctl"| f_pff_stats_pass_block_league_pass_block_availability_R
   f_pff_stats_pass_block_league_pass_block_evaluating_currency_three_R -->|"pblk_c3_pctl, pblk_game_c3, pblk_modal_band_c3"| f_pff_stats_pass_block_league_pass_block_final_evaluation_R
   f_pff_stats_pass_block_league_pass_block_final_evaluation_R -->|"c3_rookie_prior_ol, cmp_adj_pb, proj_c3_pb +2"| f_pff_stats_pass_block_league_pass_block_availability_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"ol_pos_levels"| f_pff_stats_evaluation_ne_players_evaluation_R
   f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, ol_2024_profile +5"| f_pff_stats_pass_block_league_opp_pass_blocking_schedule_R
   f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, ol_pos_levels +3"| f_pff_stats_pass_block_league_pass_block_availability_R
   f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, cmp_ol_slate, entry_years +8"| f_pff_stats_pass_block_league_pass_block_final_evaluation_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_pass_rush_league_opp_pass_rush_schedule_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_pass_rush_league_pass_rush_availability_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, sched_2026"| f_pff_stats_pass_rush_league_pass_rush_final_evaluation_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_pass_rush_new_england_opp_pass_rush_schedule_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season"| f_pff_stats_receiving_league_opp_receiving_schedule_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, sched_2026"| f_pff_stats_receiving_league_receiving_availability_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_receiving_new_england_opp_receiving_schedule_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, ol_2024_profile +5"| f_pff_stats_run_block_league_opp_run_blocking_schedule_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, cmp_ol_slate, entry_years +7"| f_pff_stats_run_block_league_run_block_availability_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_run_defense_league_opp_run_defense_schedule_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"opp_2026_teams, sched_2026"| f_pff_stats_run_defense_league_run_defense_availability_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_run_defense_new_england_opp_run_defense_schedule_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_rushing_league_opp_rushing_schedule_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_rushing_league_rushing_availability_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_rushing_new_england_opp_rushing_schedule_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_secondary_league_opp_secondary_schedule_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, sched_2026"| f_pff_stats_secondary_league_secondary_availability_R
-  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_secondary_new_england_opp_secondary_schedule_R
+  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"ol_2024_profile, ol_2025_snaps, ol_season_pctl +2"| f_pff_stats_run_block_league_opp_run_blocking_schedule_R
+  f_pff_stats_pass_block_new_england_opp_ol_schedule_R -->|"cmp_ol_slate, entry_years, ne_2025_opp_ol_games +3"| f_pff_stats_run_block_league_run_block_availability_R
   f_pff_stats_pass_block_pff_pass_block_AWS_R -->|"all_pass_block_summary"| f_pff_stats_pass_block_league_opp_pass_blocking_schedule_R
   f_pff_stats_pass_block_pff_pass_block_AWS_R -->|"all_pass_block_summary"| f_pff_stats_pass_block_league_pass_block_availability_R
   f_pff_stats_pass_block_pff_pass_block_AWS_R -->|"pass_block_summary_qbgrp"| f_pff_stats_pass_block_league_pass_block_evaluating_currency_three_R
@@ -273,14 +260,12 @@ flowchart LR
   f_pff_stats_pass_block_pff_pass_block_AWS_R -->|"all_pass_block_summary"| f_pff_stats_run_block_league_opp_run_blocking_schedule_R
   f_pff_stats_pass_block_pff_pass_block_AWS_R -->|"all_pass_block_summary"| f_pff_stats_run_block_league_run_block_availability_R
   f_pff_stats_pass_rush_league_opp_pass_rush_schedule_R -->|"BANDS_LG, G_LG, NB_LG +23"| f_pff_stats_pass_rush_league_pass_rush_availability_R
-  f_pff_stats_pass_rush_league_opp_pass_rush_schedule_R -->|"cmp_prush_slate, entry_years_def, faced_games_2025 +2"| f_pff_stats_pass_rush_league_pass_rush_final_evaluation_R
+  f_pff_stats_pass_rush_league_opp_pass_rush_schedule_R -->|"NB_LG, band_lg, cmp_prush_slate +15"| f_pff_stats_pass_rush_league_pass_rush_final_evaluation_R
   f_pff_stats_pass_rush_league_opp_pass_rush_schedule_R -->|"team_band_2026"| f_pff_stats_rushing_league_opp_rushing_schedule_R
   f_pff_stats_pass_rush_league_opp_pass_rush_schedule_R -->|"team_band_2026"| f_pff_stats_rushing_new_england_opp_rushing_schedule_R
   f_pff_stats_pass_rush_league_pass_rush_availability_R -->|"members_pa"| f_pff_stats_evaluation_ne_players_evaluation_R
-  f_pff_stats_pass_rush_league_pass_rush_evaluating_currency_three_R -->|"percent_rank_avg"| f_pff_stats_pass_rush_league_opp_pass_rush_schedule_R
   f_pff_stats_pass_rush_league_pass_rush_evaluating_currency_three_R -->|"prush_c3_pctl"| f_pff_stats_pass_rush_league_pass_rush_availability_R
   f_pff_stats_pass_rush_league_pass_rush_evaluating_currency_three_R -->|"prush_c3_pctl, prush_game_c3"| f_pff_stats_pass_rush_league_pass_rush_final_evaluation_R
-  f_pff_stats_pass_rush_league_pass_rush_evaluating_currency_three_R -->|"percent_rank_avg"| f_pff_stats_pass_rush_new_england_opp_pass_rush_schedule_R
   f_pff_stats_pass_rush_new_england_opp_pass_rush_schedule_R -->|"cmp_prush_slate, entry_years_def, rot_2026"| f_pff_stats_pass_rush_league_pass_rush_availability_R
   f_pff_stats_pass_rush_new_england_opp_pass_rush_schedule_R -->|"cmp_prush_slate, entry_years_def, faced_games_2025 +2"| f_pff_stats_pass_rush_league_pass_rush_final_evaluation_R
   f_pff_stats_pass_rush_new_england_opp_pass_rush_schedule_R -->|"team_band_2026"| f_pff_stats_rushing_league_opp_rushing_schedule_R
@@ -289,10 +274,10 @@ flowchart LR
   f_pff_stats_pass_rush_pff_pass_rush_AWS_R -->|"full_pass_rush_qbgrp"| f_pff_stats_pass_rush_league_pass_rush_availability_R
   f_pff_stats_pass_rush_pff_pass_rush_AWS_R -->|"full_pass_rush_qbgrp"| f_pff_stats_pass_rush_league_pass_rush_evaluating_currency_three_R
   f_pff_stats_pass_rush_pff_pass_rush_AWS_R -->|"full_pass_rush_qbgrp, percent_rank_avg"| f_pff_stats_pass_rush_new_england_opp_pass_rush_schedule_R
-  f_pff_stats_pass_rush_pff_pass_rush_qbgrp_step0_AWS_R -->|"full_pass_rush_qbgrp, percent_rank_avg"| f_pff_stats_pass_rush_league_opp_pass_rush_schedule_R
+  f_pff_stats_pass_rush_pff_pass_rush_qbgrp_step0_AWS_R -->|"full_pass_rush_qbgrp"| f_pff_stats_pass_rush_league_opp_pass_rush_schedule_R
   f_pff_stats_pass_rush_pff_pass_rush_qbgrp_step0_AWS_R -->|"full_pass_rush_qbgrp"| f_pff_stats_pass_rush_league_pass_rush_availability_R
   f_pff_stats_pass_rush_pff_pass_rush_qbgrp_step0_AWS_R -->|"full_pass_rush_qbgrp"| f_pff_stats_pass_rush_league_pass_rush_evaluating_currency_three_R
-  f_pff_stats_pass_rush_pff_pass_rush_qbgrp_step0_AWS_R -->|"full_pass_rush_qbgrp, percent_rank_avg"| f_pff_stats_pass_rush_new_england_opp_pass_rush_schedule_R
+  f_pff_stats_pass_rush_pff_pass_rush_qbgrp_step0_AWS_R -->|"full_pass_rush_qbgrp"| f_pff_stats_pass_rush_new_england_opp_pass_rush_schedule_R
   f_pff_stats_receiving_league_opp_receiving_schedule_R -->|"league_sys_both, opp_map"| f_pff_stats_receiving_league_receiving_availability_R
   f_pff_stats_receiving_league_receiving_availability_R -->|"members_rc"| f_pff_stats_evaluation_ne_players_evaluation_R
   f_pff_stats_receiving_league_receiving_evaluating_currency_three_R -->|"REC_TEAM_PATCH, rec_c3_pctl"| f_pff_stats_receiving_league_receiving_availability_R
@@ -333,11 +318,11 @@ flowchart LR
   f_pff_stats_rushing_pff_rushing_qbgrp_step0_AWS_R -->|"rushing_qbgrp"| f_pff_stats_rushing_league_rushing_availability_R
   f_pff_stats_rushing_pff_rushing_qbgrp_step0_AWS_R -->|"rushing_qbgrp"| f_pff_stats_rushing_league_rushing_evaluating_currency_three_R
   f_pff_stats_rushing_pff_rushing_qbgrp_step0_AWS_R -->|"rushing_qbgrp"| f_pff_stats_rushing_new_england_opp_rushing_schedule_R
-  f_pff_stats_secondary_league_opp_secondary_schedule_R -->|"BANDS_SEC_LG, CM, CZ +25"| f_pff_stats_secondary_league_secondary_availability_R
+  f_pff_stats_secondary_league_opp_secondary_schedule_R -->|"BANDS_SEC_LG, CM, CZ +24"| f_pff_stats_secondary_league_secondary_availability_R
   f_pff_stats_secondary_league_opp_secondary_schedule_R -->|"CM, CZ, G_MAN +5"| f_pff_stats_secondary_league_secondary_evaluating_currency_three_R
   f_pff_stats_secondary_league_secondary_availability_R -->|"members_cv"| f_pff_stats_evaluation_ne_players_evaluation_R
-  f_pff_stats_secondary_league_secondary_evaluating_currency_three_R -->|"cov_c3_pctl, percent_rank_avg"| f_pff_stats_secondary_league_secondary_availability_R
-  f_pff_stats_secondary_new_england_opp_secondary_schedule_R -->|"CM, CZ, cmp_slate_mz +2"| f_pff_stats_secondary_league_secondary_availability_R
+  f_pff_stats_secondary_league_secondary_evaluating_currency_three_R -->|"cov_c3_pctl"| f_pff_stats_secondary_league_secondary_availability_R
+  f_pff_stats_secondary_new_england_opp_secondary_schedule_R -->|"CM, CZ, cmp_slate_mz +1"| f_pff_stats_secondary_league_secondary_availability_R
   f_pff_stats_secondary_new_england_opp_secondary_schedule_R -->|"CM, CZ, G_MAN +5"| f_pff_stats_secondary_league_secondary_evaluating_currency_three_R
   f_pff_stats_shared_ne_2026_constants_R -->|"ol_pos_levels"| f_pff_stats_evaluation_ne_players_evaluation_R
   f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_pass_rush_league_opp_pass_rush_schedule_R
@@ -349,20 +334,22 @@ flowchart LR
   f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_receiving_new_england_opp_receiving_schedule_R
   f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, ol_pos_levels"| f_pff_stats_run_block_league_opp_run_blocking_schedule_R
   f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, ol_pos_levels +1"| f_pff_stats_run_block_league_run_block_availability_R
-  f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_run_defense_league_opp_run_defense_schedule_R
+  f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +2"| f_pff_stats_run_defense_league_opp_run_defense_schedule_R
   f_pff_stats_shared_ne_2026_constants_R -->|"opp_2026_teams, sched_2026"| f_pff_stats_run_defense_league_run_defense_availability_R
-  f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_run_defense_new_england_opp_run_defense_schedule_R
-  f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_rushing_league_opp_rushing_schedule_R
+  f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +2"| f_pff_stats_run_defense_new_england_opp_run_defense_schedule_R
+  f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +2"| f_pff_stats_rushing_league_opp_rushing_schedule_R
   f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_rushing_league_rushing_availability_R
   f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_rushing_new_england_opp_rushing_schedule_R
-  f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_secondary_league_opp_secondary_schedule_R
-  f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, sched_2026"| f_pff_stats_secondary_league_secondary_availability_R
+  f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +2"| f_pff_stats_secondary_league_opp_secondary_schedule_R
+  f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, percent_rank_avg +1"| f_pff_stats_secondary_league_secondary_availability_R
   f_pff_stats_shared_ne_2026_constants_R -->|"blend2, in_season, opp_2026_teams +1"| f_pff_stats_secondary_new_england_opp_secondary_schedule_R
 ```
 
 ## Holes — walled-on objects that NO scanned file creates
 
-None. Every walled-on object has a producer in the scanned files.
+| object | needed by |
+|---|---|
+| opp25_lg | pff_stats/pass_rush/league_pass_rush_final_evaluation.R |
 
 ## Landmines — one object name created by files in DIFFERENT units
 
@@ -373,7 +360,7 @@ Each unit's schedule overwrites the same session name; the last file sourced win
 | G_MIN | pff_stats/pass_rush/league_opp_pass_rush_schedule.R<br/>pff_stats/pass_rush/new_england_opp_pass_rush_schedule.R<br/>pff_stats/receiving/new_england_opp_receiving_schedule.R<br/>pff_stats/run_defense/league_opp_run_defense_schedule.R<br/>pff_stats/run_defense/new_england_opp_run_defense_schedule.R<br/>pff_stats/rushing/league_opp_rushing_schedule.R<br/>pff_stats/rushing/new_england_opp_rushing_schedule.R |
 | X_QUAL | pff_stats/pass_rush/league_opp_pass_rush_schedule.R<br/>pff_stats/pass_rush/new_england_opp_pass_rush_schedule.R<br/>pff_stats/receiving/new_england_opp_receiving_schedule.R<br/>pff_stats/run_defense/league_opp_run_defense_schedule.R<br/>pff_stats/run_defense/new_england_opp_run_defense_schedule.R<br/>pff_stats/rushing/league_opp_rushing_schedule.R<br/>pff_stats/rushing/new_england_opp_rushing_schedule.R |
 | blend2 | pff_stats/pass_block/new_england_opp_ol_schedule.R<br/>pff_stats/shared_ne_2026_constants.R |
-| combined_grade_epa_summary | data_build/pbp_nfl_base.R<br/>pff_stats/pass_rush/pff_pass_rush_qbgrp_step0_AWS.R<br/>pff_stats/run_block/pff_run_block_AWS.R<br/>pff_stats/run_defense/pff_run_defense_qbgrp_step0_AWS.R<br/>pff_stats/rushing/pff_rushing_qbgrp_step0_AWS.R<br/>pff_stats/rushing/pff_rushing_stats_build_four_type_AWS.R |
+| combined_grade_epa_summary | data_build/pbp_nfl_base.R<br/>data_build/pbp_part_combined_join_AWS.R<br/>pff_stats/run_block/pff_run_block_AWS.R<br/>pff_stats/rushing/pff_rushing_stats_build_four_type_AWS.R |
 | entry_years_def | pff_stats/pass_rush/league_opp_pass_rush_schedule.R<br/>pff_stats/pass_rush/new_england_opp_pass_rush_schedule.R<br/>pff_stats/run_defense/league_opp_run_defense_schedule.R<br/>pff_stats/run_defense/new_england_opp_run_defense_schedule.R |
 | entry_years_off | pff_stats/receiving/new_england_opp_receiving_schedule.R<br/>pff_stats/rushing/league_opp_rushing_schedule.R<br/>pff_stats/rushing/new_england_opp_rushing_schedule.R |
 | faced_games_2025 | pff_stats/pass_rush/league_opp_pass_rush_schedule.R<br/>pff_stats/pass_rush/new_england_opp_pass_rush_schedule.R<br/>pff_stats/run_defense/league_opp_run_defense_schedule.R<br/>pff_stats/run_defense/new_england_opp_run_defense_schedule.R<br/>pff_stats/rushing/league_opp_rushing_schedule.R<br/>pff_stats/rushing/new_england_opp_rushing_schedule.R |
@@ -382,13 +369,11 @@ Each unit's schedule overwrites the same session name; the last file sourced win
 | ol_pos_levels | pff_stats/pass_block/new_england_opp_ol_schedule.R<br/>pff_stats/shared_ne_2026_constants.R |
 | opp_2026_teams | pff_stats/pass_block/new_england_opp_ol_schedule.R<br/>pff_stats/shared_ne_2026_constants.R |
 | opp_map_ol | pff_stats/pass_block/league_opp_pass_blocking_schedule.R<br/>pff_stats/run_block/league_opp_run_blocking_schedule.R |
-| p24 | pff_stats/receiving/new_england_opp_receiving_schedule.R<br/>pff_stats/secondary/league_opp_secondary_schedule.R<br/>pff_stats/secondary/new_england_opp_secondary_schedule.R |
-| p25 | pff_stats/receiving/new_england_opp_receiving_schedule.R<br/>pff_stats/secondary/league_opp_secondary_schedule.R<br/>pff_stats/secondary/new_england_opp_secondary_schedule.R |
-| percent_rank_avg | pff_stats/pass_block/league_pass_block_evaluating_currency_three.R<br/>pff_stats/pass_block/pff_pass_block_AWS.R<br/>pff_stats/pass_rush/league_pass_rush_evaluating_currency_three.R<br/>pff_stats/pass_rush/pff_pass_rush_AWS.R<br/>pff_stats/pass_rush/pff_pass_rush_qbgrp_step0_AWS.R<br/>pff_stats/receiving/league_receiving_evaluating_currency_three.R<br/>pff_stats/receiving/new_england_opp_receiving_schedule.R<br/>pff_stats/run_block/league_run_block_evaluating_currency_three.R<br/>pff_stats/run_defense/league_opp_run_defense_schedule.R<br/>pff_stats/run_defense/league_run_defense_evaluating_currency_three.R<br/>pff_stats/run_defense/new_england_opp_run_defense_schedule.R<br/>pff_stats/rushing/league_opp_rushing_schedule.R<br/>pff_stats/rushing/league_rushing_evaluating_currency_three.R<br/>pff_stats/rushing/new_england_opp_rushing_schedule.R<br/>pff_stats/secondary/league_opp_secondary_schedule.R<br/>pff_stats/secondary/league_secondary_evaluating_currency_three.R<br/>pff_stats/secondary/new_england_opp_secondary_schedule.R<br/>pff_stats/shared_ne_2026_constants.R |
+| percent_rank_avg | pff_stats/pass_block/pff_pass_block_AWS.R<br/>pff_stats/pass_rush/pff_pass_rush_AWS.R<br/>pff_stats/shared_ne_2026_constants.R |
 | pff32_ol | pff_stats/pass_block/league_opp_pass_blocking_schedule.R<br/>pff_stats/run_block/league_opp_run_blocking_schedule.R |
 | rot_2026 | pff_stats/pass_rush/league_opp_pass_rush_schedule.R<br/>pff_stats/pass_rush/new_england_opp_pass_rush_schedule.R<br/>pff_stats/run_defense/league_opp_run_defense_schedule.R<br/>pff_stats/run_defense/new_england_opp_run_defense_schedule.R |
 | rot_2026_rundef | pff_stats/pass_rush/league_opp_pass_rush_schedule.R<br/>pff_stats/pass_rush/new_england_opp_pass_rush_schedule.R<br/>pff_stats/run_defense/league_opp_run_defense_schedule.R<br/>pff_stats/run_defense/new_england_opp_run_defense_schedule.R |
-| run_athena_query | data_build/pbp_nfl_base.R<br/>data_build/pbp_part_combined_join_AWS.R<br/>data_build/pff_ids_build_AWS.R<br/>data_build/pff_ids_build_defense_AWS.R<br/>pff_stats/pass_block/pff_pass_block_AWS.R<br/>pff_stats/pass_rush/pff_pass_rush_AWS.R<br/>pff_stats/pass_rush/pff_pass_rush_qbgrp_step0_AWS.R<br/>pff_stats/qb_stats_df_build_AWS.R<br/>pff_stats/receiving/pff_receiving_man_zone_exploration_AWS.R<br/>pff_stats/receiving/receiving_stats_build_AWS.R<br/>pff_stats/run_block/pff_run_block_AWS.R<br/>pff_stats/run_defense/pff_run_defense_AWS.R<br/>pff_stats/run_defense/pff_run_defense_qbgrp_step0_AWS.R<br/>pff_stats/rushing/pff_rushing_qbgrp_step0_AWS.R<br/>pff_stats/rushing/pff_rushing_stats_build_one_AWS.R<br/>pff_stats/secondary/league_opp_secondary_schedule.R<br/>pff_stats/secondary/new_england_opp_secondary_schedule.R<br/>pff_stats/secondary/pff_pass_coverage_AWS.R<br/>pff_stats/secondary/pff_secondary_cache_step0_AWS.R |
+| run_athena_query | data_build/pbp_nfl_base.R<br/>data_build/pbp_part_combined_join_AWS.R<br/>data_build/pff_ids_build_AWS.R<br/>data_build/pff_ids_build_defense_AWS.R<br/>pff_stats/pass_block/pff_pass_block_AWS.R<br/>pff_stats/pass_rush/pff_pass_rush_AWS.R<br/>pff_stats/qb_stats_df_build_AWS.R<br/>pff_stats/receiving/pff_receiving_man_zone_exploration_AWS.R<br/>pff_stats/receiving/receiving_stats_build_AWS.R<br/>pff_stats/run_block/pff_run_block_AWS.R<br/>pff_stats/run_defense/pff_run_defense_AWS.R<br/>pff_stats/rushing/pff_rushing_stats_build_one_AWS.R<br/>pff_stats/secondary/pff_pass_coverage_AWS.R |
 | sched_2026 | pff_stats/pass_block/new_england_opp_ol_schedule.R<br/>pff_stats/shared_ne_2026_constants.R |
 | slots_full | pff_stats/pass_block/league_opp_pass_blocking_schedule.R<br/>pff_stats/run_block/league_opp_run_blocking_schedule.R |
 | team_band_2026 | pff_stats/pass_rush/league_opp_pass_rush_schedule.R<br/>pff_stats/pass_rush/new_england_opp_pass_rush_schedule.R<br/>pff_stats/run_defense/league_opp_run_defense_schedule.R<br/>pff_stats/run_defense/new_england_opp_run_defense_schedule.R |
@@ -401,113 +386,113 @@ Each unit's schedule overwrites the same session name; the last file sourced win
 |---|---|
 | `league_opp_pass_rush_schedule.R` | prush_qual_games, prush_modal_band, prush_tps_season_pctl_sos, prush_usage, prush_rookie_prior, cmp_prush_slate, opp_prush_2026_deltas |
 | `new_england_opp_pass_rush_schedule.R` | prush_qual_games, prush_modal_band, prush_tps_season_pctl_sos, prush_usage, prush_rookie_prior, cmp_prush_slate, opp_prush_2026_deltas |
-| `league_opp_run_defense_schedule.R` | rundef_qual_games, rundef_modal_band, rundef_season_pctl_sos, rundef_usage, rundef_rookie_prior, cmp_rundef_slate, opp_rundef_2026_deltas, percent_rank_avg |
-| `new_england_opp_run_defense_schedule.R` | rundef_qual_games, rundef_modal_band, rundef_season_pctl_sos, rundef_usage, rundef_rookie_prior, cmp_rundef_slate, opp_rundef_2026_deltas, percent_rank_avg |
-| `league_opp_rushing_schedule.R` | team_rb_2026, faced_rb_team_2025, cmp_rush_slate, percent_rank_avg |
+| `league_opp_run_defense_schedule.R` | rundef_qual_games, rundef_modal_band, rundef_season_pctl_sos, rundef_usage, rundef_rookie_prior, cmp_rundef_slate, opp_rundef_2026_deltas |
+| `new_england_opp_run_defense_schedule.R` | rundef_qual_games, rundef_modal_band, rundef_season_pctl_sos, rundef_usage, rundef_rookie_prior, cmp_rundef_slate, opp_rundef_2026_deltas |
+| `league_opp_rushing_schedule.R` | team_rb_2026, faced_rb_team_2025, cmp_rush_slate |
 | `new_england_opp_rushing_schedule.R` | team_rb_2026, faced_rb_team_2025, cmp_rush_slate |
-| `league_opp_secondary_schedule.R` | coverage_qbgrp_mz, CN, CM, CZ, percent_rank_avg, cmp_slate_mz, cmp_unit_mz |
+| `league_opp_secondary_schedule.R` | coverage_qbgrp_mz, CN, CM, CZ, cmp_slate_mz, cmp_unit_mz |
 
 ## data_build
 
 | file | stage | athena tables | needs (walls) | makes |
 |---|---|---|---|---|
-| `part_nfl_base.R` | base | — | — | 19: def_position_fuckups, defenders_in_box_final, defenders_in_box_full, defenders_in_box_selected, extract_players, formula_str, mae, na_idx … |
-| `part_weather_backfill.R` | base | — | — | 42: alias_match, all_missing, all_weather, api_results, backfill_weather, et_time, fetch_hourly_weather, game_hours … |
-| `participation_combined_AWS.R` | base | — | — | 36: X, bucket, create_dmatrix, create_dmatrix_pressure_after_pass, dtest, eligible_rows, full_path, impute_weather … |
-| `pbp_combined_AWS.R` | base | — | — | 29: X, bucket, create_dmatrix_after_pass_xtd, create_dmatrix_after_run_xtd, create_dmatrix_before_xtd, create_dmatrix_cp, create_dmatrix_pressure, create_dmatrix_sack … |
-| `pbp_nfl_base.R` | base | team_ids_tbl, vw_team_passing_summary | — | 20: athena_teams, combined_grade_epa_summary, elapsed, epa_pass_tiebreaker, epa_run_tiebreaker, error_cmd, error_msg, gid … |
-| `pbp_part_combined_join_AWS.R` | base | combined_grade_epa_summary | — | 11: combined_pbp, part_nfl_join, part_prefix, pbp_only_model, pbp_part_model, pbp_prefix, query_id, result_cmd … |
-| `pff_ids_build_AWS.R` | ids | pass_block_summary, passing_pressure, passing_tip, receiver_scheme, run_block_summary, rushing_summary, receiving_with_targets | — | 37: SEASONS, check_bounds, check_critical_na, check_fid_team, check_gsis_format, check_gsis_pid, check_gsis_week, check_pid_gsis … |
-| `pff_ids_build_defense_AWS.R` | ids | coverage_scheme, coverage_summary, pass_rush_kpis, pass_rush_summary, run_defense_summary, slot_coverage | — | 34: SEASONS, check_bounds, check_critical_na, check_fid_team, check_gsis_format, check_gsis_pid, check_gsis_week, check_pid_gsis … |
+| `part_nfl_base.R` | base | — | — | 18: def_position_fuckups, defenders_in_box_final, defenders_in_box_full, defenders_in_box_selected, extract_players, formula_str, mae, na_idx … |
+| `part_weather_backfill.R` | base | — | — | 21: backfill_weather, fetch_hourly_weather, get_missing_weather_games, gid, hourly, idx, interpolate_game_weather, kickoff_hour … |
+| `participation_combined_AWS.R` | base | — | — | 37: bucket, create_dmatrix, create_dmatrix_pressure_after_pass, dtest, eligible_rows, impute_weather, load_artifacts_from_s3, load_model_from_s3 … |
+| `pbp_combined_AWS.R` | base | — | — | 31: bucket, create_dmatrix_after_pass_xtd, create_dmatrix_after_run_xtd, create_dmatrix_before_xtd, create_dmatrix_cp, create_dmatrix_pressure, create_dmatrix_sack, create_dmatrix_scramble_xtd … |
+| `pbp_nfl_base.R` | base | team_ids_tbl, vw_team_passing_summary | — | 12: athena_teams, combined_grade_epa_summary, epa_pass_tiebreaker, epa_run_tiebreaker, gid, idx, nfl_epa_wk, pbp_base … |
+| `pbp_part_combined_join_AWS.R` | base | combined_grade_epa_summary | — | 8: combined_grade_epa_summary, combined_pbp, part_nfl_join, part_prefix, pbp_only_model, pbp_part_model, pbp_prefix, run_athena_query |
+| `pff_ids_build_AWS.R` | ids | pass_block_summary, passing_pressure, passing_tip, receiver_scheme, run_block_summary, rushing_summary, receiving_with_targets | — | 33: SEASONS, check_bounds, check_critical_na, check_fid_team, check_gsis_format, check_gsis_pid, check_gsis_week, check_pid_gsis … |
+| `pff_ids_build_defense_AWS.R` | ids | coverage_scheme, coverage_summary, pass_rush_kpis, pass_rush_summary, run_defense_summary, slot_coverage | — | 30: SEASONS, check_bounds, check_critical_na, check_fid_team, check_gsis_format, check_gsis_pid, check_gsis_week, check_pid_gsis … |
 | `pff_ids_validate_cross.R` | ids | — | — | 7: both_ids, id_xwalk, pff_team_lookup, resolve_gsis, team_map, xt_gsis_collision, xt_pid_collision |
 
 ## shared
 
 | file | stage | athena tables | needs (walls) | makes |
 |---|---|---|---|---|
-| `shared_ne_2026_constants.R` | constants | — | — | 7: blend2, in_season, n_valid, ol_pos_levels, opp_2026_teams, percent_rank_avg, sched_2026 |
-| `qb_stats_df_build_AWS.R` | step0 | vw_passing_tip, vw_combined_pa, vw_combined_depth, vw_combined_blitz, vw_combined_pressure | — | 23: check_cmd, df_twp_agg, df_twp_agg_stats, elapsed, error_cmd, error_msg, pbp_base_rs, qb_stats_df_base … |
+| `shared_ne_2026_constants.R` | constants | — | — | 6: blend2, in_season, ol_pos_levels, opp_2026_teams, percent_rank_avg, sched_2026 |
+| `qb_stats_df_build_AWS.R` | step0 | vw_passing_tip, combined_grade_epa_summary, vw_combined_pa, vw_combined_depth, vw_combined_blitz, vw_combined_pressure | — | 13: df_twp_agg, df_twp_agg_stats, pbp_base_rs, qb_stats_df_base, qb_stats_df_final, qb_stats_df_intermediary, query_blitz, query_depth … |
 
 ## run_defense
 
 | file | stage | athena tables | needs (walls) | makes |
 |---|---|---|---|---|
-| `pff_run_defense_AWS.R` | step0 | run_defense_summary | — | 59: .reorder_within, .scale_x_reordered, all_vars, bin_rate, br, build_panel, cell_n, cx … |
-| `pff_run_defense_qbgrp_step0_AWS.R` | step0 | run_defense_summary, combined_grade_epa_summary | — | 24: before, canon_fix, check_cmd, combined_grade_epa_summary, dup_rd, elapsed, error_cmd, error_msg … |
-| `new_england_opp_run_defense_schedule.R` | schedule | — | run_defense_qbgrp, combined_ids_defense, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season, rundef_qual_games, rundef_modal_band, rundef_season_pctl_sos, rundef_usage, rundef_rookie_prior, cmp_rundef_slate, opp_rundef_2026_deltas, percent_rank_avg | 78: G_MIN, G_MIN_RD, N_BAND, N_BAND_RD, SOS_BANDS, SOS_BANDS_RD, X_QUAL, X_QUAL_RD … |
-| `league_run_defense_evaluating_currency_three.R` | c3 | — | run_defense_qbgrp | 19: BANDS_RD, G_MIN_RD, X_QUAL_RD, apo_rd, c1_c3_rd, gr_rd, legend_rd, miss_rd … |
-| `league_opp_run_defense_schedule.R` | league | — | run_defense_qbgrp, combined_ids_defense, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season, rundef_qual_games, rundef_modal_band, rundef_season_pctl_sos, rundef_usage, rundef_rookie_prior, cmp_rundef_slate, opp_rundef_2026_deltas, percent_rank_avg | 133: BANDS_RD_LG, G_MIN, G_MIN_RD, G_RD_LG, N_BAND, N_BAND_RD, N_RD_LG, SOS_BANDS … |
-| `league_run_defense_availability.R` | availability | — | qual_rd_lg, cur_rd_lg, modal_band_rd_lg, prior_rd_lg, rot_2026_rd_lg, team_band_rd_lg, team26_rd_lg, faced_games_rd_lg, faced_rd_lg, slate_rd_lg, league_rundef, ent_rd_lg, xw_rd_lg, rot_2026_rundef, cmp_rundef_slate, rd_c3_pctl, sched_2026, opp_2026_teams, opp26_rd, X_RD_LG, G_RD_LG, N_RD_LG, BANDS_RD_LG, pff32_rd | 65: AVAIL_DENOM_RA, AVAIL_SEASONS_RA, a_chk_ra, a_dir_ra, a_two_ra, avail_ra, b1_ra, b2_ra … |
+| `pff_run_defense_AWS.R` | step0 | run_defense_summary | — | 42: .reorder_within, .scale_x_reordered, all_vars, bin_rate, build_panel, cell_n, d, d_full … |
+| `pff_run_defense_qbgrp_step0_AWS.R` | step0 | run_defense_summary, combined_grade_epa_summary | — | 11: canon_fix, dup_rd, fx, id_cols_rd, ids_rd, miss_id_rd, miss_rd0, n_un_rd … |
+| `new_england_opp_run_defense_schedule.R` | schedule | — | run_defense_qbgrp, combined_ids_defense, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season, rundef_qual_games, rundef_modal_band, rundef_season_pctl_sos, rundef_usage, rundef_rookie_prior, cmp_rundef_slate, opp_rundef_2026_deltas, percent_rank_avg | 76: G_MIN, G_MIN_RD, N_BAND, N_BAND_RD, SOS_BANDS, SOS_BANDS_RD, X_QUAL, X_QUAL_RD … |
+| `league_run_defense_evaluating_currency_three.R` | c3 | — | run_defense_qbgrp | 17: BANDS_RD, G_MIN_RD, X_QUAL_RD, apo_rd, c1_c3_rd, gr_rd, legend_rd, miss_rd … |
+| `league_opp_run_defense_schedule.R` | league | — | run_defense_qbgrp, combined_ids_defense, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season, rundef_qual_games, rundef_modal_band, rundef_season_pctl_sos, rundef_usage, rundef_rookie_prior, cmp_rundef_slate, opp_rundef_2026_deltas, percent_rank_avg | 129: BANDS_RD_LG, G_MIN, G_MIN_RD, G_RD_LG, N_BAND, N_BAND_RD, N_RD_LG, SOS_BANDS … |
+| `league_run_defense_availability.R` | availability | — | qual_rd_lg, cur_rd_lg, modal_band_rd_lg, prior_rd_lg, rot_2026_rd_lg, team_band_rd_lg, team26_rd_lg, faced_games_rd_lg, faced_rd_lg, slate_rd_lg, league_rundef, ent_rd_lg, xw_rd_lg, rot_2026_rundef, cmp_rundef_slate, rd_c3_pctl, sched_2026, opp_2026_teams, opp26_rd, X_RD_LG, G_RD_LG, N_RD_LG, BANDS_RD_LG, pff32_rd | 64: AVAIL_DENOM_RA, AVAIL_SEASONS_RA, a_chk_ra, a_dir_ra, a_two_ra, avail_ra, b1_ra, b2_ra … |
 
 ## rushing
 
 | file | stage | athena tables | needs (walls) | makes |
 |---|---|---|---|---|
-| `pff_rushing_qbgrp_step0_AWS.R` | step0 | rushing_summary, combined_grade_epa_summary | — | 26: before, canon_fix, check_cmd, combined_grade_epa_summary, dup, elapsed, error_cmd, error_msg … |
+| `pff_rushing_qbgrp_step0_AWS.R` | step0 | rushing_summary, combined_grade_epa_summary | — | 13: canon_fix, dup, fx, id_cols, ids, join_key, miss, miss_id … |
 | `pff_rushing_stats_build_five_xtd_AWS.R` | step0 | — | — | 11: km, km_final_xtd, max_k, pred, rusher_xtd_cluster, rusher_xtd_diff_df, rusher_xtd_final, rusher_xtd_tree_data … |
 | `pff_rushing_stats_build_four_type_AWS.R` | step0 | combined_grade_epa_summary | — | 6: combined_grade_epa_summary, player_zone_gap, player_zone_gap_draft, player_zone_gap_zscore, rushing_summary, rushing_summary_rank |
-| `pff_rushing_stats_build_one_AWS.R` | step0 | rushing_summary, vw_play_counts_enriched | — | 45: aov_result, breaks_1st, breaks_2nd, breaks_3rd, breaks_4th, check_cmd, down_data, down_summary … |
+| `pff_rushing_stats_build_one_AWS.R` | step0 | rushing_summary, vw_play_counts_enriched | — | 23: breaks_1st, breaks_2nd, breaks_3rd, breaks_4th, explore_down, first_down, fourth_down, fourth_down_ydstogo_explorer … |
 | `pff_rushing_stats_build_three_gap_AWS.R` | step0 | — | — | 18: base_run_gap_cluster, candidate_ks, gap_cluster_df, km, km_gap_a_final, km_gap_b_final, km_gap_c_final, max_k … |
-| `pff_rushing_stats_build_two_situation_AWS.R` | step0 | — | — | 56: a_dashboard, b_dashboard, c_dashboard, candidate_ks, cluster_combined, cluster_dashboard, cluster_data, cluster_direction … |
-| `new_england_opp_rushing_schedule.R` | schedule | — | rushing_qbgrp, combined_ids, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season, team_rb_2026, faced_rb_team_2025, cmp_rush_slate, run_defense_qbgrp, rundef_season_pctl_sos, team_band_2026 | 49: G_MIN, N_RB, X_QUAL, adds_prepped, auto_phantoms, cmp_rush_slate, cmp_rush_slate_comp, cor_mat_rb … |
-| `league_rushing_evaluating_currency_three.R` | c3 | — | rushing_qbgrp | 16: BAND_RU, G_MIN_RU, X_QUAL_RU, c1_c3_ru, legend_ru, miss_ru, missing_ru, n_valid … |
-| `league_opp_rushing_schedule.R` | league | — | rushing_qbgrp, combined_ids, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season, team_rb_2026, faced_rb_team_2025, cmp_rush_slate, run_defense_qbgrp, rundef_season_pctl_sos, team_band_2026, percent_rank_avg | 88: G_MIN, G_RB, N_RB, X_QUAL, X_RB, adds_prepped, auto_phantoms, cmp_rush_slate … |
+| `pff_rushing_stats_build_two_situation_AWS.R` | step0 | — | — | 28: a_dashboard, b_dashboard, c_dashboard, candidate_ks, cluster_dashboard, combined_rush_summation_final, combined_rush_summation_final_a, combined_rush_summation_final_b … |
+| `new_england_opp_rushing_schedule.R` | schedule | — | rushing_qbgrp, combined_ids, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season, team_rb_2026, faced_rb_team_2025, cmp_rush_slate, run_defense_qbgrp, rundef_season_pctl_sos, team_band_2026 | 47: G_MIN, N_RB, X_QUAL, adds_prepped, auto_phantoms, cmp_rush_slate, cmp_rush_slate_comp, cor_mat_rb … |
+| `league_rushing_evaluating_currency_three.R` | c3 | — | rushing_qbgrp | 14: BAND_RU, G_MIN_RU, X_QUAL_RU, c1_c3_ru, legend_ru, miss_ru, missing_ru, ne_ids_ru … |
+| `league_opp_rushing_schedule.R` | league | — | rushing_qbgrp, combined_ids, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season, team_rb_2026, faced_rb_team_2025, cmp_rush_slate, run_defense_qbgrp, rundef_season_pctl_sos, team_band_2026, percent_rank_avg | 84: G_MIN, G_RB, N_RB, X_QUAL, X_RB, adds_prepped, auto_phantoms, cmp_rush_slate … |
 | `league_rushing_availability.R` | availability | — | rushing_qbgrp, rush_qual_games, rush_season_pctl_sos, ru_c3_pctl, rush_rookie_prior, prior_rb_lg, rot_2026_rb, team_rb_2026, cmp_rush_slate, rot_2026_rb_lg, team26_rb_lg, faced_games_rb_lg, faced_rb_lg, league_rush, opp26_rb, ros_rb_lg, cur_rb_lg, ent_rb_lg, sched_2026, opp_2026_teams, in_season, blend2, X_RB, G_RB, N_RB | 67: AVAIL_ATT_MIN_RU, AVAIL_DENOM_RU, AVAIL_SEASONS_RU, adj_25_ne, avail_ru, bad_lg_ru, bad_team26_ru, bad_team_ne_ru … |
 | `pff_rushing_stats_build_six_final.R` | other | — | — | 11: contact_statistics, pbp_rush_statistics, rush_stats_draft_four, rush_stats_draft_one, rush_stats_draft_three, rush_stats_draft_two, rush_stats_final, sfx … |
-| `rush_comparison_engine.R` | other | — | — | 45: RUSH_BUCKET, RUSH_TOL_STAMP, args, bad, categories, category_results, cur_def, cur_qb … |
-| `rush_stats_df_build.R` | other | — | — | 5: create_rush_stats, rush_game, rush_stats_high, rush_stats_low, rush_stats_rec |
-| `rush_thresholds_engine.R` | other | — | — | 39: band, base_in, chosen, dd, def, dq, fl, g … |
-| `rushing_stats_comparison.R` | other | — | — | 61: DEFAULT_RUSH_PLOT_METRICS, RUSH_METRIC_LABELS, SCORECARD_SPEC, allow_key, apply_cluster_dict, build_cluster_ref, card, center_vec … |
+| `rush_comparison_engine.R` | other | — | — | 21: RUSH_BUCKET, RUSH_TOL_STAMP, categories, category_results, full_name, process_category, rush_categories, rush_func … |
+| `rush_stats_df_build.R` | other | — | — | 4: create_rush_stats, rush_stats_high, rush_stats_low, rush_stats_rec |
+| `rush_thresholds_engine.R` | other | — | — | 31: base_in, chosen, dd, def, dq, fl, h, hits … |
+| `rushing_stats_comparison.R` | other | — | — | 46: DEFAULT_RUSH_PLOT_METRICS, RUSH_METRIC_LABELS, SCORECARD_SPEC, apply_cluster_dict, build_cluster_ref, charbonnet_game_scorecard, charbonnet_game_view, charbonnet_season_scorecard … |
 
 ## pass_rush
 
 | file | stage | athena tables | needs (walls) | makes |
 |---|---|---|---|---|
-| `pff_pass_rush_AWS.R` | step0 | pass_rush_kpis, pass_rush_summary | — | 71: all_pass_block_opp_position_pctl, all_pblk_long, all_pblk_z, build_panel, d, d_full, det_blue, det_def_games … |
-| `pff_pass_rush_qbgrp_step0_AWS.R` | step0 | pass_rush_kpis, pass_rush_summary, combined_grade_epa_summary, play_counts | — | 27: before, canon_fix, check_cmd, combined_grade_epa_summary, elapsed, error_cmd, error_msg, full_pass_rush … |
+| `pff_pass_rush_AWS.R` | step0 | pass_rush_kpis, pass_rush_summary | — | 61: all_pass_block_opp_position_pctl, all_pblk_long, all_pblk_z, build_panel, d, d_full, det_blue, det_def_games … |
+| `pff_pass_rush_qbgrp_step0_AWS.R` | step0 | pass_rush_kpis, pass_rush_summary, combined_grade_epa_summary, play_counts | — | 11: canon_fix, full_pass_rush, full_pass_rush_qbgrp, fx, miss_pr, n_pre_gate, n_un, ne_wk … |
 | `new_england_opp_pass_rush_schedule.R` | schedule | — | full_pass_rush_qbgrp, combined_ids_defense, pff_team_lookup, opp_2026_teams, percent_rank_avg, blend2, in_season, sched_2026, prush_qual_games, prush_modal_band, prush_tps_season_pctl_sos, prush_usage, prush_rookie_prior, cmp_prush_slate, opp_prush_2026_deltas | 79: G_MIN, G_MIN_PR, N_BAND, N_BAND_PR, SOS_BANDS, SOS_BANDS_PR, X_QUAL, X_QUAL_PR … |
-| `league_pass_rush_evaluating_currency_three.R` | c3 | — | full_pass_rush_qbgrp | 16: BANDS_C3, G_MIN_C3, X_QUAL_C3, apo_c3, c1_c3, ed_col_c3, missing_c3, modal_band_c3 … |
-| `league_opp_pass_rush_schedule.R` | league | — | full_pass_rush_qbgrp, combined_ids_defense, pff_team_lookup, opp_2026_teams, percent_rank_avg, blend2, in_season, sched_2026, prush_qual_games, prush_modal_band, prush_tps_season_pctl_sos, prush_usage, prush_rookie_prior, cmp_prush_slate, opp_prush_2026_deltas | 121: BANDS_LG, G_LG, G_MIN, G_MIN_PR, NB_LG, N_BAND, N_BAND_PR, SOS_BANDS … |
-| `league_pass_rush_final_evaluation.R` | final | — | rot_2026, ledger, faced_games_2025, cmp_prush_slate, prush_c3_pctl, prush_game_c3, entry_years_def, blend2, sched_2026 | 34: b, band26, c3_rookie_prior, cmp_adj, d, f, faced_band_c3, faced_c3_2025 … |
-| `league_pass_rush_availability.R` | availability | — | full_pass_rush_qbgrp, rot_2026, cmp_prush_slate, sched_2026, opp_2026_teams, qual_lg, cur_lg, modal_lg, rot_lg, ph_lg, team26_lg, faced_games_lg, faced_lg, league_prush, ros_lg, use_lg, band_lg, slot_lg, slot_med_lg, prior_lg, xw_lg, fb_lg, prush_c3_pctl, entry_years_def, opp26_lg, pff32_lg, blend2, in_season, pff_team_lookup, X_LG, G_LG, NB_LG, BANDS_LG | 47: AVAIL_DENOM_PA, AVAIL_SEASONS_PA, a_pa, avail_pa, b1_pa, b_pa, back25_pa, bench_pa … |
+| `league_pass_rush_evaluating_currency_three.R` | c3 | — | full_pass_rush_qbgrp | 14: BANDS_C3, G_MIN_C3, X_QUAL_C3, apo_c3, c1_c3, ed_col_c3, missing_c3, modal_band_c3 … |
+| `league_opp_pass_rush_schedule.R` | league | — | full_pass_rush_qbgrp, combined_ids_defense, pff_team_lookup, opp_2026_teams, percent_rank_avg, blend2, in_season, sched_2026, prush_qual_games, prush_modal_band, prush_tps_season_pctl_sos, prush_usage, prush_rookie_prior, cmp_prush_slate, opp_prush_2026_deltas | 119: BANDS_LG, G_LG, G_MIN, G_MIN_PR, NB_LG, N_BAND, N_BAND_PR, SOS_BANDS … |
+| `league_pass_rush_final_evaluation.R` | final | — | rot_2026, ledger, faced_games_2025, cmp_prush_slate, prush_c3_pctl, prush_game_c3, entry_years_def, blend2, sched_2026, qual_lg, cur_lg, modal_lg, opp25_lg, opp26_lg, ros_lg, use_lg, band_lg, prior_lg, slot_lg, slot_med_lg, fb_lg, ph_lg, NB_LG | 18: c3_rookie_prior, cmp_adj, faced_band_c3, faced_c3_2025, lg_needed, missing_adj, needed_adj, player_c3 … |
+| `league_pass_rush_availability.R` | availability | — | full_pass_rush_qbgrp, rot_2026, cmp_prush_slate, sched_2026, opp_2026_teams, qual_lg, cur_lg, modal_lg, rot_lg, ph_lg, team26_lg, faced_games_lg, faced_lg, league_prush, ros_lg, use_lg, band_lg, slot_lg, slot_med_lg, prior_lg, xw_lg, fb_lg, prush_c3_pctl, entry_years_def, opp26_lg, pff32_lg, blend2, in_season, pff_team_lookup, X_LG, G_LG, NB_LG, BANDS_LG | 46: AVAIL_DENOM_PA, AVAIL_SEASONS_PA, a_pa, avail_pa, b1_pa, b_pa, back25_pa, bench_pa … |
 | `the_hutch_study.R` | other | — | — | 6: full_pass_rush_qbgrp_hutch_split, hutch_weeks_2024, pass_rush_tps_opp_percentile_hutch_split, pass_rush_tps_player_agg_hutch_split, pass_rush_tps_player_season_summary_hutch_split, valid_qbgrp_hutch_split |
 
 ## pass_block
 
 | file | stage | athena tables | needs (walls) | makes |
 |---|---|---|---|---|
-| `pff_pass_block_AWS.R` | step0 | pass_block_summary | — | 54: all_pass_block_opp_position_percentile, all_pass_block_player_season_summary, all_pass_block_summary, b1, b2, b3, b4, bytes … |
-| `new_england_opp_ol_schedule.R` | schedule | — | all_pass_block_summary, all_pass_block_player_season_summary, tps_pass_block_player_season_summary, gap_player_season_summary, zone_player_season_summary, id_xwalk, pff_team_lookup | 93: C_GHOST, C_NEW, C_ROOK, METRIC_LBL, PLOT_METRICS, V2_CAP_FLAGS, V2_CAP_NEW, V2_CAP_ROLES … |
-| `league_pass_block_evaluating_currency_three.R` | c3 | — | pass_block_summary_qbgrp | 17: G_MIN_PBLK, X_QUAL_PBLK, c1_obj_pblk, c1_pblk, legend_pblk, miss_pblk, missing_pblk, n_valid … |
-| `league_opp_pass_blocking_schedule.R` | league | — | all_pass_block_summary, ol_season_pctl, ol_season_pctl_24, ol_2025_snaps, ol_2024_profile, rookie_prior, id_xwalk, pff_team_lookup, in_season, blend2, ol_pos_levels | 56: big25_unpicked, cand_ol, canon_s25, canon_s26, chk_s25, dup_pick, faced, faced_cells … |
-| `league_pass_block_final_evaluation.R` | final | — | sched_2026, opp_ol_2026_final, ne_2025_opp_ol_games, cmp_ol_slate, rookie_prior, entry_years, ol_season_pctl, all_pass_block_summary, tps_pass_block_player_season_summary, pblk_game_c3, pblk_modal_band_c3, pblk_c3_pctl, in_season, blend2, pctl_year, ol_pos_levels, id_xwalk, pff_team_lookup | 48: OL_TEAM_PATCH, b, band26, build_tps_raw_hist_pb, c3_rookie_prior_ol, chk_mem_pb, chk_val_pb, cmp_adj_pb … |
+| `pff_pass_block_AWS.R` | step0 | pass_block_summary | — | 38: all_pass_block_opp_position_percentile, all_pass_block_player_season_summary, all_pass_block_summary, b1, b2, b3, b4, det_games_25 … |
+| `new_england_opp_ol_schedule.R` | schedule | — | all_pass_block_summary, all_pass_block_player_season_summary, tps_pass_block_player_season_summary, gap_player_season_summary, zone_player_season_summary, id_xwalk, pff_team_lookup | 77: C_GHOST, C_NEW, C_ROOK, METRIC_LBL, PLOT_METRICS, V2_CAP_FLAGS, V2_CAP_NEW, V2_CAP_ROLES … |
+| `league_pass_block_evaluating_currency_three.R` | c3 | — | pass_block_summary_qbgrp | 15: G_MIN_PBLK, X_QUAL_PBLK, c1_obj_pblk, c1_pblk, legend_pblk, miss_pblk, missing_pblk, ne_ids_pblk … |
+| `league_opp_pass_blocking_schedule.R` | league | — | all_pass_block_summary, ol_season_pctl, ol_season_pctl_24, ol_2025_snaps, ol_2024_profile, rookie_prior, id_xwalk, pff_team_lookup, in_season, blend2, ol_pos_levels | 43: big25_unpicked, cand_ol, canon_s25, canon_s26, chk_s25, dup_pick, flex_pick, flex_rows … |
+| `league_pass_block_final_evaluation.R` | final | — | sched_2026, opp_ol_2026_final, ne_2025_opp_ol_games, cmp_ol_slate, rookie_prior, entry_years, ol_season_pctl, all_pass_block_summary, tps_pass_block_player_season_summary, pblk_game_c3, pblk_modal_band_c3, pblk_c3_pctl, in_season, blend2, pctl_year, ol_pos_levels, id_xwalk, pff_team_lookup, opp_map_ol, slots_full, pff32_ol | 29: OL_TEAM_PATCH, build_tps_raw_hist_pb, c3_rookie_prior_ol, chk_mem_pb, chk_val_pb, cmp_adj_pb, faced_band_c3_pb, faced_c3_pb … |
 | `league_pass_block_availability.R` | availability | — | all_pass_block_summary, ol_season_pctl, rookie_prior, pblk_c3_pctl, c3_rookie_prior_ol, slots_full, rot26_full_ol, opp_map_ol, pff32_ol, sched_2026, cmp_adj_pb, proj_c3_pb, in_season, blend2, ol_pos_levels, slate_view_pb | 47: AVAIL_DENOM, AVAIL_SEASONS, AVAIL_SNAP_MIN, avail_pb, board_bkup_pb, board_job_pb, board_rook_pb, chk_capture … |
 
 ## run_block
 
 | file | stage | athena tables | needs (walls) | makes |
 |---|---|---|---|---|
-| `pff_run_block_AWS.R` | step0 | run_block_summary, combined_grade_epa_summary, play_counts, games | — | 53: base_sub, bytes, check_cmd, combined_grade_epa_summary, descending, dest, elapsed, error_cmd … |
-| `league_run_block_evaluating_currency_three.R` | c3 | — | run_block_summary_qbgrp | 28: G_MIN_RBLK, X_QUAL_GAP, X_QUAL_RBLK, X_QUAL_ZONE, c1_obj_rblk, c1_rblk, c3_gap_rblk, c3_zone_rblk … |
-| `league_opp_run_blocking_schedule.R` | league | — | all_pass_block_summary, ol_season_pctl, ol_season_pctl_24, ol_2025_snaps, ol_2024_profile, rookie_prior, id_xwalk, pff_team_lookup, in_season, blend2, ol_pos_levels | 58: after, big25_unpicked, cand_ol, canon_s25, canon_s26, chk_s25, dup_pick, faced … |
+| `pff_run_block_AWS.R` | step0 | run_block_summary, combined_grade_epa_summary, play_counts, games | — | 39: base_sub, combined_grade_epa_summary, descending, fills, games, gap_block_summary, gap_opp_position_percentile, gap_player_season_summary … |
+| `league_run_block_evaluating_currency_three.R` | c3 | — | run_block_summary_qbgrp | 24: G_MIN_RBLK, X_QUAL_GAP, X_QUAL_RBLK, X_QUAL_ZONE, c1_obj_rblk, c1_rblk, c3_gap_rblk, c3_zone_rblk … |
+| `league_opp_run_blocking_schedule.R` | league | — | all_pass_block_summary, ol_season_pctl, ol_season_pctl_24, ol_2025_snaps, ol_2024_profile, rookie_prior, id_xwalk, pff_team_lookup, in_season, blend2, ol_pos_levels | 46: after, big25_unpicked, cand_ol, canon_s25, canon_s26, chk_s25, dup_pick, flex_pick … |
 | `league_run_block_availability.R` | availability | — | run_block_summary_qbgrp, all_pass_block_summary, ol_season_pctl, rookie_prior, rblk_c3_pctl, entry_years, opp_ol_2026_final, slots_full, league_sys_rb, opp_map_ol, pff32_ol, sched_2026, cmp_ol_slate, ne_2025_opp_ol_games, in_season, blend2, ol_pos_levels | 63: AVAIL_DENOM_RB, AVAIL_SEASONS_RB, AVAIL_SNAP_MIN_RB, avail_rb, bad_lg_rb, board_bkup_rb, board_job_rb, board_rook_rb … |
 
 ## receiving
 
 | file | stage | athena tables | needs (walls) | makes |
 |---|---|---|---|---|
-| `pff_receiving_man_zone_exploration_AWS.R` | step0 | vw_receiving_enriched_scheme_agg, receivers_alignment_cluster_raw, receiving_rte_cluster_raw, receiving_tgt_cluster_raw | — | 45: align_cluster, cart_results, cluster_join, counting_cols, elapsed, elbow_sil_results, elbow_sil_results_rb, elbow_sil_results_te … |
-| `receiving_stats_build_AWS.R` | step0 | vw_receiving_enriched, vw_play_counts_enriched, vw_total_snaps | — | 23: elapsed, error_cmd, error_msg, keep_objects, pbp_receiver_stats, pbp_receiver_stats_final, pbp_receiver_stats_one, pbp_receiver_stats_snap_join … |
-| `new_england_opp_receiving_schedule.R` | schedule | — | receiving_func_base, receiver_scheme_final, combined_ids, opp_2026_teams, sched_2026, in_season, blend2, pff_team_lookup | 49: G_MIN, N_CORPS, POOL_W, REC_BANDS, SPLIT_RTE_MIN, X_QUAL, adds_rec, band_26 … |
-| `league_receiving_evaluating_currency_three.R` | c3 | receiver_scheme, vw_receiving_enriched_scheme | receiving_func_base, rec_name, rec_band_season, rec_qual, rec_season_pctl_sos, X_QUAL, G_MIN, POOL_W, REC_BANDS, SPLIT_RTE_MIN, run_athena_query | 56: FEED_CACHE_RE, FEED_OBJECTS, G_COL, JOIN_KEY, KEY_RAW, REC_CARD_C3, REC_TBL_C3, REC_TEAM_PATCH … |
-| `league_opp_receiving_schedule.R` | league | — | receiving_func_base, rec_season_pctl_sos, rec_id_bridge, usage_rec, band_26, p25, p24, rec_rookie_prior, pos_keep, N_CORPS, X_QUAL, in_season, blend2, pff_team_lookup | 16: corps, faced, league_one_split, league_sys_both, league_wide, missing_ls, needed_ls, opp_map … |
-| `league_receiving_availability.R` | availability | — | receiving_func_base, rec_season_pctl_sos, rec_rookie_prior, rec_band_season, rec_2026, entry_years_off, usage_rec, band_26, p25, p24, rot_rec_2026, faced_band_rec_2025, slate_band_rec_2026, cmp_rec_slate, rec_id_bridge, pos_keep, REC_BANDS, N_CORPS, sched_2026, in_season, blend2, pff_team_lookup, league_sys_both, opp_map, rec_c3_pctl, REC_TEAM_PATCH | 117: AVAIL_DENOM_RC, AVAIL_SEASONS_RC, X_QUAL_RC, av_rc, b1_rc, b2_rc, b4_rc, bad_tib … |
+| `pff_receiving_man_zone_exploration_AWS.R` | step0 | vw_receiving_enriched_scheme_agg, receivers_alignment_cluster_raw, receiving_rte_cluster_raw, receiving_tgt_cluster_raw | — | 36: align_cluster, cart_results, cluster_join, counting_cols, elbow_sil_results, elbow_sil_results_rb, elbow_sil_results_te, keep_objects … |
+| `receiving_stats_build_AWS.R` | step0 | vw_receiving_enriched, vw_play_counts_enriched, vw_total_snaps | — | 14: keep_objects, pbp_receiver_stats, pbp_receiver_stats_final, pbp_receiver_stats_one, pbp_receiver_stats_snap_join, play_counts_receiving_stats_four, play_counts_receiving_stats_one, play_counts_receiving_stats_three … |
+| `new_england_opp_receiving_schedule.R` | schedule | — | receiving_func_base, receiver_scheme_final, combined_ids, opp_2026_teams, sched_2026, in_season, blend2, pff_team_lookup | 46: G_MIN, N_CORPS, POOL_W, REC_BANDS, SPLIT_RTE_MIN, X_QUAL, adds_rec, band_26 … |
+| `league_receiving_evaluating_currency_three.R` | c3 | receiver_scheme, vw_receiving_enriched_scheme | receiving_func_base, rec_name, rec_band_season, rec_qual, rec_season_pctl_sos, X_QUAL, G_MIN, POOL_W, REC_BANDS, SPLIT_RTE_MIN, run_athena_query | 44: FEED_CACHE_RE, FEED_OBJECTS, JOIN_KEY, KEY_RAW, REC_CARD_C3, REC_TBL_C3, REC_TEAM_PATCH, RM … |
+| `league_opp_receiving_schedule.R` | league | — | receiving_func_base, rec_season_pctl_sos, rec_id_bridge, usage_rec, band_26, p25, p24, rec_rookie_prior, pos_keep, N_CORPS, X_QUAL, in_season, blend2, pff_team_lookup | 9: league_one_split, league_sys_both, league_wide, missing_ls, needed_ls, opp_map, sch26, summ_ls … |
+| `league_receiving_availability.R` | availability | — | receiving_func_base, rec_season_pctl_sos, rec_rookie_prior, rec_band_season, rec_2026, entry_years_off, usage_rec, band_26, p25, p24, rot_rec_2026, faced_band_rec_2025, slate_band_rec_2026, cmp_rec_slate, rec_id_bridge, pos_keep, REC_BANDS, N_CORPS, sched_2026, in_season, blend2, pff_team_lookup, league_sys_both, opp_map, rec_c3_pctl, REC_TEAM_PATCH | 99: AVAIL_DENOM_RC, AVAIL_SEASONS_RC, X_QUAL_RC, av_rc, b1_rc, b2_rc, b4_rc, bad_tib … |
 | `doubs_contract_comparison.R` | other | — | — | 10: actual, apys, cap_2026, foc, ladder_doubs, p, pay_ladder, plot_pay_ladder … |
-| `rec_comparison_engine.R` | other | — | — | 61: REC_BUCKET, REC_TOL_STAMP, args, bad, canon, categories, category, cur_def … |
-| `rec_fill_workbook.R` | other | — | — | 42: REC_BLOCKS, REC_DEFS, REC_HDR, REC_LENS, REC_PLAYERS, REC_QBS, add, agg … |
-| `rec_thresholds_engine.R` | other | — | — | 52: alone, asks, band, base_in, chosen, conds, cum, d … |
-| `receiving_direct_comparison.R` | other | — | — | 35: bb_game, boutte_co, brown_boutte, brown_co, build_comparison_cohort, coh, cp, defs … |
-| `receiving_stats_comparison.R` | other | vw_receiving_clustering_base | — | 78: DEFAULT_PLOT_METRICS, METRIC_LABELS, RECV_CO_METRICS, RECV_CO_ORDER, RECV_PCTL_SPEC, args, auto_title, cc … |
+| `rec_comparison_engine.R` | other | — | — | 30: REC_BUCKET, REC_TOL_STAMP, args, categories, d, full_name, precip_rec_func, rec_bucket_spec … |
+| `rec_fill_workbook.R` | other | — | — | 14: REC_BLOCKS, REC_DEFS, REC_HDR, REC_LENS, REC_PLAYERS, REC_QBS, rec_col, rec_fill … |
+| `rec_thresholds_engine.R` | other | — | — | 40: base_in, chosen, dd, def, dq, fl, h, hits … |
+| `receiving_direct_comparison.R` | other | — | — | 22: bb_game, boutte_co, brown_boutte, brown_co, build_comparison_cohort, doubs_diggs, foc, focals_2026 … |
+| `receiving_stats_comparison.R` | other | vw_receiving_clustering_base | — | 55: DEFAULT_PLOT_METRICS, METRIC_LABELS, RECV_CO_METRICS, RECV_CO_ORDER, RECV_PCTL_SPEC, auto_title, charbonnet_co, charbonnet_game_view … |
 | `receiving_stats_contract_comparison.R` | other | — | — | 10: active_contracts, cohort_contracts, cohort_gsis, cohort_pay, cohort_seasons, next_contracts, pay_prod, plot_pay_vs_prod … |
 | `receiving_stats_xpass.R` | other | — | — | 14: km, km_final_xpass, max_k, pbp_pass, pred, receiver_xpass_cluster, receiver_xpass_diff_df, receiver_xpass_diff_df_cluster … |
 | `receiving_stats_xtd.R` | other | — | — | 13: km, km_final_xtd, max_k, pred, receiver_xtd_cluster, receiver_xtd_diff_df, receiver_xtd_diff_df_cluster, receiver_xtd_final … |
@@ -516,16 +501,16 @@ Each unit's schedule overwrites the same session name; the last file sourced win
 
 | file | stage | athena tables | needs (walls) | makes |
 |---|---|---|---|---|
-| `pff_pass_coverage_AWS.R` | step0 | coverage_scheme, coverage_summary, coverage_summary_by_game, slot_coverage, receiving_coverage_versus | — | 156: COV_GROUP_ORDER, COV_METRIC_DICT, DEF_FAMILY_SPEC, a, a_norm, add_pctl_buckets, att_safe, auto_title … |
-| `pff_secondary_cache_step0_AWS.R` | step0 | coverage_summary, coverage_summary_by_game, coverage_scheme | — | 31: CACHE_COV, SCHEME_CACHE, adv, adv_col, bad_tm, before, by_game_raw, canon_fix … |
-| `new_england_opp_secondary_schedule.R` | schedule | coverage_scheme | combined_grade_epa_summary, combined_ids_defense, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season | 164: C, CACHE_COV, CM, CN, CN_MAN, CN_ZONE, CZ, G_MAN … |
-| `league_secondary_evaluating_currency_three.R` | c3 | — | secondary_qbgrp_mz, modal_band_mz, CM, CZ, X_MAN, G_MAN, X_ZONE, G_ZONE | 26: C, G, X, c1_c3, c3_one_split, col_miss_c3, cov_c3_game, cov_c3_pctl … |
-| `league_opp_secondary_schedule.R` | league | coverage_scheme | combined_grade_epa_summary, combined_ids_defense, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season, coverage_qbgrp_mz, CN, CM, CZ, percent_rank_avg, cmp_slate_mz, cmp_unit_mz | 248: BANDS_SEC_LG, C, CACHE_COV, CM, CN, CN_MAN, CN_ZONE, CZ … |
-| `league_secondary_availability.R` | availability | — | sec_qbgrp_lg, modal_band_sec_lg, cov_pctl_sec_lg, prior_law_sec_lg, rot_2026_mz, rot_2026_sec_lg, cmp_slate_mz, faced_games_sec_lg, faced_band_sec_lg, faced_unit_sec_lg, team_band_sec_lg, team_unit_sec_lg, band_wt_sec_lg, slate_band_sec_lg, opp26_sec, league_cov, ent_sec_lg, ros_sec_lg, cov_c3_pctl, sched_2026, blend2, in_season, percent_rank_avg, X_MAN_SEC, X_ZONE_SEC, G_MAN_SEC, G_ZONE_SEC, N_SEC_LG, BANDS_SEC_LG, pff32_sec, CM, CZ | 90: AVAIL_DENOM_CV, AVAIL_SEASONS_CV, C, SPLIT_FLOOR_CV, a_cv, avail, avail_cv, b_cv … |
+| `pff_pass_coverage_AWS.R` | step0 | coverage_scheme, coverage_summary, coverage_summary_by_game, slot_coverage, receiving_coverage_versus | — | 137: COV_GROUP_ORDER, COV_METRIC_DICT, DEF_FAMILY_SPEC, a_norm, add_pctl_buckets, auto_title, available, b_norm … |
+| `pff_secondary_cache_step0_AWS.R` | step0 | coverage_summary, coverage_summary_by_game, coverage_scheme | — | 19: CACHE_COV, SCHEME_CACHE, adv, adv_col, bad_tm, by_game_raw, canon_fix, cov_built … |
+| `new_england_opp_secondary_schedule.R` | schedule | coverage_scheme | combined_grade_epa_summary, combined_ids_defense, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season | 125: C, CACHE_COV, CM, CN, CN_MAN, CN_ZONE, CZ, G_MAN … |
+| `league_secondary_evaluating_currency_three.R` | c3 | — | secondary_qbgrp_mz, modal_band_mz, CM, CZ, X_MAN, G_MAN, X_ZONE, G_ZONE | 16: c1_c3, c3_one_split, col_miss_c3, cov_c3_game, cov_c3_pctl, cov_c3_season, key_cols_c3, lc … |
+| `league_opp_secondary_schedule.R` | league | coverage_scheme | combined_grade_epa_summary, combined_ids_defense, pff_team_lookup, opp_2026_teams, sched_2026, blend2, in_season, coverage_qbgrp_mz, CN, CM, CZ, percent_rank_avg, cmp_slate_mz, cmp_unit_mz | 209: BANDS_SEC_LG, C, CACHE_COV, CM, CN, CN_MAN, CN_ZONE, CZ … |
+| `league_secondary_availability.R` | availability | — | sec_qbgrp_lg, modal_band_sec_lg, cov_pctl_sec_lg, prior_law_sec_lg, rot_2026_mz, rot_2026_sec_lg, cmp_slate_mz, faced_games_sec_lg, faced_band_sec_lg, faced_unit_sec_lg, team_band_sec_lg, team_unit_sec_lg, band_wt_sec_lg, slate_band_sec_lg, opp26_sec, league_cov, ent_sec_lg, ros_sec_lg, cov_c3_pctl, sched_2026, blend2, in_season, percent_rank_avg, X_MAN_SEC, X_ZONE_SEC, G_MAN_SEC, G_ZONE_SEC, N_SEC_LG, BANDS_SEC_LG, pff32_sec, CM, CZ | 83: AVAIL_DENOM_CV, AVAIL_SEASONS_CV, SPLIT_FLOOR_CV, a_cv, avail_cv, b_cv, backup_gms_ne_cv, bench_cv … |
 
 ## evaluation
 
 | file | stage | athena tables | needs (walls) | makes |
 |---|---|---|---|---|
-| `any_team_evaluation.R` | viewer | — | — | 167: a, a25g, a25m, a25z, a26, a26g, a26m, a26z … |
-| `ne_players_evaluation.R` | viewer | — | members_rc, members_cv, slot_value_26_pb_build, slot_value_26_rb_build, memb_lg_ru, members_pa, members_ra, ol_pos_levels, REC_BANDS | 44: a, b, bg, churn_in, churn_out, cl_neo, fr_neo, gg … |
+| `any_team_evaluation.R` | viewer | — | — | 31: cache, check_pipeline_tr, cl_tr, code_bridge_tr, code_in_tr, col_or_na_tr, frame_pick_tr, gate_tr … |
+| `ne_players_evaluation.R` | viewer | — | members_rc, members_cv, slot_value_26_pb_build, slot_value_26_rb_build, memb_lg_ru, members_pa, members_ra, ol_pos_levels, REC_BANDS | 41: churn_in, churn_out, cl_neo, fr_neo, gg, grp_neo, gt_marker_neo, gt_neo … |

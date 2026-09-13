@@ -44,15 +44,18 @@ STAGE_ORDER = ["base", "ids", "constants", "step0", "schedule", "c3", "league", 
 UNIT_ORDER = ["data_build", "shared", "run_defense", "rushing", "pass_rush", "pass_block", "run_block",
               "receiving", "secondary", "evaluation"]
 
-# --- regexes (same producer logic as tests/test_session_safety.py) ----------
-NEEDED_VEC = re.compile(r"^\s*needed\w*\s*<-\s*c\(([^)]*)\)", re.M)
+# --- regexes (tests/test_session_safety.py imports producers() / needs() from here) ----------
+# any wall vector whose name contains "needed": needed_p4, needed_mz, lg_needed, lg_needed_ol, needed_adj ...
+NEEDED_VEC = re.compile(r"^\s*\w*needed\w*\s*<-\s*c\(([^)]*)\)", re.M)
 STRING = re.compile(r'"([^"]+)"')
-PRODUCER = re.compile(r"(?:^|;)\s*([A-Za-z_.][A-Za-z0-9_.]*)\s*<<?-", re.M)
+PRODUCER = re.compile(r"(?:^|;)\s*([A-Za-z_.][A-Za-z0-9_.]*)\s*<<?-")
 ASSIGN_CALL = re.compile(r'assign\(\s*"([^"]+)"')
 ATHENA_CALL = re.compile(r'run_athena_query\(\s*"((?:[^"\\]|\\.)*)"', re.S)
-SQL_FROM = re.compile(r"\bFROM\s+(?:nfl_data\.)?([A-Za-z_][A-Za-z0-9_]*)", re.I)
+SQL_FROM = re.compile(r"\b(?:FROM|JOIN)\s+(?:nfl_data\.)?([A-Za-z_][A-Za-z0-9_]*)", re.I)
 NFLREADR = re.compile(r"nflreadr::(load_[a-z_]+)\(")
 COMMENT_LINE = re.compile(r"^\s*#")
+STR_LIT = re.compile(r'"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'')
+GUARD = re.compile(r'if\s*\(\s*!\s*exists\(\s*"([^"]+)"\s*\)\s*\)')
 
 
 def read(p: Path) -> str:
@@ -63,21 +66,59 @@ def strip_comments(txt: str) -> str:
     return "\n".join("" if COMMENT_LINE.match(l) else l for l in txt.splitlines())
 
 
+def _code(raw: str) -> str:
+    """The line with string literals blanked and any trailing # comment removed."""
+    return STR_LIT.sub('""', raw).split("#", 1)[0]
+
+
 def producers(txt: str) -> set[str]:
+    """Names a file genuinely CREATES.
+
+    Not a producer:
+      - `x <- f(x)` / `x <- x %>% ...`  -- re-assignment of something that must
+        already exist (string literals are blanked first, so a table name inside
+        run_athena_query("... FROM x") does not count as a mention of x)
+      - an assignment inside a `function(...) { ... }` body -- a local
+      - an assignment guarded by `if (!exists("x"))` -- a fallback, by its own
+        admission: the real producer is whatever defined x first
+    """
     lines = txt.splitlines()
-    out = set()
-    for i, line in enumerate(lines):
-        if COMMENT_LINE.match(line):
+    out: set[str] = set()
+    stack: list[str] = []          # one entry per open brace: "fn" or "blk"
+    guards: list[str | None] = []  # per open brace: the name an enclosing if(!exists("name")) guards
+    pending_guard: str | None = None   # `if (!exists("x"))` with no brace: guards the next statement
+    for i, raw in enumerate(lines):
+        if COMMENT_LINE.match(raw) or not raw.strip():
             continue
-        for m in PRODUCER.finditer(line):
+        code = _code(raw)
+        g = GUARD.search(raw)          # on the RAW line: the guarded name lives inside a string literal
+        gname = g.group(1) if g else None
+        in_fn = "fn" in stack
+        for m in PRODUCER.finditer(code):
             name = m.group(1)
-            rhs = line[m.end():]
+            rhs = code[m.end():]
             if not rhs.strip() and i + 1 < len(lines):
-                rhs = lines[i + 1]
+                rhs = _code(lines[i + 1])
             if re.search(rf"\b{re.escape(name)}\b", rhs):
                 continue
+            if in_fn:
+                continue
+            if name == gname or name == pending_guard or name in guards:
+                continue
             out.add(name)
-    out.update(ASSIGN_CALL.findall(txt))
+        pending_guard = gname if (gname and "{" not in code and not PRODUCER.search(code)) else None
+        opens, closes = code.count("{"), code.count("}")
+        is_fn = "function(" in code or "function (" in code
+        for _ in range(opens):
+            stack.append("fn" if is_fn else "blk")
+            guards.append(gname)
+        for _ in range(closes):
+            if stack:
+                stack.pop()
+                guards.pop()
+    for raw in lines:
+        if not COMMENT_LINE.match(raw):
+            out.update(ASSIGN_CALL.findall(raw))
     return out
 
 
@@ -175,7 +216,8 @@ def resolve_edges(files: dict[str, dict]):
             # which every step-0 also pulls), else everyone who makes it
             same = [p for p in prods if files[p]["unit"] == f["unit"]]
             base = [p for p in prods if files[p]["unit"] == "data_build"]
-            chosen = same or base or prods
+            shared = [p for p in prods if files[p]["unit"] == "shared"]   # shared_ne_2026_constants.R
+            chosen = same or base or shared or prods
             for p in chosen:
                 edges[(p, rel)].append(o)
     # landmines: a WALLED-ON name (something a file needs) created by files in
@@ -324,11 +366,12 @@ def model_names() -> set[str]:
 def build_exposures_yml(files) -> str:
     srcs, models = source_tables(), model_names()
     out = ["# Generated by scripts/build_lineage.py -- do not edit by hand.",
-           "# One exposure per R step-0 file: the Athena tables it pulls, so the dbt",
-           "# docs lineage graph shows where each R chain starts from the warehouse.",
+           "# One exposure per R file that pulls from Athena (step-0s, the id builds,",
+           "# the base joins): the tables it pulls, so the dbt docs lineage graph shows",
+           "# where each R chain starts from the warehouse.",
            "version: 2", "", "exposures:"]
     for rel, f in sorted(files.items()):
-        if f["stage"] != "step0" or not f["athena"]:
+        if not f["athena"]:
             continue
         deps, unknown = [], []
         for t in f["athena"]:
@@ -341,7 +384,7 @@ def build_exposures_yml(files) -> str:
         if not deps:
             continue
         name = re.sub(r"[^a-z0-9_]", "_", Path(rel).stem.lower())
-        desc = f"R step-0 {rel} (unit {f['unit']})."
+        desc = f"R {f['stage']} file {rel} (unit {f['unit']})."
         if unknown:
             desc += " Pulls not in dbt: " + ", ".join(unknown) + "."
         out += [f"  - name: {name}",
