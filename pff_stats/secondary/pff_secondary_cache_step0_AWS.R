@@ -1,6 +1,6 @@
 # ============================================================
 # PFF SECONDARY -- STEP 0: the Phase 6 cache, rebuilt as a file
-# (2026-09-12, awaiting Andy's stamp)
+# (2026-09-12; STAMPED 2026-09-13 by Andy: 69,250 rows / band4 LB 24,279 S 16,948 CB 14,503 SCB 5,686 -- exact match to the 08-16 ritual)
 #
 # WHAT THIS MAKES: coverage_raw_build_cache_cov.rds in getwd() and
 #   coverage_built_mz in session -- the UN-GATED coverage player-game

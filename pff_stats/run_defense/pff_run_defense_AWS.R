@@ -436,9 +436,9 @@ plot_run_def_card_player <- function(player_id_vec,
 }
 
 
-plot_run_def_card_player(c(49605, 11953, 43021, 77196, 45414, 50191, 156124)) # STILL HERE - DL / ED SEA
-plot_run_def_card_player(c(83903, 83259, 9994, 83119, 43049, 42659, 100931)) # STILL HERE - CB / LB / S SEA
-plot_run_def_card_player(c(51503, 50088)) # PLAYERS WHO LEFT SEA
+plot_run_def_card_player(c(76662, 81322, 51276, 98319, 10671, 144154, 128375)) # STILL HERE - DL / ED SEA
+plot_run_def_card_player(c(55940, 131960, 72191, 101463, 49970, 48415, 49949, 50612)) # STILL HERE - CB / LB / S SEA
+plot_run_def_card_player(c(41662, 52000, 156070, 10666, 40588)) # PLAYERS WHO LEFT SEA
 plot_run_def_card_player(c(51172)) # NEW PLAYERS SEA
 
 

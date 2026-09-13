@@ -1,6 +1,6 @@
 # ============================================================
-# PFF RUN DEFENSE -- STEP 0 (v3 rebuilt as a file, 2026-09-12,
-# awaiting Andy's stamp)
+# PFF RUN DEFENSE -- STEP 0 (v3 rebuilt as a file 2026-09-12; STAMPED
+# 2026-09-13 by Andy: raw 102,126 / unmatched 0 / 2025 pools DI 165 ED 146 LB 105 S 106 -- all match the 08-14 header)
 #
 # WHAT THIS MAKES: run_defense_qbgrp -- RAW run_defense_summary
 #   player-game rows (NO snap filter) + qbgrp_ssn / def_ssn ids.

@@ -1,6 +1,6 @@
 # ============================================================
 # PFF RUSHING -- STEP 0: rushing_qbgrp   (REBUILT 2026-09-13,
-# awaiting Andy's stamp)
+# STAMPED 2026-09-13 by Andy: 12,975 HB games / unmatched 0 / ~1.3k games per season -- matches the 08-14 header)
 #
 # WHAT THIS MAKES: rushing_qbgrp -- HB game-level rushing rows
 #   (raw rushing_summary columns) + qbgrp_ssn / def_ssn ids.

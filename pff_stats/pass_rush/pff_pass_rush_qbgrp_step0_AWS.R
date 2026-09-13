@@ -1,6 +1,6 @@
 # ============================================================
 # PFF PASS RUSH -- STEP 0: full_pass_rush_qbgrp   (split out as its
-# own file 2026-09-12, awaiting Andy's stamp)
+# own file 2026-09-12; STAMPED 2026-09-13 by Andy: NE faced 21 weeks incl. 28,29,30,32)
 #
 # WHAT THIS MAKES: full_pass_rush_qbgrp -- pass_rush_summary + pass_rush_
 #   kpis player-game rows (snap-gated), team-fixed, + qbgrp_ssn / def_ssn

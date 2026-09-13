@@ -370,14 +370,14 @@ plot_ol_run_block <- function(player_ids,
 }
 
 # NE 2025
-ol_ids <- c(10647)
+ol_ids <- c(46275, 11775, 112915, 41024, 59738, 41482)
 plot_ol_run_block(ol_ids, gap_player_season_summary, "gap_season_pctl",
                   "NE — Run Block Gap Pctl")
 plot_ol_run_block(ol_ids, zone_player_season_summary, "zone_season_pctl", "NE — Run Block Zone Pctl")
 
 
 # NE FA SIGNINGS
-ol_ids <- c(57107, 59854)
+ol_ids <- c(41665)
 plot_ol_run_block(ol_ids, gap_player_season_summary,  "gap_season_pctl",  "NE FA Signings — Run Block Gap Pctl")
 plot_ol_run_block(ol_ids, zone_player_season_summary, "zone_season_pctl", "NE FA Signings — Run Block Zone Pctl")
 
@@ -438,7 +438,7 @@ plot_team_rush_off <- function(team_season,
     )
 }
 
-plot_team_rush_off("NE2025")
+plot_team_rush_off("DEN2025")
 plot_team_rush_off("CHI2025")
 plot_team_rush_off("DET2024")
 plot_team_rush_off("DET2023")
@@ -524,10 +524,10 @@ plot_team_rush <- function(team_season,
     )
 }
 
-plot_team_rush("NE2025", side = "off", sort_by = "week")
-plot_team_rush("NE2025", side = "off", sort_by = "ybc")
-plot_team_rush("NE2025", side = "off", sort_by = "ypc")
-plot_team_rush("NE2025", side = "off", sort_by = "yac")
+plot_team_rush("DEN2025", side = "off", sort_by = "week")
+plot_team_rush("DEN2025", side = "off", sort_by = "ybc")
+plot_team_rush("DEN2025", side = "off", sort_by = "ypc")
+plot_team_rush("DEN2025", side = "off", sort_by = "yac")
 
 plot_team_rush("CHI2025", side = "off", sort_by = "week")
 plot_team_rush("CHI2025", side = "off", sort_by = "ybc")
@@ -594,7 +594,7 @@ plot_ybc_yac_quadrants <- function(team_season, data = rush_stats_high) {
     )
 }
 
-plot_ybc_yac_quadrants("DET2025")
+plot_ybc_yac_quadrants("DEN2025")
 plot_ybc_yac_quadrants("CHI2025")
 plot_ybc_yac_quadrants("CHI2024")
 plot_ybc_yac_quadrants("DET2024")
@@ -661,7 +661,7 @@ plot_def_pos_heatmap <- function(qbgrp,
     )
 }
 
-plot_def_pos_heatmap("NEMaye-2025")
+plot_def_pos_heatmap("DENNix-2025")
 plot_def_pos_heatmap("DETGoff-2024")
 plot_def_pos_heatmap("DETGoff-2023")
 plot_def_pos_heatmap("CHIWilliams-2025")
