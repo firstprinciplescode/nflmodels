@@ -877,21 +877,22 @@ receiver_scheme_final <- receiver_scheme_final %>%
     # TE_GRP2: Everything else
     position_group == "TE" ~ "TE_DEEP",
     
-    # RB rules
+    # RB rules (tree 2026-09-12: root tgt in BT/G/SMT; left splits rte BT/DT/RB, right splits rte MT/ST)
     (tgt_cluster_name == "LT" | rte_cluster_name == "LR") & position_group %in% c("RB", "FB", "HB") ~ "HB_LT",
     
-    position_group == "HB" & 
-      tgt_cluster_name %in% c("RB", "ST") & 
-      rte_cluster_name %in% c("BT", "DT", "RB", "SMT") ~ "HB_DEEP",
-    
-    # HB_GRP1: Other targets + mid/short routes
+    # left branch, "no" leaf (class 2, 6%): tgt BT/G/SMT + routes NOT BT/DT/RB
     position_group == "HB" & 
       tgt_cluster_name %in% c("BT", "G", "SMT") & 
-      rte_cluster_name %in% c("MT", "SMT", "ST") ~ "HB_DEEP",
+      !rte_cluster_name %in% c("BT", "DT", "RB") ~ "HB_DEEP",
     
-    # HB_GRP2: Everything else
+    # right branch, "no" leaf (class 2, 46%): tgt NOT BT/G/SMT + routes NOT MT/ST
+    position_group == "HB" & 
+      !tgt_cluster_name %in% c("BT", "G", "SMT") & 
+      !rte_cluster_name %in% c("MT", "ST") ~ "HB_DEEP",
+    
+    # the two "yes" leaves (class 1, 27% + 22%): everything else
     position_group == "HB" ~ "HB_SHORT",
-
+    
     TRUE ~ NA_character_
   ))
 

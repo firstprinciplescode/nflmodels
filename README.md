@@ -15,6 +15,13 @@ flowchart TD
 
 See [`Lineage One.Rmd`](./Lineage%20One.Rmd) for per-dataframe lineage with verified joins and transforms.
 
+**The R pipeline map, generated from the code:** [`LINEAGE.md`](./LINEAGE.md) — every
+chain file, what it makes, what it walls on, the Athena tables it pulls, and the
+landmines (names several units overwrite). Regenerate with
+`python scripts/build_lineage.py`; CI fails if it's stale. The same script writes
+`nfl_dbt/models/exposures.yml`, so the dbt docs graph shows where each R chain starts.
+**How to rebuild from an empty session:** [`REBUILD_RUNBOOK.md`](./REBUILD_RUNBOOK.md).
+
 ---
 
 ## Structure

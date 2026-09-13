@@ -215,6 +215,15 @@ source("util/pipeline_status.R")
 pipeline_status()           # every unit x stage: LOADED (rows x cols) / MISSING, and the file that makes it
 ```
 
+## The map
+
+[`LINEAGE.md`](./LINEAGE.md) is the graph of all of the above, generated from
+the code by `python scripts/build_lineage.py` (CI fails if it is stale): file →
+objects → files, the Athena tables behind each step-0, the two-part files whose
+section-2 walls can stop `source()` mid-file, and the cross-unit name landmines.
+The same run writes `nfl_dbt/models/exposures.yml`, which puts each R step-0 on
+the dbt docs graph as a consumer of the warehouse tables it pulls.
+
 ## Stage 5 — the viewer
 
 ```r
