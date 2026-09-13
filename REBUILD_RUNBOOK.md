@@ -272,7 +272,44 @@ the shortcut, and it says its own age.
   CPU near 100% or an `aws` child = working. 0% and no child = the IDE lost
   the session; the queued commands never ran. Restart R.
 
+## Stamp card — what each file must print to match the Aug 14–16 canon
+
+Every number below is copied from a file header (the receipts Andy stamped on
+the original runs). When a file is re-sourced, its console output must
+reproduce these. A miss is a finding, not a rounding error.
+
+| unit | receipt (stamped) | where it prints |
+|---|---|---|
+| run defense | raw pull **102,126**; qbgrp unmatched **0**; NE faced **21 wk** | step-0 |
+| run defense | 2025 pools ~ **DI 165 / ED 146 / LB 105 / S 105** | league file `[0]` block |
+| run defense | talent_sd stop_rt **.022 DI / .020 ED / .019 LB / .017 S**; base p **.069 / .062 / .073 / .031** | NE schedule |
+| rushing | ~**1.3k** HB games/yr; unmatched **0**; faced = NE own = **21 wk** | step-0 / schedule |
+| rushing | base p **mtf .168 / brk .045**; sd_grun **3.93–4.08** flat across X at G6 | NE schedule |
+| rushing | **64 backs in 2025 = 2.0/team**; X4G6 = **0** unpriceable team-seasons | NE schedule |
+| rushing | cal: Henderson 210 / Rhamondre 188 clear every gate; SEA Walker 286 / Charbonnet 189 clear | NE schedule |
+| pass rush | 2025 pools **DI 118 / ED 116**; 226–243 player-seasons/yr; NE scored **10** | NE schedule |
+| pass rush | talent_sd **.041–.048**; luck_p10 **.044**; r_grade_win **.857**; faced **21 wk** | NE schedule |
+| OL | 2025 slate coverage **105 cells** (21 games × 5); NE playoff games wk 28–32 present | OL schedule |
+| receiving | talent_sd ~**1.05**, observed **1.42** at [40,60) tgts; r(part,pbp) **.992**; faced **21 wk** | receiving schedule |
+| secondary | cache **69,250**; band4 **LB 24,279 / S 16,948 / CB 14,503 / SCB 5,686** | step-0 |
+| secondary | scheme join **69,250 = 69,250** no fan-out; grade NA share **0.000**; all 11 facets scheme-side | NE schedule |
+| secondary | denominators **man .321 / zone .679**; split_vs_comb **.888**; man-share **.358 → .279** | NE schedule |
+| secondary | base rates man **p_cmp .606 / p_pbu .0977**; zone **.723 / .0658**; 979 multi-band consolidated; edge **0/0** | NE schedule |
+| secondary | cal: Witherspoon gm6 9 / gz13 13; M. Jones gates both; Davis zone-only (gz13 14, gm6 3) | NE schedule |
+| all | EQUALITY RECEIPT rebuild == original at 1e-8; NE faced/slate walls PASS | league files |
+
+Numbers that depend on `percent_rank_avg` (pctls, ladders, deltas) were
+computed on the canon `(r−1)/(n−1)` scale on Aug 14–16. Pool counts, base
+rates and row receipts do not depend on it.
+
 ## Known holes (2026-09-12)
+
+- **2021 coverage is short.** `nfl_data.coverage_summary` carries 16 weeks /
+  5,126 rows for 2021 vs ~21 weeks / ~6,900 for every other season (seen in
+  the secondary step-0's coverage-by-season receipt; the Aug 16 ritual had the
+  same 69,250 total, so it predates tonight). ~5 weeks of 2021 were never
+  scraped. Upstream (lambda re-run for 2021), not an R problem; 2021 secondary
+  pools are thinner than they should be until it is.
 
 - `load_all.R` (Downloads) does not work as written: non-recursive file search,
   no `data_build` stage, and it predates the `rm()` fix. Superseded by this file.
