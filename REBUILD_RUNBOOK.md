@@ -341,6 +341,7 @@ rates and row receipts do not depend on it.
   cascades every later name. The man/zone file now walls on the six canon
   labels at birth (2026-09-12).
 
+- **`coverage_summary` has scrape holes: 2021 weeks 3, 4, 5, 7, 8, 14 and 2022 week 17** (Athena, 2026-09-13: `SELECT season, week, COUNT(*) FROM nfl_data.coverage_summary GROUP BY 1,2`). dbt cannot fill them -- the rows are absent from S3; re-run the coverage-summary lambda for those weeks (`{"season": 2021, "weeks": [3,4,5,7,8,14]}` and `{"season": 2022, "weeks": [17]}`); R reads `nfl_data.coverage_summary` directly, so nothing else needs rebuilding.
 - **2021 coverage is short.** `nfl_data.coverage_summary` carries 16 weeks /
   5,126 rows for 2021 vs ~21 weeks / ~6,900 for every other season (seen in
   the secondary step-0's coverage-by-season receipt; the Aug 16 ritual had the
