@@ -59,6 +59,13 @@ Verbatim copy of `new_england_opp_ol_schedule.R` lines 39–45 / 121–126, whic
 every other unit needs but which the OL file only defines after a wall on
 pass-block frames. If the slate changes in the OL file, change it here too.
 
+It also defines **`percent_rank_avg`** — the canon `(rank−1)/(n−1)` from
+`pff_pass_rush_AWS.R:187`. The schedule files carry a *different* fallback
+(`rank/n`) that fires if nothing defined the function first. That is a
+session-order landmine: on 2026-09-12 the fallback fired and the run-defense
+and rushing chains rode the wrong scale until re-run. Sourcing this file first
+ends that.
+
 ## Stage 4 — the seven units
 
 Every unit is the same five-file family, run top to bottom:

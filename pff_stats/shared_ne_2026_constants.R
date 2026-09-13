@@ -40,6 +40,22 @@ blend2 <- function(x25, x24, w) case_when(
   TRUE                    ~ w * x25 + (1 - w) * x24
 )
 
+# --- percent_rank_avg: THE CANON DEFINITION, pff_pass_rush_AWS.R:187 verbatim ---
+# Two definitions exist in the repo. Canon (pass-rush / pass-block AWS files and
+# every currency-three file) is (rank - 1) / (n - 1), scale 0..1. The schedule
+# files carry a DIFFERENT fallback, rank / n (scale 1/n..1), guarded by
+# `if (!exists("percent_rank_avg"))` and marked "fallback only; upstream wins".
+# Upstream only wins if pff_pass_rush_AWS.R was sourced first -- on 2026-09-12
+# it was not, the fallback fired, and every run-defense / rushing percentile
+# that night rode rank / n. Defining canon HERE, before any chain, makes the
+# order irrelevant: the fallbacks never fire.
+percent_rank_avg <- function(x) {
+  n_valid <- sum(!is.na(x))
+  if (n_valid <= 1) return(rep(0.5, length(x)))
+  (rank(x, ties.method = "average", na.last = "keep") - 1) / (n_valid - 1)
+}
+
 cat("shared NE 2026 constants in session: opp_2026_teams (",
     length(opp_2026_teams), "), sched_2026 (", length(sched_2026),
-    " games), in_season, blend2, ol_pos_levels\n", sep = "")
+    " games), in_season, blend2, ol_pos_levels, percent_rank_avg (canon: (r-1)/(n-1))\n",
+    sep = "")

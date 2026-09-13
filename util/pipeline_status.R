@@ -26,6 +26,7 @@ PIPELINE_MAP <- tibble::tribble(
   "shared",      "constants",   "sched_2026",                            "pff_stats/shared_ne_2026_constants.R",
   "shared",      "constants",   "in_season",                             "pff_stats/shared_ne_2026_constants.R",
   "shared",      "constants",   "blend2",                                "pff_stats/shared_ne_2026_constants.R",
+  "shared",      "constants",   "percent_rank_avg",                      "pff_stats/shared_ne_2026_constants.R  (canon def = pff_pass_rush_AWS.R:187; schedule fallbacks use a different scale)",
   # ---- run defense ---------------------------------------------------------
   "run_defense", "step0",       "run_defense_qbgrp",                     "pff_stats/run_defense/pff_run_defense_qbgrp_step0_AWS.R",
   "run_defense", "schedule",    "rundef_season_pctl_sos",                "pff_stats/run_defense/new_england_opp_run_defense_schedule.R",
