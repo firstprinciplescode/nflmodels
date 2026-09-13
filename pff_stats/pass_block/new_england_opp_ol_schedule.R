@@ -186,7 +186,7 @@ opp_ol_2026_starters <- tribble(
   "GB",  "LG", "Aaron Banks",            "high",
   "GB",  "C",  "Sean Rhyan",             "high",
   "GB",  "RG", "Anthony Belton",         "battle",
-  "GB",  "RT", "Zach Tom",               "high",
+  "GB",  "RT", "Zach Bako-Bewele",       "high",     # was "Zach Tom"; nflreadr 2026 roster spelling (same player, #50, gsis 00-0037817) -- 2026-09-12
   "JAX", "LT", "Cole Van Lanen",         "battle",
   "JAX", "LG", "Ezra Cleveland",         "high",
   "JAX", "C",  "Robert Hainsey",         "high",
