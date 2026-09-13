@@ -963,6 +963,23 @@ receiver_scheme_final <- receiver_scheme_final %>%
 
 receiver_scheme_final$man_zone_grp_cluster[which(is.na(receiver_scheme_final$man_zone_grp_cluster))] <- "OTH"
 
+# 2026-09-12 WALLS + RECEIPT for the groups. The route / target labels are
+# rank-named upstream like the alignment labels (sagemaker/cluster_naming.py)
+# and cascade the same way; the group rules above key on those names. Then
+# the group counts print next to the June 16 canon stamp -- the Sept 9
+# workspace carried groups NO version of these rules produces (TE inverted,
+# 203 HB_DEEP -> HB_SHORT with unchanged labels): unrecorded session code.
+if (!setequal(unique(na.omit(receiver_scheme_final$rte_cluster_name)),
+              c("BT", "DT", "LR", "MT", "RB", "SMT", "ST")))
+  stop("route labels are not the seven canon names -- cluster table re-named upstream")
+if (!setequal(unique(na.omit(receiver_scheme_final$tgt_cluster_name)),
+              c("BT", "DT", "G", "LT", "ML", "MT", "RB", "SMT", "ST")))
+  stop("target labels are not the nine canon names -- cluster table re-named upstream")
+cat("\n--- man_zone_grp_cluster counts (June 16 canon: HB_DEEP 455 / HB_LT 785 /",
+    "HB_SHORT 431 / OTH 762 / TE_DEEP 246 / TE_LT 545 / TE_SHORT 575 /",
+    "WR_DEEP 1435 / WR_LT 773 / WR_SHORT 248; grows a little each season) ---\n")
+print(table(receiver_scheme_final$man_zone_grp_cluster, useNA = "ifany"))
+
 cluster_join <- sqldf("SELECT player, 
               player_id, 
               team_abbreviation, 
