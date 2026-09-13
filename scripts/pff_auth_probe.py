@@ -16,9 +16,8 @@ import requests
 
 URL = "https://premium.pff.com/api/v1/facet/rushing/summary?league=nfl&season=2025&week=1"
 if not Path("pff_cookies.json").exists():
-    sys.exit("pff_cookies.json not found in the repo root -- create it first (see the top of this file):
-"
-             '  {"__session": "...", "__refresh_aRfKpDDr": "...", "__client_uat": "..."}')
+    sys.exit("pff_cookies.json not found in the repo root -- create it first (see the top of this file): "
+             '{"__session": "...", "__refresh_aRfKpDDr": "...", "__client_uat": "..."}')
 cj = json.loads(Path("pff_cookies.json").read_text())
 
 def jwt_exp(tok):
