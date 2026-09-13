@@ -285,9 +285,12 @@ opp_ol_2026_backups <- tribble(
   "JAX", "Walker Little",          "LT",  "still quite useful - best swing T on slate",
   "KC",  "Jaylon Moore",           "RT",  "$15M/yr losing reps to a UDFA - battle live",
   "LAC", "Trevor Penning",         "LG",  "Slaughter battle alt",
-  "LV",  "Jordan Meredith",        "LG",  "interior utility - LG candidate",
-  "MIA", "Jamaree Salyer",         "LG",  "G/T flex, 2025 snaps at LT",
-  "MIA", "Charlie Heck",           "RT",  "Jackson has missed games two straight years",
+  # 2026-09-12: three rows retired vs the live nflreadr roster -- Andy to name
+  # replacements (no auto-selection). Meredith is now NYJ; Salyer and Heck are
+  # on no 2026 roster.
+  # "LV",  "Jordan Meredith",        "LG",  "interior utility - LG candidate",
+  # "MIA", "Jamaree Salyer",         "LG",  "G/T flex, 2025 snaps at LT",
+  # "MIA", "Charlie Heck",           "RT",  "Jackson has missed games two straight years",
   "MIN", "Michael Jurgens",        "C",   "behind thin-data Brandel",
   "PIT", "Brock Hoffman",          "LG",  "C by trade, in the LG scramble",
   "SEA", "Bobby Hart",             "RT",  "veteran swing"
