@@ -311,6 +311,45 @@ Numbers that depend on `percent_rank_avg` (pctls, ladders, deltas) were
 computed on the canon `(r−1)/(n−1)` scale on Aug 14–16. Pool counts, base
 rates and row receipts do not depend on it.
 
+## The scrapers (Lambda) and the PFF API key (2026-09-13)
+
+PFF killed the cookie login in Sept 2026 (auth moved to Clerk: 60-second `__session` tokens,
+no `_premium_key`). The 26 scraper Lambdas now call the official **PFF Developer API**
+(https://developer.pff.com): host `https://api.pff.com/v1/...`, header
+`Authorization: Bearer ak_live_...`. Same paths, same query params, same response keys as
+the old `premium.pff.com/api/v1` -- the cleaners and every Athena table are untouched.
+
+**The key lives in the same Secrets Manager secret as before, `pff-api-cookies`**, so no
+IAM change. Its Plaintext must be exactly
+
+```json
+{"PFF_API_KEY": "ak_live_XXXXXXXX"}
+```
+
+(delete the old cookie rows). Make the key at https://www.pff.com/account/api-keys (PFF Pro;
+shown once). Test it from a shell BEFORE touching the secret or the Lambdas:
+
+```
+set PFF_API_KEY=ak_live_...
+python scripts/pff_api_smoke.py
+```
+
+Deploy (dry run first; each function is one .py zipped under its handler's module name):
+
+```
+.\lambdas\upload_lambdas.ps1            # dry run, uploads nothing
+.\lambdas\upload_lambdas.ps1 -Deploy    # all 26
+.\lambdas\upload_lambdas.ps1 -Deploy -Only nfl-coverage-summary-scraper
+```
+
+What changed in every scraper: `get_cookies()` -> `get_auth()`; every `requests.get(...,
+cookies=...)` -> `pff_get(url, auth, timeout)`, which retries 429/502/503/504 honouring
+`Retry-After`, raises on 401/403 with PFF's own `error.details.reason`, and PRINTS any
+other non-200 (before, a non-200 silently returned an empty frame -- the likely cause of
+the 2021 coverage holes). Rate limit: 100 reads/min per account. `receiving-depth-parquet-
+lambda.py` has no PFF calls and was not changed. After deploying, re-run the coverage
+lambda for the holes: `{"season": 2021, "weeks": [3,4,5,7,8,14]}` and `{"season": 2022, "weeks": [17]}`.
+
 ## Known holes (2026-09-12)
 
 - **`opp25_lg` is never created.** `league_pass_rush_final_evaluation.R:374`
