@@ -84,7 +84,8 @@ PIPELINE_MAP <- tibble::tribble(
   "run_block",   "availability","sweep_avail_rb",                        "pff_stats/run_block/league_run_block_availability.R",
   # ---- receiving -----------------------------------------------------------
   "receiving",   "step0",       "receiving_func_base",                   "pff_stats/receiving/receiving_stats_build_AWS.R  (needs combined_pbp, combined_ids, cluster_join)",
-  "receiving",   "step0",       "receiver_scheme_final",                 "pff_stats/receiving/pff_receiving_man_zone_exploration_AWS.R",
+  "receiving",   "step0",       "receiver_scheme_final",                 "pff_stats/receiving/pff_receiving_man_zone_exploration_AWS.R  (labels must include SWR; the Sept 9 workspace copy is shifted)",
+  "receiving",   "step0",       "cluster_join",                          "pff_stats/receiving/pff_receiving_man_zone_exploration_AWS.R  (joined into receiving_func_base)",
   "receiving",   "schedule",    "rec_band_season",                       "pff_stats/receiving/new_england_opp_receiving_schedule.R",
   "receiving",   "schedule",    "rec_season_pctl_sos",                   "pff_stats/receiving/new_england_opp_receiving_schedule.R",
   "receiving",   "c3",          "rec_c3_pctl",                           "pff_stats/receiving/league_receiving_evaluating_currency_three.R",

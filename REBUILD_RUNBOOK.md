@@ -304,6 +304,21 @@ rates and row receipts do not depend on it.
 
 ## Known holes (2026-09-12)
 
+- **Sept 9 workspace receiving frames carry SHIFTED cluster labels.**
+  `receiver_scheme_final`, `cluster_join` and `receiving_func_base` in that
+  workspace have five alignment labels (no SWR): every canon **SWR is labelled
+  WSWR** and every canon **WSWR is labelled STE**, player for player (6,254 of
+  6,254 matched against the June 16 workspace). The S3 source
+  (`clustering/player_clusters/alignment/alignment_clusters_2025.csv`,
+  unchanged since 2026-03-29) has the six canon labels, and no file in the
+  repo relabels — the Sept 9 session did it somewhere unrecorded. Symptom:
+  `league_receiving_availability.R` stops on
+  `setequal(cmp_rec_slate$band, REC_BANDS)`. Fix: rebuild both receiving
+  step-0s from Athena (`pff_receiving_man_zone_exploration_AWS.R`, then
+  `receiving_stats_build_AWS.R`) and check
+  `table(receiver_scheme_final$align_cluster_name)` shows SWR before running
+  the chain. Never take those two frames from a workspace.
+
 - **2021 coverage is short.** `nfl_data.coverage_summary` carries 16 weeks /
   5,126 rows for 2021 vs ~21 weeks / ~6,900 for every other season (seen in
   the secondary step-0's coverage-by-season receipt; the Aug 16 ritual had the
