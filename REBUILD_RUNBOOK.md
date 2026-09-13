@@ -318,6 +318,13 @@ rates and row receipts do not depend on it.
   `receiving_stats_build_AWS.R`) and check
   `table(receiver_scheme_final$align_cluster_name)` shows SWR before running
   the chain. Never take those two frames from a workspace.
+  *Why it can happen at all:* the names are not hand-assigned — the notebook
+  (`sagemaker/alignment_clusters.ipynb`, k=6, `random_state=42`) names each
+  cluster by **ranking centroids** in a fixed order (`cluster_naming.py`:
+  inline→ITE, slot→SWR, behind→RB, wide→WWR, then wide+slot→WSWR,
+  slot+inline→STE). Each pick removes a cluster, so one flipped ordering
+  cascades every later name. The man/zone file now walls on the six canon
+  labels at birth (2026-09-12).
 
 - **2021 coverage is short.** `nfl_data.coverage_summary` carries 16 weeks /
   5,126 rows for 2021 vs ~21 weeks / ~6,900 for every other season (seen in

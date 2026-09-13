@@ -150,6 +150,18 @@ receiver_scheme_final$zone_ypa = receiver_scheme_final$zone_yards / receiver_sch
 
 colnames(receiver_scheme_final)[which(colnames(receiver_scheme_final) == "cluster_name")] <- "align_cluster_name"
 
+# 2026-09-12 WALL: the six canon alignment labels, at birth. The S3 table is
+# named by ranking centroids (sagemaker/cluster_naming.py) -- a re-fit that
+# flips one ordering cascades every later name (the Sept 9 session carried
+# SWR->WSWR->STE, and the receiving chain built on it until the availability
+# file's setequal() caught it). Stop here instead, with the receipt.
+cat("\n--- align_cluster_name at birth (canon: WWR WSWR SWR ITE STE RB) ---\n")
+print(table(receiver_scheme_final$align_cluster_name, useNA = "ifany"))
+if (!setequal(unique(na.omit(receiver_scheme_final$align_cluster_name)),
+              c("WWR", "WSWR", "SWR", "ITE", "STE", "RB")))
+  stop("alignment labels are not the six canon names -- the cluster table ",
+       "was re-named upstream; do not run the receiving chain on this frame")
+
 receiver_scheme_final$position_group[which(receiver_scheme_final$position_group == "FB")] <- "HB"
 
 
