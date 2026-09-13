@@ -16,28 +16,59 @@ BUCKET_NAME = 'nfl-pff-data-lucas'
 SECRET_NAME = 'pff-api-cookies'
 ATHENA_OUTPUT = 's3://nfl-pff-data-lucas/athena-results/'
 
-def get_cookies():
-    """Get PFF cookies from Secrets Manager"""
-    response = secrets_client.get_secret_value(SecretId=SECRET_NAME)
-    return json.loads(response['SecretString'])
+def get_auth():
+    """PFF Developer API credential: the ak_live_ key stored in Secrets Manager under PFF_API_KEY.
+    Replaced the browser-cookie jar on 2026-09-13: PFF moved premium auth to Clerk (60-second
+    session tokens) and opened https://developer.pff.com -- same /v1 paths and parameters as
+    premium.pff.com/api/v1, host api.pff.com, Authorization: Bearer <key>."""
+    secret = json.loads(secrets_client.get_secret_value(SecretId=SECRET_NAME)['SecretString'])
+    key = secret.get('PFF_API_KEY')
+    if not key:
+        raise Exception(f"secret {SECRET_NAME} has no PFF_API_KEY -- create one at https://www.pff.com/account/api-keys")
+    return {'Authorization': f'Bearer {key}', 'Accept': 'application/json'}
 
-def check_restricted_access(cookies):
+
+def pff_get(url, auth, timeout=10, tries=5):
+    """GET against api.pff.com honouring its contract: 429/502/503/504 wait Retry-After and
+    retry; 401/403 raise with the API's own reason (never a silent 'no data'); any other
+    non-200 is printed so a missing week shows up in CloudWatch instead of vanishing."""
+    response = None
+    for attempt in range(tries):
+        response = requests.get(url, headers=auth, timeout=timeout)
+        if response.status_code in (429, 502, 503, 504) and attempt < tries - 1:
+            wait = int(float(response.headers.get('Retry-After', 2 ** attempt)))
+            print(f"HTTP {response.status_code} from PFF, waiting {wait}s (attempt {attempt + 1}/{tries}): {url}")
+            time.sleep(wait)
+            continue
+        break
+    if response.status_code in (401, 403):
+        try:
+            err = response.json().get('error', {})
+            reason = f"{err.get('code')} / {(err.get('details') or {}).get('reason')} request_id={err.get('request_id')}"
+        except Exception:
+            reason = response.text[:200]
+        raise Exception(f"{response.status_code} Unauthorized - PFF API key rejected: {reason}")
+    if response.status_code != 200:
+        print(f"HTTP {response.status_code} for {url}: {response.text[:200]}")
+    return response
+
+def check_restricted_access(auth):
     """
-    Check if cookies have access to restricted endpoints by testing a known player
+    Check if auth have access to restricted endpoints by testing a known player
     Returns: True if restricted access, False otherwise
-    Raises: Exception if cookies are invalid/expired (401)
+    Raises: Exception if auth are invalid/expired (401)
     """
     test_player_id = 48294  # Justin Jefferson
     test_season = 2024
     test_week = 1
     
-    restricted_url = f'https://premium.pff.com/api/v1/player/receiving/depth?league=nfl&season={test_season}&week={test_week}&player_id={test_player_id}'
+    restricted_url = f'https://api.pff.com/v1/player/receiving/depth?league=nfl&season={test_season}&week={test_week}&player_id={test_player_id}'
     
     try:
-        response = requests.get(restricted_url, cookies=cookies, timeout=10)
+        response = pff_get(restricted_url, auth, timeout=10)
         
         if response.status_code == 401:
-            raise Exception("401 Unauthorized - cookies expired!")
+            raise Exception("401 Unauthorized - auth expired!")
         
         if response.status_code == 200:
             data = response.json()
@@ -122,16 +153,16 @@ def query_athena_for_players(season, min_player_id=None, max_player_id=None):
     print(f"✓ Found {len(player_ids)} players for season {season}")
     return player_ids
 
-def scrape_receiving_depth_for_player(player_id, season, cookies, use_restricted=False):
+def scrape_receiving_depth_for_player(player_id, season, auth, use_restricted=False):
     """
     Scrape receiving depth data for one player/season (ALL WEEKS)
     Returns: DataFrame with depth breakdown data
     """
     # All weeks in one call: regular season (1-18) + playoffs (28,29,30,32)
-    url = f'https://premium.pff.com/api/v1/player/receiving/depth?league=nfl&season={season}&week=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,28,29,30,32&player_id={player_id}'
+    url = f'https://api.pff.com/v1/player/receiving/depth?league=nfl&season={season}&week=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,28,29,30,32&player_id={player_id}'
     
     try:
-        response = requests.get(url, cookies=cookies, timeout=10)
+        response = pff_get(url, auth, timeout=10)
         
         if response.status_code == 200:
             data = response.json()
@@ -155,7 +186,7 @@ def scrape_receiving_depth_for_player(player_id, season, cookies, use_restricted
             return pd.DataFrame(depth_data)
         
         elif response.status_code == 401:
-            raise Exception("401 Unauthorized - cookies expired!")
+            raise Exception("401 Unauthorized - auth expired!")
         else:
             # Don't log every single failure, just return empty
             return pd.DataFrame()
@@ -166,7 +197,7 @@ def scrape_receiving_depth_for_player(player_id, season, cookies, use_restricted
         # Silently handle other errors
         return pd.DataFrame()
 
-def scrape_all_receiving_depth(cookies, player_ids, season, use_restricted=False):
+def scrape_all_receiving_depth(auth, player_ids, season, use_restricted=False):
     """Scrape receiving depth data for all players in a season (FULL SEASON)"""
     all_data = []
     total = len(player_ids)
@@ -177,7 +208,7 @@ def scrape_all_receiving_depth(cookies, player_ids, season, use_restricted=False
         if idx % 100 == 0:
             print(f"Progress: {idx}/{total} players...")
         
-        df = scrape_receiving_depth_for_player(player_id, season, cookies, use_restricted)
+        df = scrape_receiving_depth_for_player(player_id, season, auth, use_restricted)
         
         if not df.empty:
             all_data.append(df)
@@ -743,9 +774,9 @@ def lambda_handler(event, context):
             print(f"PLAYER_ID RANGE: [{min_player_id}, {max_player_id}]")
         print("=" * 60)
         
-        # Get cookies and check access level
-        cookies = get_cookies()
-        use_restricted = check_restricted_access(cookies)
+        # Get auth and check access level
+        auth = get_auth()
+        use_restricted = check_restricted_access(auth)
         
         # Query Athena for player IDs (with optional filtering)
         player_ids = query_athena_for_players(season, min_player_id, max_player_id)
@@ -757,7 +788,7 @@ def lambda_handler(event, context):
             }
         
         # Scrape full season for all players
-        df = scrape_all_receiving_depth(cookies, player_ids, season, use_restricted)
+        df = scrape_all_receiving_depth(auth, player_ids, season, use_restricted)
         
         if df.empty:
             return {

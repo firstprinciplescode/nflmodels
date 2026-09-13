@@ -14,26 +14,57 @@ s3_client = boto3.client('s3')
 BUCKET_NAME = 'nfl-pff-data-lucas'
 SECRET_NAME = 'pff-api-cookies'
 
-def get_cookies():
-    """Get PFF cookies from Secrets Manager"""
-    response = secrets_client.get_secret_value(SecretId=SECRET_NAME)
-    return json.loads(response['SecretString'])
+def get_auth():
+    """PFF Developer API credential: the ak_live_ key stored in Secrets Manager under PFF_API_KEY.
+    Replaced the browser-cookie jar on 2026-09-13: PFF moved premium auth to Clerk (60-second
+    session tokens) and opened https://developer.pff.com -- same /v1 paths and parameters as
+    premium.pff.com/api/v1, host api.pff.com, Authorization: Bearer <key>."""
+    secret = json.loads(secrets_client.get_secret_value(SecretId=SECRET_NAME)['SecretString'])
+    key = secret.get('PFF_API_KEY')
+    if not key:
+        raise Exception(f"secret {SECRET_NAME} has no PFF_API_KEY -- create one at https://www.pff.com/account/api-keys")
+    return {'Authorization': f'Bearer {key}', 'Accept': 'application/json'}
 
-def scrape_receiving_week(season, week, cookies):
+
+def pff_get(url, auth, timeout=10, tries=5):
+    """GET against api.pff.com honouring its contract: 429/502/503/504 wait Retry-After and
+    retry; 401/403 raise with the API's own reason (never a silent 'no data'); any other
+    non-200 is printed so a missing week shows up in CloudWatch instead of vanishing."""
+    response = None
+    for attempt in range(tries):
+        response = requests.get(url, headers=auth, timeout=timeout)
+        if response.status_code in (429, 502, 503, 504) and attempt < tries - 1:
+            wait = int(float(response.headers.get('Retry-After', 2 ** attempt)))
+            print(f"HTTP {response.status_code} from PFF, waiting {wait}s (attempt {attempt + 1}/{tries}): {url}")
+            time.sleep(wait)
+            continue
+        break
+    if response.status_code in (401, 403):
+        try:
+            err = response.json().get('error', {})
+            reason = f"{err.get('code')} / {(err.get('details') or {}).get('reason')} request_id={err.get('request_id')}"
+        except Exception:
+            reason = response.text[:200]
+        raise Exception(f"{response.status_code} Unauthorized - PFF API key rejected: {reason}")
+    if response.status_code != 200:
+        print(f"HTTP {response.status_code} for {url}: {response.text[:200]}")
+    return response
+
+def scrape_receiving_week(season, week, auth):
     """
     Scrape receiving data for ONE week - gets ALL players automatically
     Returns: DataFrame with all players for that week
     """
-    url = f'https://premium.pff.com/api/v1/facet/receiving/summary?league=nfl&season={season}&week={week}'
+    url = f'https://api.pff.com/v1/facet/receiving/summary?league=nfl&season={season}&week={week}'
     
     try:
-        response = requests.get(url, cookies=cookies, timeout=30)
+        response = pff_get(url, auth, timeout=30)
         
         if response.status_code == 200:
             data = response.json()
             
             if 'restricted' in data and data['restricted']:
-                raise Exception(f"RESTRICTED ACCESS DETECTED - cookies only provide limited fields. Missing fields: {', '.join(data['restricted'][:5])}... Update cookies for full access!")
+                raise Exception(f"RESTRICTED ACCESS DETECTED - auth only provide limited fields. Missing fields: {', '.join(data['restricted'][:5])}... Update auth for full access!")
             
             receiving_data = data.get('receiving_summary', [])
             
@@ -50,7 +81,7 @@ def scrape_receiving_week(season, week, cookies):
             return pd.DataFrame(receiving_data)
         
         elif response.status_code == 401:
-            raise Exception("401 Unauthorized - cookies expired!")
+            raise Exception("401 Unauthorized - auth expired!")
         else:
             print(f"  ⚠ Week {week}: HTTP {response.status_code}")
             return pd.DataFrame()
@@ -61,7 +92,7 @@ def scrape_receiving_week(season, week, cookies):
         print(f"  ⚠ Week {week}: {str(e)}")
         return pd.DataFrame()
 
-def scrape_all_weeks(season, weeks, cookies):
+def scrape_all_weeks(season, weeks, auth):
     """Scrape receiving data for multiple weeks"""
     all_data = []
     
@@ -70,7 +101,7 @@ def scrape_all_weeks(season, weeks, cookies):
     for week in weeks:
         print(f"  Scraping week {week}...", end='')
         
-        df = scrape_receiving_week(season, week, cookies)
+        df = scrape_receiving_week(season, week, auth)
         
         if not df.empty:
             all_data.append(df)
@@ -216,9 +247,9 @@ def lambda_handler(event, context):
         print(f"Weeks: {weeks}")
         print("=" * 60)
         
-        cookies = get_cookies()
+        auth = get_auth()
         
-        df = scrape_all_weeks(season, weeks, cookies)
+        df = scrape_all_weeks(season, weeks, auth)
         
         if df.empty:
             return {

@@ -4,7 +4,7 @@ PFF Receiving Depth - Zero Targets - v2 FINAL (with restriction tracking)
 DEPLOY TO: nfl-receiving-depth-weekly-no-targets-v2
 
 WHAT THIS CATCHES that the old version missed:
-- PFF returns HTTP 200 with a restricted response when cookies are downgraded
+- PFF returns HTTP 200 with a restricted response when auth are downgraded
 - Old Lambda treated that as success and wrote junk parquet files
 - This version counts fields in the `restricted` array per response
 - Tags every row with restricted_field_count and access_level
@@ -34,9 +34,41 @@ STRING_COLUMNS = {
 }
 
 
-def get_cookies():
-    response = secrets_client.get_secret_value(SecretId=SECRET_NAME)
-    return json.loads(response['SecretString'])
+def get_auth():
+    """PFF Developer API credential: the ak_live_ key stored in Secrets Manager under PFF_API_KEY.
+    Replaced the browser-cookie jar on 2026-09-13: PFF moved premium auth to Clerk (60-second
+    session tokens) and opened https://developer.pff.com -- same /v1 paths and parameters as
+    premium.pff.com/api/v1, host api.pff.com, Authorization: Bearer <key>."""
+    secret = json.loads(secrets_client.get_secret_value(SecretId=SECRET_NAME)['SecretString'])
+    key = secret.get('PFF_API_KEY')
+    if not key:
+        raise Exception(f"secret {SECRET_NAME} has no PFF_API_KEY -- create one at https://www.pff.com/account/api-keys")
+    return {'Authorization': f'Bearer {key}', 'Accept': 'application/json'}
+
+
+def pff_get(url, auth, timeout=10, tries=5):
+    """GET against api.pff.com honouring its contract: 429/502/503/504 wait Retry-After and
+    retry; 401/403 raise with the API's own reason (never a silent 'no data'); any other
+    non-200 is printed so a missing week shows up in CloudWatch instead of vanishing."""
+    response = None
+    for attempt in range(tries):
+        response = requests.get(url, headers=auth, timeout=timeout)
+        if response.status_code in (429, 502, 503, 504) and attempt < tries - 1:
+            wait = int(float(response.headers.get('Retry-After', 2 ** attempt)))
+            print(f"HTTP {response.status_code} from PFF, waiting {wait}s (attempt {attempt + 1}/{tries}): {url}")
+            time.sleep(wait)
+            continue
+        break
+    if response.status_code in (401, 403):
+        try:
+            err = response.json().get('error', {})
+            reason = f"{err.get('code')} / {(err.get('details') or {}).get('reason')} request_id={err.get('request_id')}"
+        except Exception:
+            reason = response.text[:200]
+        raise Exception(f"{response.status_code} Unauthorized - PFF API key rejected: {reason}")
+    if response.status_code != 200:
+        print(f"HTTP {response.status_code} for {url}: {response.text[:200]}")
+    return response
 
 
 def query_athena_for_zero_target_players(season=None, week=None, min_player_id=None, max_player_id=None):
@@ -100,15 +132,15 @@ def query_athena_for_zero_target_players(season=None, week=None, min_player_id=N
     return players
 
 
-def scrape_player_week(player_id, week, season, cookies):
+def scrape_player_week(player_id, week, season, auth):
     """
     Returns (DataFrame, restricted_count).
     restricted_count = number of fields PFF withheld. 0 = full access.
     -1 = HTTP error (non-200, non-401).
     """
-    url = f'https://premium.pff.com/api/v1/player/receiving/depth?league=nfl&season={season}&week={week}&player_id={player_id}'
+    url = f'https://api.pff.com/v1/player/receiving/depth?league=nfl&season={season}&week={week}&player_id={player_id}'
     try:
-        response = requests.get(url, cookies=cookies, timeout=10)
+        response = pff_get(url, auth, timeout=10)
         if response.status_code == 200:
             data = response.json()
             depth_data = data.get('receiving_depth', [])
@@ -134,7 +166,7 @@ def scrape_player_week(player_id, week, season, cookies):
             return pd.DataFrame(depth_data), restricted_count
 
         elif response.status_code == 401:
-            raise Exception("401 Unauthorized - cookies expired!")
+            raise Exception("401 Unauthorized - auth expired!")
         else:
             return pd.DataFrame(), -1
     except Exception as e:
@@ -143,7 +175,7 @@ def scrape_player_week(player_id, week, season, cookies):
         return pd.DataFrame(), -1
 
 
-def scrape_all_zero_target_players(cookies, players, abort_after_partial=5):
+def scrape_all_zero_target_players(auth, players, abort_after_partial=5):
     """
     abort_after_partial: if this many consecutive partial responses come back,
     raise an exception to kill the invocation. Better to fail loud than write
@@ -170,7 +202,7 @@ def scrape_all_zero_target_players(cookies, players, abort_after_partial=5):
             player_info['player_id'],
             player_info['week'],
             player_info['season'],
-            cookies
+            auth
         )
 
         if restricted_count == -1:
@@ -195,12 +227,12 @@ def scrape_all_zero_target_players(cookies, players, abort_after_partial=5):
             })
             all_data.append(df)
 
-            # Kill switch: if cookies got downgraded, stop wasting API calls
+            # Kill switch: if auth got downgraded, stop wasting API calls
             if consecutive_partial >= abort_after_partial:
                 print(f"!!! {abort_after_partial} consecutive partial responses - ABORTING")
                 raise Exception(
                     f"Cookies appear downgraded - {consecutive_partial} consecutive partial responses "
-                    f"(restricted_count={restricted_count}). Refresh cookies and rerun."
+                    f"(restricted_count={restricted_count}). Refresh auth and rerun."
                 )
 
         time.sleep(0.1)
@@ -323,7 +355,7 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'season and week are both required'})
             }
 
-        cookies = get_cookies()
+        auth = get_auth()
 
         players = query_athena_for_zero_target_players(
             season=season, week=week,
@@ -344,7 +376,7 @@ def lambda_handler(event, context):
                 })
             }
 
-        df, stats = scrape_all_zero_target_players(cookies, players)
+        df, stats = scrape_all_zero_target_players(auth, players)
 
         if df.empty:
             return {

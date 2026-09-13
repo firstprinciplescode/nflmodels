@@ -1,6 +1,7 @@
 import json
 import boto3
 import requests
+import time
 import pandas as pd
 from io import BytesIO
 from datetime import datetime
@@ -17,10 +18,41 @@ SECRET_NAME = 'pff-api-cookies'
 ALL_YEARS = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016]
 ALL_WEEKS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,28,29,30,32]
 
-def get_cookies():
-    """Get PFF cookies from Secrets Manager"""
-    response = secrets_client.get_secret_value(SecretId=SECRET_NAME)
-    return json.loads(response['SecretString'])
+def get_auth():
+    """PFF Developer API credential: the ak_live_ key stored in Secrets Manager under PFF_API_KEY.
+    Replaced the browser-cookie jar on 2026-09-13: PFF moved premium auth to Clerk (60-second
+    session tokens) and opened https://developer.pff.com -- same /v1 paths and parameters as
+    premium.pff.com/api/v1, host api.pff.com, Authorization: Bearer <key>."""
+    secret = json.loads(secrets_client.get_secret_value(SecretId=SECRET_NAME)['SecretString'])
+    key = secret.get('PFF_API_KEY')
+    if not key:
+        raise Exception(f"secret {SECRET_NAME} has no PFF_API_KEY -- create one at https://www.pff.com/account/api-keys")
+    return {'Authorization': f'Bearer {key}', 'Accept': 'application/json'}
+
+
+def pff_get(url, auth, timeout=10, tries=5):
+    """GET against api.pff.com honouring its contract: 429/502/503/504 wait Retry-After and
+    retry; 401/403 raise with the API's own reason (never a silent 'no data'); any other
+    non-200 is printed so a missing week shows up in CloudWatch instead of vanishing."""
+    response = None
+    for attempt in range(tries):
+        response = requests.get(url, headers=auth, timeout=timeout)
+        if response.status_code in (429, 502, 503, 504) and attempt < tries - 1:
+            wait = int(float(response.headers.get('Retry-After', 2 ** attempt)))
+            print(f"HTTP {response.status_code} from PFF, waiting {wait}s (attempt {attempt + 1}/{tries}): {url}")
+            time.sleep(wait)
+            continue
+        break
+    if response.status_code in (401, 403):
+        try:
+            err = response.json().get('error', {})
+            reason = f"{err.get('code')} / {(err.get('details') or {}).get('reason')} request_id={err.get('request_id')}"
+        except Exception:
+            reason = response.text[:200]
+        raise Exception(f"{response.status_code} Unauthorized - PFF API key rejected: {reason}")
+    if response.status_code != 200:
+        print(f"HTTP {response.status_code} for {url}: {response.text[:200]}")
+    return response
 
 def get_existing_files_from_s3():
     """
@@ -59,7 +91,7 @@ def get_existing_files_from_s3():
         print(f"Error checking existing data: {e}")
         return set()
 
-def scrape_games(cookies, years, weeks):
+def scrape_games(auth, years, weeks):
     """
     Scrape game data from PFF API
     Returns: DataFrame with game data
@@ -68,11 +100,11 @@ def scrape_games(cookies, years, weeks):
     
     for year in years:
         for week in weeks:
-            url = f'https://premium.pff.com/api/v1/games?league=nfl&season={year}&week={week}'
+            url = f'https://api.pff.com/v1/games?league=nfl&season={year}&week={week}'
             print(f"Fetching: {year} Week {week}")
             
             try:
-                response = requests.get(url, cookies=cookies, timeout=10)
+                response = pff_get(url, auth, timeout=10)
                 
                 if response.status_code == 200:
                     games = response.json().get('games', [])
@@ -93,7 +125,7 @@ def scrape_games(cookies, years, weeks):
                         flattened_data.append(flattened_game)
                 
                 elif response.status_code == 401:
-                    raise Exception("401 Unauthorized - cookies expired!")
+                    raise Exception("401 Unauthorized - auth expired!")
                 else:
                     print(f"Failed {year} Week {week}: Status {response.status_code}")
                     
@@ -202,7 +234,7 @@ def lambda_handler(event, context):
         print(f"MODE: {mode.upper()}")
         print("=" * 60)
         
-        cookies = get_cookies()
+        auth = get_auth()
         
         if mode == 'full':
             years = event.get('years', ALL_YEARS)
@@ -239,7 +271,7 @@ def lambda_handler(event, context):
         print("\n" + "=" * 60)
         print("SCRAPING...")
         print("=" * 60)
-        df = scrape_games(cookies, years, weeks)
+        df = scrape_games(auth, years, weeks)
         
         validate_data(df)
         

@@ -12,6 +12,8 @@ Events:
 import json
 import os
 import boto3
+import requests
+import time
 import pandas as pd
 from io import BytesIO
 from datetime import datetime
@@ -26,29 +28,59 @@ S3_PREFIX = "data/receiving_depth_weekly_targets"
 SECRET_NAME = 'pff-api-cookies'
 
 # PFF API endpoint
-API_URL = "https://premium.pff.com/api/v1/facet/receiving/depth"
+API_URL = "https://api.pff.com/v1/facet/receiving/depth"
 
 # All weeks including playoffs
 ALL_WEEKS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,28,29,30,32]
 
 
-def get_cookies():
-    """Get PFF cookies from Secrets Manager"""
-    response = secrets_client.get_secret_value(SecretId=SECRET_NAME)
-    return json.loads(response['SecretString'])
+def get_auth():
+    """PFF Developer API credential: the ak_live_ key stored in Secrets Manager under PFF_API_KEY.
+    Replaced the browser-cookie jar on 2026-09-13: PFF moved premium auth to Clerk (60-second
+    session tokens) and opened https://developer.pff.com -- same /v1 paths and parameters as
+    premium.pff.com/api/v1, host api.pff.com, Authorization: Bearer <key>."""
+    secret = json.loads(secrets_client.get_secret_value(SecretId=SECRET_NAME)['SecretString'])
+    key = secret.get('PFF_API_KEY')
+    if not key:
+        raise Exception(f"secret {SECRET_NAME} has no PFF_API_KEY -- create one at https://www.pff.com/account/api-keys")
+    return {'Authorization': f'Bearer {key}', 'Accept': 'application/json'}
 
 
-def fetch_receiving_depth(season, week, cookies):
+def pff_get(url, auth, timeout=10, tries=5):
+    """GET against api.pff.com honouring its contract: 429/502/503/504 wait Retry-After and
+    retry; 401/403 raise with the API's own reason (never a silent 'no data'); any other
+    non-200 is printed so a missing week shows up in CloudWatch instead of vanishing."""
+    response = None
+    for attempt in range(tries):
+        response = requests.get(url, headers=auth, timeout=timeout)
+        if response.status_code in (429, 502, 503, 504) and attempt < tries - 1:
+            wait = int(float(response.headers.get('Retry-After', 2 ** attempt)))
+            print(f"HTTP {response.status_code} from PFF, waiting {wait}s (attempt {attempt + 1}/{tries}): {url}")
+            time.sleep(wait)
+            continue
+        break
+    if response.status_code in (401, 403):
+        try:
+            err = response.json().get('error', {})
+            reason = f"{err.get('code')} / {(err.get('details') or {}).get('reason')} request_id={err.get('request_id')}"
+        except Exception:
+            reason = response.text[:200]
+        raise Exception(f"{response.status_code} Unauthorized - PFF API key rejected: {reason}")
+    if response.status_code != 200:
+        print(f"HTTP {response.status_code} for {url}: {response.text[:200]}")
+    return response
+
+
+def fetch_receiving_depth(season, week, auth):
     """Fetch receiving depth data from PFF API for a specific season and week."""
-    import requests
     
     url = f"{API_URL}?league=nfl&season={season}&week={week}"
     
     try:
-        response = requests.get(url, cookies=cookies, timeout=30)
+        response = pff_get(url, auth, timeout=30)
         
         if response.status_code == 401:
-            print(f"ERROR: 401 Unauthorized - cookies expired!")
+            print(f"ERROR: 401 Unauthorized - auth expired!")
             return None
         
         if response.status_code != 200:
@@ -59,7 +91,7 @@ def fetch_receiving_depth(season, week, cookies):
         
         # Check for restricted response (expired cookie) - FAIL HARD
         if 'restricted' in data and data['restricted']:
-            raise ValueError(f"COOKIE EXPIRED! API returned {len(data['restricted'])} restricted fields. Re-authenticate at premium.pff.com")
+            raise ValueError(f"API KEY NOT ENTITLED! API returned {len(data['restricted'])} restricted fields. check the key at https://www.pff.com/account/api-keys")
         
         # Extract receiving depth data
         players = data.get('receiving_depth', [])
@@ -719,9 +751,9 @@ def lambda_handler(event, context):
     
     print(f"Processing season {season}, weeks {weeks}")
     
-    # Get cookies
+    # Get auth
     try:
-        cookies = get_cookies()
+        auth = get_auth()
     except Exception as e:
         return {
             'statusCode': 500,
@@ -736,7 +768,7 @@ def lambda_handler(event, context):
         print(f"{'='*50}")
         
         # Fetch data
-        data = fetch_receiving_depth(season, week, cookies)
+        data = fetch_receiving_depth(season, week, auth)
         
         if data is None:
             results.append({'week': week, 'status': 'no_data', 'rows': 0})
