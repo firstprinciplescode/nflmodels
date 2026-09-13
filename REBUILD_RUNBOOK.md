@@ -311,27 +311,36 @@ Numbers that depend on `percent_rank_avg` (pctls, ladders, deltas) were
 computed on the canon `(r−1)/(n−1)` scale on Aug 14–16. Pool counts, base
 rates and row receipts do not depend on it.
 
-## The scrapers (Lambda) and the PFF API key (2026-09-13)
+## The scrapers (Lambda) and PFF login (2026-09-13)
 
-PFF killed the cookie login in Sept 2026 (auth moved to Clerk: 60-second `__session` tokens,
-no `_premium_key`). The 26 scraper Lambdas now call the official **PFF Developer API**
-(https://developer.pff.com): host `https://api.pff.com/v1/...`, header
-`Authorization: Bearer ak_live_...`. Same paths, same query params, same response keys as
-the old `premium.pff.com/api/v1` -- the cleaners and every Athena table are untouched.
+PFF moved premium login to Clerk in Sept 2026: the `__session` cookie the API reads dies
+every 60 s and `_premium_key` is gone. No PFF Pro / API key is needed (probed 2026-09-13:
+minting a session from the normal login unlocks all 49 fields). All 26 scrapers now do
+what the browser does: hold the long-lived `__client` cookie and mint a `__session` from
+`clerk.pff.com` on demand (`get_auth()` / `fresh_session()` / `pff_get()` at the top of
+each file; `receiving-depth-parquet-lambda.py` has no PFF calls and is unchanged).
 
-**The key lives in the same Secrets Manager secret as before, `pff-api-cookies`**, so no
-IAM change. Its Plaintext must be exactly
+**Secrets Manager secret `pff-api-cookies` (same name, no IAM change) -- Plaintext must be:**
 
 ```json
-{"PFF_API_KEY": "ak_live_XXXXXXXX"}
+{"__client": "PASTE the __client cookie value"}
 ```
 
-(delete the old cookie rows). Make the key at https://www.pff.com/account/api-keys (PFF Pro;
-shown once). Test it from a shell BEFORE touching the secret or the Lambdas:
+Where: premium.pff.com in a NORMAL (not incognito) logged-in window > F12 > Application >
+Storage > Cookies > https://premium.pff.com > row `__client` (value starts `ey`). Delete
+the old cookie rows from the secret.
+
+**How long it lasts:** the login expires 30 days after your last activity on the site and
+rolls forward while you use it. Every Lambda run prints `PFF login ... expires in N days`.
+When a run fails with "re-paste __client", do the paste above.
+
+Test on your machine BEFORE touching the secret (needs `pff_cookies.json` in the repo
+root, gitignored, `{"__session": "...", "__client": "..."}`):
 
 ```
-set PFF_API_KEY=ak_live_...
-python scripts/pff_api_smoke.py
+python scripts/pff_auth_probe.py                       # expiry + mint test, verdict line
+python scripts/pff_lambda_local_test.py                 # rushing-summary's real code, 2025 wk 1
+python scripts/pff_lambda_local_test.py coverage-summary-scraper 2021 3
 ```
 
 Deploy (dry run first; each function is one .py zipped under its handler's module name):
@@ -342,13 +351,11 @@ Deploy (dry run first; each function is one .py zipped under its handler's modul
 .\lambdas\upload_lambdas.ps1 -Deploy -Only nfl-coverage-summary-scraper
 ```
 
-What changed in every scraper: `get_cookies()` -> `get_auth()`; every `requests.get(...,
-cookies=...)` -> `pff_get(url, auth, timeout)`, which retries 429/502/503/504 honouring
-`Retry-After`, raises on 401/403 with PFF's own `error.details.reason`, and PRINTS any
-other non-200 (before, a non-200 silently returned an empty frame -- the likely cause of
-the 2021 coverage holes). Rate limit: 100 reads/min per account. `receiving-depth-parquet-
-lambda.py` has no PFF calls and was not changed. After deploying, re-run the coverage
-lambda for the holes: `{"season": 2021, "weeks": [3,4,5,7,8,14]}` and `{"season": 2022, "weeks": [17]}`.
+`pff_get()` retries 429/502/503/504 honouring `Retry-After`, re-mints on 401, raises on a
+"restricted" (free-tier) payload, and prints any other non-200 (before, a non-200 silently
+returned an empty frame -- the likely cause of the 2021 coverage holes). After deploying,
+re-run the coverage lambda for the holes: `{"season": 2021, "weeks": [3,4,5,7,8,14]}` and
+`{"season": 2022, "weeks": [17]}`.
 
 ## Known holes (2026-09-12)
 

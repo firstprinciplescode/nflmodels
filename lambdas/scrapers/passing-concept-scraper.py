@@ -14,40 +14,77 @@ s3_client = boto3.client('s3')
 BUCKET_NAME = 'nfl-pff-data-lucas'
 SECRET_NAME = 'pff-api-cookies'
 
+CLERK = 'https://clerk.pff.com/v1'
+BROWSER_HDR = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json',
+               'Origin': 'https://premium.pff.com', 'Referer': 'https://premium.pff.com/'}
+
+
 def get_auth():
-    """PFF Developer API credential: the ak_live_ key stored in Secrets Manager under PFF_API_KEY.
-    Replaced the browser-cookie jar on 2026-09-13: PFF moved premium auth to Clerk (60-second
-    session tokens) and opened https://developer.pff.com -- same /v1 paths and parameters as
-    premium.pff.com/api/v1, host api.pff.com, Authorization: Bearer <key>."""
+    """PFF premium auth since Sept 2026 (Clerk). The secret holds ONE value, the long-lived
+    __client cookie of a normal premium.pff.com login (DevTools > Application > Cookies >
+    premium.pff.com > __client). The 60-second __session cookie the API actually reads is
+    minted from it on demand by fresh_session(), exactly as the browser does. The login
+    rolls 30 days from last activity; when Clerk says it is gone, re-paste __client."""
     secret = json.loads(secrets_client.get_secret_value(SecretId=SECRET_NAME)['SecretString'])
-    key = secret.get('PFF_API_KEY')
-    if not key:
-        raise Exception(f"secret {SECRET_NAME} has no PFF_API_KEY -- create one at https://www.pff.com/account/api-keys")
-    return {'Authorization': f'Bearer {key}', 'Accept': 'application/json'}
+    client = secret.get('__client')
+    if not client:
+        raise Exception(f"secret {SECRET_NAME} has no __client -- paste the __client cookie from premium.pff.com")
+    r = requests.get(f"{CLERK}/client?_clerk_js_version=5", cookies={'__client': client},
+                     headers=BROWSER_HDR, timeout=15)
+    if r.status_code != 200:
+        raise Exception(f"Clerk /client HTTP {r.status_code} -- __client in secret {SECRET_NAME} is dead, re-paste it: {r.text[:200]}")
+    body = r.json().get('response') or r.json()
+    sessions = body.get('sessions') or []
+    sid = body.get('last_active_session_id') or (sessions[0].get('id') if sessions else None)
+    if not sid:
+        raise Exception("no active PFF session behind this __client -- log in at premium.pff.com and re-paste __client")
+    for s in sessions:
+        if s.get('id') == sid and s.get('expire_at'):
+            print(f"PFF login {sid[:9]}... expires in {(s['expire_at'] / 1000 - time.time()) / 86400:.1f} days (rolls on activity)")
+    return {'client': client, 'sid': sid, 'session': None, 'minted': 0.0}
+
+
+def fresh_session(auth):
+    """A __session JWT that is at most 45 s old (they die at 60 s)."""
+    if auth['session'] and time.time() - auth['minted'] < 45:
+        return auth['session']
+    r = requests.post(f"{CLERK}/client/sessions/{auth['sid']}/tokens?_clerk_js_version=5",
+                      cookies={'__client': auth['client']}, headers=BROWSER_HDR, timeout=15)
+    if r.status_code != 200:
+        raise Exception(f"Clerk token mint HTTP {r.status_code} -- re-paste __client into secret {SECRET_NAME}: {r.text[:200]}")
+    auth['session'] = r.json()['jwt']
+    auth['minted'] = time.time()
+    return auth['session']
 
 
 def pff_get(url, auth, timeout=10, tries=5):
-    """GET against api.pff.com honouring its contract: 429/502/503/504 wait Retry-After and
-    retry; 401/403 raise with the API's own reason (never a silent 'no data'); any other
-    non-200 is printed so a missing week shows up in CloudWatch instead of vanishing."""
+    """GET premium.pff.com/api/v1 with a fresh __session. 429/502/503/504 wait Retry-After and
+    retry; a 401 re-mints once; a 200 whose body lists 'restricted' fields raises (that is
+    the stripped free-tier payload, never silently 'no data'); any other non-200 is printed
+    so a missing week shows up in CloudWatch instead of vanishing."""
     response = None
     for attempt in range(tries):
-        response = requests.get(url, headers=auth, timeout=timeout)
+        response = requests.get(url, cookies={'__session': fresh_session(auth)}, headers=BROWSER_HDR, timeout=timeout)
         if response.status_code in (429, 502, 503, 504) and attempt < tries - 1:
             wait = int(float(response.headers.get('Retry-After', 2 ** attempt)))
             print(f"HTTP {response.status_code} from PFF, waiting {wait}s (attempt {attempt + 1}/{tries}): {url}")
             time.sleep(wait)
             continue
+        if response.status_code == 401 and attempt < tries - 1:
+            auth['session'] = None
+            continue
         break
     if response.status_code in (401, 403):
-        try:
-            err = response.json().get('error', {})
-            reason = f"{err.get('code')} / {(err.get('details') or {}).get('reason')} request_id={err.get('request_id')}"
-        except Exception:
-            reason = response.text[:200]
-        raise Exception(f"{response.status_code} Unauthorized - PFF API key rejected: {reason}")
+        raise Exception(f"{response.status_code} from PFF with a freshly minted session -- login revoked? re-paste __client: {response.text[:200]}")
     if response.status_code != 200:
         print(f"HTTP {response.status_code} for {url}: {response.text[:200]}")
+        return response
+    try:
+        restricted = response.json().get('restricted')
+    except Exception:
+        restricted = None
+    if restricted:
+        raise Exception(f"RESTRICTED payload ({len(restricted)} fields stripped) -- the session is not premium; re-paste __client into secret {SECRET_NAME}")
     return response
 
 def scrape_passing_concept_for_week(season, week, auth):
@@ -55,7 +92,7 @@ def scrape_passing_concept_for_week(season, week, auth):
     Scrape passing concept data for one season/week combination
     Returns: DataFrame with passing concept data
     """
-    url = f'https://api.pff.com/v1/facet/passing/concept?league=nfl&season={season}&week={week}'
+    url = f'https://premium.pff.com/api/v1/facet/passing/concept?league=nfl&season={season}&week={week}'
     
     try:
         response = pff_get(url, auth, timeout=10)
