@@ -98,16 +98,6 @@ exposures:
       - ref('vw_combined_depth')
       - ref('vw_combined_blitz')
       - ref('vw_combined_pressure')
-  - name: league_receiving_evaluating_currency_three
-    type: analysis
-    maturity: medium
-    url: https://github.com/firstprinciplescode/nflmodels/blob/main/pff_stats/receiving/league_receiving_evaluating_currency_three.R
-    description: "R c3 file pff_stats/receiving/league_receiving_evaluating_currency_three.R (unit receiving)."
-    owner:
-      name: Andy
-    depends_on:
-      - source('pff_raw', 'receiver_scheme')
-      - ref('vw_receiving_enriched_scheme')
   - name: pff_receiving_man_zone_exploration_aws
     type: analysis
     maturity: medium
@@ -131,15 +121,6 @@ exposures:
       - ref('vw_receiving_enriched')
       - ref('vw_play_counts_enriched')
       - ref('vw_total_snaps')
-  - name: receiving_stats_comparison
-    type: analysis
-    maturity: medium
-    url: https://github.com/firstprinciplescode/nflmodels/blob/main/pff_stats/receiving/receiving_stats_comparison.R
-    description: "R other file pff_stats/receiving/receiving_stats_comparison.R (unit receiving)."
-    owner:
-      name: Andy
-    depends_on:
-      - ref('vw_receiving_clustering_base')
   - name: pff_run_block_aws
     type: analysis
     maturity: medium

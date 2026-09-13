@@ -1,29 +1,35 @@
 """Build the R-side lineage from the code itself (added 2026-09-13).
 
 Reads every .R file under pff_stats/ and data_build/ and derives, per file:
-  - makes:  objects the file CREATES (`name <- ...` where the right-hand side
-            does not mention `name`; `x <- as_tibble(x)` is a re-assignment)
-  - needs:  objects the file WALLS on (`needed_* <- c("...")`)
-  - athena: tables it pulls inside run_athena_query("... FROM nfl_data.<t> ...")
+  - makes:  objects the file CREATES at top level (see producers())
+  - needs:  objects the file depends on through a `*needed* <- c("...")`
+            vector -- a WALL when a stop() follows it, a GATE when the vector
+            only guards an `if (all(exists(...)))` block (the block is skipped,
+            the file continues)
+  - athena: tables it pulls inside live run_athena_query("... FROM/JOIN t ...")
+            calls (commented-out calls and calls quoted inside cat('...') do
+            not count)
   - nflreadr: the nflreadr::load_*() feeds it reads
-  - stage:  step0 / schedule / c3 / league / availability / viewer / ids / base
+  - stage:  step0 / schedule / c3 / league / final / availability / viewer / ids / base
   - unit:   the pff_stats sub-folder (run_defense, rushing, ...) or data_build
 
 and writes:
   LINEAGE.md                       Mermaid DAG (GitHub renders it) + tables
-  nfl_dbt/models/exposures.yml     one dbt exposure per step-0 file, so the
-                                   dbt docs graph shows where each R chain
-                                   starts from the warehouse
+  nfl_dbt/models/exposures.yml     one dbt exposure per R file that pulls from
+                                   Athena, so the dbt docs graph shows where
+                                   each R chain starts from the warehouse
 
 Usage:
   python scripts/build_lineage.py            # (re)write both files
   python scripts/build_lineage.py --check    # exit 1 if either file is stale
 
-The CI test tests/test_lineage_current.py runs --check, so a committed graph
-can never drift from the code. Edges are FILE -> FILE: file B needs object o,
-file A makes o. When several files make the same name (each unit's schedule
-makes its own `team_band_2026`), the producer in the same unit wins; the
-cross-unit collisions are listed as a landmine table.
+tests/test_lineage_current.py runs --check, and tests/test_session_safety.py
+imports producers() / needs() from here, so the CI guard and the map can never
+disagree. Edges are FILE -> FILE: file B needs object o, file A makes o. When
+several files make the same name (each unit's schedule makes its own
+`team_band_2026`), the producer in the consumer's own unit wins, then
+data_build, then the shared constants file; the cross-unit collisions are
+listed as a landmine table.
 """
 from __future__ import annotations
 
@@ -44,11 +50,12 @@ STAGE_ORDER = ["base", "ids", "constants", "step0", "schedule", "c3", "league", 
 UNIT_ORDER = ["data_build", "shared", "run_defense", "rushing", "pass_rush", "pass_block", "run_block",
               "receiving", "secondary", "evaluation"]
 
-# --- regexes (tests/test_session_safety.py imports producers() / needs() from here) ----------
-# any wall vector whose name contains "needed": needed_p4, needed_mz, lg_needed, lg_needed_ol, needed_adj ...
+# --- regexes ------------------------------------------------------------------
+# any dependency vector whose name contains "needed": needed_p4, needed_mz, lg_needed, lg_needed_ol, needed_adj ...
 NEEDED_VEC = re.compile(r"^\s*\w*needed\w*\s*<-\s*c\(([^)]*)\)", re.M)
 STRING = re.compile(r'"([^"]+)"')
-PRODUCER = re.compile(r"(?:^|;)\s*([A-Za-z_.][A-Za-z0-9_.]*)\s*<<?-")
+# an assignment at line start, after `;`, or after `{` (`if (x) { a <- 1; b <- 2 }`)
+PRODUCER = re.compile(r"(?:^|[;{])\s*([A-Za-z_.][A-Za-z0-9_.]*)\s*<<?-")
 ASSIGN_CALL = re.compile(r'assign\(\s*"([^"]+)"')
 ATHENA_CALL = re.compile(r'run_athena_query\(\s*"((?:[^"\\]|\\.)*)"', re.S)
 SQL_FROM = re.compile(r"\b(?:FROM|JOIN)\s+(?:nfl_data\.)?([A-Za-z_][A-Za-z0-9_]*)", re.I)
@@ -56,6 +63,8 @@ NFLREADR = re.compile(r"nflreadr::(load_[a-z_]+)\(")
 COMMENT_LINE = re.compile(r"^\s*#")
 STR_LIT = re.compile(r'"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'')
 GUARD = re.compile(r'if\s*\(\s*!\s*exists\(\s*"([^"]+)"\s*\)\s*\)')
+DOLLAR = re.compile(r"\$[A-Za-z_.][A-Za-z0-9_.]*")     # pool$n_pool -> a column, not the object
+FN_START = re.compile(r"\b(function|local)\s*\(")
 
 
 def read(p: Path) -> str:
@@ -72,26 +81,30 @@ def _code(raw: str) -> str:
 
 
 def producers(txt: str) -> set[str]:
-    """Names a file genuinely CREATES.
+    """Names a file genuinely CREATES in the global environment.
 
     Not a producer:
       - `x <- f(x)` / `x <- x %>% ...`  -- re-assignment of something that must
-        already exist (string literals are blanked first, so a table name inside
-        run_athena_query("... FROM x") does not count as a mention of x)
-      - an assignment inside a `function(...) { ... }` body -- a local
+        already exist (string literals and `$col` references are blanked first,
+        so a table name inside run_athena_query("... FROM x") or `pool$x` does
+        not count as a mention of x)
+      - an assignment inside a `function(...) { ... }` body or a `local({ ... })`
+        -- a local, even when the signature spans several lines
       - an assignment guarded by `if (!exists("x"))` -- a fallback, by its own
         admission: the real producer is whatever defined x first
     """
     lines = txt.splitlines()
     out: set[str] = set()
-    stack: list[str] = []          # one entry per open brace: "fn" or "blk"
-    guards: list[str | None] = []  # per open brace: the name an enclosing if(!exists("name")) guards
-    pending_guard: str | None = None   # `if (!exists("x"))` with no brace: guards the next statement
+    stack: list[str] = []            # one entry per open brace: "fn" or "blk"
+    guards: list[str | None] = []    # per open brace: the name an enclosing if(!exists("name")) guards
+    pending_guard: str | None = None # `if (!exists("x"))` with no brace guards the next statement
+    fn_kind: str | None = None       # "function" / "local" whose body brace has not appeared yet
+    fn_depth = 0                     # paren depth inside that signature
     for i, raw in enumerate(lines):
         if COMMENT_LINE.match(raw) or not raw.strip():
             continue
         code = _code(raw)
-        g = GUARD.search(raw)          # on the RAW line: the guarded name lives inside a string literal
+        g = GUARD.search(raw)        # on the RAW line: the guarded name lives inside a string literal
         gname = g.group(1) if g else None
         in_fn = "fn" in stack
         for m in PRODUCER.finditer(code):
@@ -99,7 +112,7 @@ def producers(txt: str) -> set[str]:
             rhs = code[m.end():]
             if not rhs.strip() and i + 1 < len(lines):
                 rhs = _code(lines[i + 1])
-            if re.search(rf"\b{re.escape(name)}\b", rhs):
+            if re.search(rf"\b{re.escape(name)}\b", DOLLAR.sub("$", rhs)):
                 continue
             if in_fn:
                 continue
@@ -107,34 +120,71 @@ def producers(txt: str) -> set[str]:
                 continue
             out.add(name)
         pending_guard = gname if (gname and "{" not in code and not PRODUCER.search(code)) else None
-        opens, closes = code.count("{"), code.count("}")
-        is_fn = "function(" in code or "function (" in code
-        for _ in range(opens):
-            stack.append("fn" if is_fn else "blk")
-            guards.append(gname)
-        for _ in range(closes):
-            if stack:
-                stack.pop()
-                guards.pop()
+        # brace bookkeeping, char by char, so a function signature that spans lines
+        # (`f <- function(a,` ... `b) {`) still marks its body as a function body
+        starts = {m.start(): m.group(1) for m in FN_START.finditer(code)}
+        closed_here = False
+        j = 0
+        while j < len(code):
+            if j in starts and fn_kind is None:
+                fn_kind, fn_depth = starts[j], 0
+            ch = code[j]
+            if ch == "(":
+                if fn_kind:
+                    fn_depth += 1
+            elif ch == ")":
+                if fn_kind:
+                    fn_depth -= 1
+                    if fn_depth <= 0 and fn_kind == "function":
+                        closed_here = True
+            elif ch == "{":
+                is_body = fn_kind == "function" and fn_depth <= 0 or fn_kind == "local" and fn_depth >= 1
+                stack.append("fn" if is_body else "blk")
+                guards.append(gname)
+                if is_body:
+                    fn_kind = None
+            elif ch == "}":
+                if stack:
+                    stack.pop()
+                    guards.pop()
+            j += 1
+        if fn_kind == "function" and closed_here and fn_depth <= 0:
+            fn_kind = None            # `function(x) x + 1` -- no brace body on this line
     for raw in lines:
         if not COMMENT_LINE.match(raw):
             out.update(ASSIGN_CALL.findall(raw))
     return out
 
 
-def needs(txt: str) -> list[str]:
-    seen, out = set(), []
+def needs_detail(txt: str) -> list[tuple[str, str]]:
+    """(object, kind) for every *needed* vector; kind = 'wall' when a stop()
+    follows the vector within 8 lines, else 'gate' (a soft if/exists guard)."""
+    seen: dict[str, str] = {}
+    lines = txt.splitlines()
     for vec in NEEDED_VEC.finditer(txt):
+        end_line = txt.count("\n", 0, vec.end())
+        window = "\n".join(lines[end_line + 1: end_line + 9])
+        kind = "wall" if "stop(" in window else "gate"
         for name in STRING.findall(vec.group(1)):
-            if name not in seen:
-                seen.add(name)
-                out.append(name)
-    return out
+            if name not in seen or kind == "wall":
+                seen[name] = kind
+    return list(seen.items())
+
+
+def needs(txt: str) -> list[str]:
+    return [n for n, _ in needs_detail(txt)]
 
 
 def athena_tables(txt: str) -> list[str]:
-    out = []
-    for m in ATHENA_CALL.finditer(txt):
+    """FROM / JOIN tables inside LIVE run_athena_query("...") calls: comment
+    lines are dropped first, and a call that sits inside a single-quoted
+    literal (a cat('...') printing instructions) is not a call."""
+    code = strip_comments(txt)
+    quoted = [(m.start(), m.end()) for m in STR_LIT.finditer(code) if m.group(0).startswith("'")]
+    out: list[str] = []
+    for m in ATHENA_CALL.finditer(code):
+        if any(s <= m.start() < e for s, e in quoted):
+            continue
         for t in SQL_FROM.findall(m.group(1)):
             t = t.lower()
             if t not in out:
@@ -184,9 +234,11 @@ def scan() -> dict[str, dict]:
         for p in sorted((REPO / d).rglob("*.R")):
             rel = p.relative_to(REPO).as_posix()
             txt = read(p)
+            nd = needs_detail(txt)
             files[rel] = {
                 "stage": stage_of(rel), "unit": unit_of(rel),
-                "makes": producers(txt), "needs": needs(txt),
+                "makes": producers(txt),
+                "needs": [n for n, _ in nd], "need_kind": dict(nd),
                 "athena": athena_tables(txt), "nflreadr": nflreadr_feeds(txt),
             }
     return files
@@ -197,36 +249,31 @@ def resolve_edges(files: dict[str, dict]):
     for rel, f in files.items():
         for o in f["makes"]:
             by_obj[o].append(rel)
-    edges: dict[tuple[str, str], list[str]] = defaultdict(list)  # (from, to) -> objects
-    holes: list[tuple[str, str]] = []                           # (object, needing file)
-    self_walls: dict[str, list[str]] = defaultdict(list)        # file -> objects its own earlier section makes
+    edges: dict[tuple[str, str], list[str]] = defaultdict(list)   # (from, to) -> objects
+    hard: set[tuple[str, str]] = set()                             # edges carrying at least one WALL
+    holes: list[tuple[str, str, str]] = []                         # (object, kind, needing file)
+    self_walls: dict[str, list[str]] = defaultdict(list)           # file -> objects its own earlier section makes
     for rel, f in files.items():
         for o in f["needs"]:
+            kind = f["need_kind"][o]
             if o in f["makes"]:
-                # a two-part file: section 2 walls on what section 1 built.
-                # source() stops at that wall if section 1 died -- listed below.
                 self_walls[rel].append(o)
                 continue
             prods = [p for p in by_obj.get(o, []) if p != rel]
             if not prods:
-                holes.append((o, rel))
+                holes.append((o, kind, rel))
                 continue
-            # producer preference: the consumer's own unit, else data_build (the
-            # canonical base for shared frames like combined_grade_epa_summary,
-            # which every step-0 also pulls), else everyone who makes it
             same = [p for p in prods if files[p]["unit"] == f["unit"]]
             base = [p for p in prods if files[p]["unit"] == "data_build"]
-            shared = [p for p in prods if files[p]["unit"] == "shared"]   # shared_ne_2026_constants.R
-            chosen = same or base or shared or prods
-            for p in chosen:
+            shared = [p for p in prods if files[p]["unit"] == "shared"]
+            for p in (same or base or shared or prods):
                 edges[(p, rel)].append(o)
-    # landmines: a WALLED-ON name (something a file needs) created by files in
-    # more than one unit -- loop counters and scratch names collide everywhere
-    # and mean nothing, so they are not listed
+                if kind == "wall":
+                    hard.add((p, rel))
     needed_all = {o for f in files.values() for o in f["needs"]}
     collisions = {o: sorted(ps) for o, ps in by_obj.items()
                   if o in needed_all and len({files[p]["unit"] for p in ps}) > 1}
-    return edges, holes, collisions, dict(self_walls)
+    return edges, hard, holes, collisions, dict(self_walls)
 
 
 def in_graph(rel: str, f: dict, edges) -> bool:
@@ -246,7 +293,7 @@ def label(rel: str, f: dict) -> str:
     return f"{Path(rel).name}<br/><i>{f['stage']}</i>"
 
 
-def mermaid(files, edges) -> str:
+def mermaid(files, edges, hard) -> str:
     files = {rel: f for rel, f in files.items() if in_graph(rel, f, edges)}
     out = ["flowchart LR"]
     athena = sorted({t for f in files.values() for t in f["athena"]})
@@ -278,7 +325,8 @@ def mermaid(files, edges) -> str:
     for (a, b), objs in sorted(edges.items()):
         objs = sorted(objs)
         lab = ", ".join(objs[:3]) + (f" +{len(objs) - 3}" if len(objs) > 3 else "")
-        out.append(f'  {node_id(a)} -->|"{lab}"| {node_id(b)}')
+        arrow = "-->" if (a, b) in hard else "-.->"      # dashed = soft gate only
+        out.append(f'  {node_id(a)} {arrow}|"{lab}"| {node_id(b)}')
     return "\n".join(out)
 
 
@@ -289,44 +337,50 @@ def md_table(rows, header):
     return "\n".join(lines)
 
 
-def build_lineage_md(files, edges, holes, collisions, self_walls) -> str:
+def build_lineage_md(files, edges, hard, holes, collisions, self_walls) -> str:
     parts = [
         "# LINEAGE — the R pipeline, derived from the code",
         "",
         "*Generated by `python scripts/build_lineage.py` — do not edit by hand. "
         "CI (`tests/test_lineage_current.py`) fails if this file is older than the code.*",
         "",
-        "Every node is a file. An arrow `A -> B` means B walls on an object "
-        "(`needed_* <- c(...)`) that A creates. Cylinders are Athena tables pulled "
-        "inside `run_athena_query()`; dotted arrows are nflreadr feeds. "
+        "Every node is a file. A solid arrow `A -> B` means B **walls** on an object "
+        "(`needed_* <- c(...)` followed by `stop()`) that A creates; a dashed arrow means "
+        "B only **gates** a block on it (`if (all(exists(...)))` — skipped, not stopped). "
+        "Cylinders are Athena tables pulled inside live `run_athena_query()` calls; "
+        "dotted arrows from the nflreadr box are roster/schedule feeds. "
         "Scope: `pff_stats/` and `data_build/`.",
         "",
         "```mermaid",
-        mermaid(files, edges),
+        mermaid(files, edges, hard),
         "```",
         "",
-        "## Holes — walled-on objects that NO scanned file creates",
+        "## Holes — needed objects that NO scanned file creates",
         "",
     ]
     if holes:
-        parts.append(md_table(sorted(holes), ["object", "needed by"]))
+        parts.append(md_table(sorted(holes), ["object", "wall or gate", "needed by"]))
+        parts.append("")
+        parts.append("A *wall* hole stops the file. A *gate* hole means the guarded block can never "
+                     "run — dead code until the object gets a producer.")
     else:
-        parts.append("None. Every walled-on object has a producer in the scanned files.")
-    parts += ["", "## Landmines — one object name created by files in DIFFERENT units", "",
+        parts.append("None. Every needed object has a producer in the scanned files.")
+    parts += ["", "## Landmines — one needed name created by files in DIFFERENT units", "",
               "Each unit's schedule overwrites the same session name; the last file sourced wins. "
-              "Edges above prefer the producer inside the consumer's own unit.", ""]
+              "Edges above prefer the producer inside the consumer's own unit, then `data_build`, "
+              "then `shared_ne_2026_constants.R`.", ""]
     if collisions:
         parts.append(md_table([(o, "<br/>".join(ps)) for o, ps in sorted(collisions.items())],
                               ["object", "created by"]))
     else:
         parts.append("None.")
-    parts += ["", "## Two-part files — a later section walls on what an earlier section built", "",
+    parts += ["", "## Two-part files — a later section needs what an earlier section built", "",
               "`source()` runs top to bottom and stops at the first wall. If section 1 dies, "
               "section 2's wall fires with the names below — and everything after it never runs "
               "(the rushing schedules' composite pack is why rushing needs run defense first).", ""]
     if self_walls:
         parts.append(md_table([(f"`{Path(r).name}`", ", ".join(objs)) for r, objs in sorted(self_walls.items())],
-                              ["file", "section-2 wall needs (made in section 1)"]))
+                              ["file", "section-2 needs (made in section 1)"]))
     else:
         parts.append("None.")
     units = sorted({f["unit"] for f in files.values()},
@@ -338,13 +392,14 @@ def build_lineage_md(files, edges, holes, collisions, self_walls) -> str:
                           key=lambda r: (STAGE_ORDER.index(files[r]["stage"]), r)):
             f = files[rel]
             mk = sorted(f["makes"])
+            nd = [n if f["need_kind"][n] == "wall" else f"{n} (gate)" for n in f["needs"]]
             rows.append((
                 f"`{Path(rel).name}`", f["stage"],
                 ", ".join(f["athena"]) or "—",
-                ", ".join(f["needs"]) or "—",
+                ", ".join(nd) or "—",
                 f"{len(mk)}: " + ", ".join(mk[:8]) + (" …" if len(mk) > 8 else ""),
             ))
-        parts.append(md_table(rows, ["file", "stage", "athena tables", "needs (walls)", "makes"]))
+        parts.append(md_table(rows, ["file", "stage", "athena tables", "needs (walls; gates marked)", "makes"]))
     return "\n".join(parts) + "\n"
 
 
@@ -401,8 +456,8 @@ def build_exposures_yml(files) -> str:
 
 def main(argv):
     files = scan()
-    edges, holes, collisions, self_walls = resolve_edges(files)
-    lineage = build_lineage_md(files, edges, holes, collisions, self_walls)
+    edges, hard, holes, collisions, self_walls = resolve_edges(files)
+    lineage = build_lineage_md(files, edges, hard, holes, collisions, self_walls)
     exposures = build_exposures_yml(files)
     if "--check" in argv:
         stale = []
@@ -418,11 +473,10 @@ def main(argv):
     LINEAGE_MD.write_text(lineage, encoding="utf-8", newline="\n")
     EXPOSURES_YML.parent.mkdir(parents=True, exist_ok=True)
     EXPOSURES_YML.write_text(exposures, encoding="utf-8", newline="\n")
-    n_edges = len(edges)
-    mm = mermaid(files, edges)
+    mm = mermaid(files, edges, hard)
     print(f"files {len(files)} (in graph {sum(in_graph(r, f, edges) for r, f in files.items())}) | "
-          f"edges {n_edges} | holes {len(holes)} | walled-on cross-unit collisions {len(collisions)} | "
-          f"mermaid {len(mm):,} chars")
+          f"edges {len(edges)} (soft {len(edges) - len(hard)}) | holes {len(holes)} | "
+          f"needed cross-unit collisions {len(collisions)} | mermaid {len(mm):,} chars")
     if len(mm) > 45_000:
         print("WARNING: mermaid source over ~45k chars -- GitHub may refuse to render it")
     print(f"wrote {LINEAGE_MD.relative_to(REPO)} and {EXPOSURES_YML.relative_to(REPO)}")
