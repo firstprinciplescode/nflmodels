@@ -264,6 +264,7 @@ kmeans_data <- wr_for_modeling %>%
 elbow_sil_results <- data.frame()
 
 for (k in 2:12) {
+  set.seed(100)   # 2026-09-12: reproducible clustering (Andy: seed 100)
   km <- kmeans(kmeans_data, centers = k, nstart = 25)
   sil <- silhouette(km$cluster, dist(kmeans_data))
   
@@ -295,6 +296,7 @@ par(mfrow = c(1, 1))
 
 # SO IT'S 2
 
+set.seed(100)   # 2026-09-12: reproducible clustering (Andy: seed 100)
 km_2 <- kmeans(kmeans_data, centers = 2, nstart = 25)
 wr_for_modeling$kmeans_grp_2 <- km_2$cluster
 
@@ -521,6 +523,7 @@ kmeans_data_te <- te_for_modeling %>%
 elbow_sil_results_te <- data.frame()
 
 for (k in 2:10) {
+  set.seed(100)   # 2026-09-12: reproducible clustering (Andy: seed 100)
   km <- kmeans(kmeans_data_te, centers = k, nstart = 25)
   sil <- silhouette(km$cluster, dist(kmeans_data_te))
   
@@ -549,6 +552,7 @@ par(mfrow = c(1, 1))
 
 
 # k=2 for TEs
+set.seed(100)   # 2026-09-12: reproducible clustering (Andy: seed 100)
 km_2_te <- kmeans(kmeans_data_te, centers = 2, nstart = 25)
 te_for_modeling$kmeans_grp_2 <- km_2_te$cluster
 
@@ -747,6 +751,7 @@ kmeans_data_rb <- rb_for_modeling %>%
 elbow_sil_results_rb <- data.frame()
 
 for (k in 2:10) {
+  set.seed(100)   # 2026-09-12: reproducible clustering (Andy: seed 100)
   km <- kmeans(kmeans_data_rb, centers = k, nstart = 25)
   sil <- silhouette(km$cluster, dist(kmeans_data_rb))
   
@@ -775,6 +780,7 @@ par(mfrow = c(1, 1))
 
 
 # k=3 for RBs
+set.seed(100)   # 2026-09-12: reproducible clustering (Andy: seed 100)
 km_2_rb <- kmeans(kmeans_data_rb, centers = 2, nstart = 25)
 rb_for_modeling$kmeans_grp_2 <- km_2_rb$cluster
 
