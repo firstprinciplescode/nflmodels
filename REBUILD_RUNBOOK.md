@@ -180,18 +180,48 @@ for the rest. It only hard-stops if *no* unit frames exist.
 
 ## Save points (do this; it is what would have saved today)
 
-After Stage 2 and after each unit, save the frames that cost Athena time:
+`util/cache_frames.R` writes dated `.rds` receipts to `cache/` (gitignored) and
+prints the date + row count of anything it loads back, so a stale frame is
+visible the moment it enters the session.
 
 ```r
-saveRDS(combined_ids,         "cache/combined_ids.rds")
-saveRDS(combined_ids_defense, "cache/combined_ids_defense.rds")
-saveRDS(pff_team_lookup,      "cache/pff_team_lookup.rds")
-saveRDS(rushing_qbgrp,        "cache/rushing_qbgrp.rds")
-saveRDS(run_defense_qbgrp,    "cache/run_defense_qbgrp.rds")
+source("util/cache_frames.R")
+cache_frames("combined_ids", "combined_ids_defense", "pff_team_lookup")   # after Stage 2
+cache_frames("rushing_qbgrp", "run_defense_qbgrp")                        # after each step-0
+cache_ls()                                                                # what is on disk, how old
 ```
 
-`*.rds` is gitignored. A `.rds` is a receipt with a date on it; a session object
-is not.
+Next session's fast path: `uncache_frames("rushing_qbgrp")` instead of the
+Athena pull. The canon path is always re-sourcing the step-0 file; the cache is
+the shortcut, and it says its own age.
+
+## What is enforced (CI fails the PR)
+
+`tests/test_session_safety.py`, run by `python -m pytest` on every PR:
+
+1. **No file may wipe the session.** Any active `rm(list = ls())` /
+   `rm(list = setdiff(ls(), ...))` in a `.R` file fails the build.
+2. **Every walled-on object has a producer.** Every name in a
+   `needed_* <- c(...)` wall under `pff_stats/` must be assigned somewhere in
+   the repo. A step-0 that only ever lived in a session (today's
+   `rushing_qbgrp`, `run_defense_qbgrp`, the OL constants) fails the build.
+   `KNOWN_HOLES` in the test is the only allowlist, and each entry needs a
+   reason.
+
+## Habits the code cannot enforce
+
+- **One working copy.** `Documents\nflmodels` (flat, Aug 13) and
+  `Downloads\nflmodels_UPDATE` (the git repo) have drifted; the weekly runbook
+  still points at `Documents`. Pick the git repo; retire the other.
+- **Nothing runs in the console that is not in a file.** If it is worth
+  running, it is worth `source()`-ing. Console-only code is how both step-0s
+  were lost.
+- **Commit at the end of every session** to a `wip-<date>` branch:
+  `git add -A; git commit -m "wip <date>"; git push -u origin <branch>`.
+  Ten days of engines sat uncommitted before tonight.
+- **"Frozen" means check, not wait.** Task Manager → `rsession-utf8.exe`.
+  CPU near 100% or an `aws` child = working. 0% and no child = the IDE lost
+  the session; the queued commands never ran. Restart R.
 
 ## Known holes (2026-09-12)
 
