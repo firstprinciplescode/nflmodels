@@ -10,10 +10,10 @@ $env:Path = "C:\Users\vflre\AppData\Local\Programs\Python\Python312\Scripts;" + 
 
 ## 1. The command
 ```powershell
-cd C:\Users\vflre\Documents\nflmodels\nfl_dbt
+cd C:\Users\vflre\Downloads\nflmodels_UPDATE\nfl_dbt
 dbt build
 ```
-That one command: syncs new S3 partitions (16 MSCK hooks) → dedups staging →
+That one command: syncs new S3 partitions (23 MSCK hooks) → dedups staging →
 rebuilds all 36 models in dependency order → runs all 45+ tests → reports.
 Takes ~5–8 min single-threaded (or ~3 with `threads: 4` in the profile).
 
@@ -42,7 +42,7 @@ dbt build --select stg_pff__receiving_with_targets+ stg_pff__games+
 
 ## 4. If code changed elsewhere (another machine, a merged PR)
 ```powershell
-cd C:\Users\vflre\Documents\nflmodels
+cd C:\Users\vflre\Downloads\nflmodels_UPDATE
 git checkout main
 git pull
 ```
