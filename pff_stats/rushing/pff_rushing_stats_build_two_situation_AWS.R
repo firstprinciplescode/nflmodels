@@ -745,10 +745,16 @@ a_dashboard <- cluster_dashboard(combined_rush_summation_final_a, rusher_xpass_d
 a_dashboard$percs
 a_dashboard$pvals
 
-# 1: MID
-# 2: BELLCOW
-# 3: LONG YARDAGE
-# 4: LOW AF
+# CLUSTER LABELS (rewritten 2026-09-20). ONE numbering: the build saved 2026-09-20 11:14 --
+# cache/situation_cluster_df.rds and cache/rush_stats_final.rds ($situation_cluster). kmeans RENUMBERS on every rebuild
+# (the June workspace, the 09-19 workspace and this build all carry different numbers), so after ANY rebuild check the shapes first:
+#   situation_cluster_df %>% group_by(rank_grp, cluster) %>% summarise(rows = n(), first_10 = mean(First_10_Ratio, na.rm = TRUE),
+#     third_1 = mean(Third_1_Ratio, na.rm = TRUE), third_rest = mean(Third_rest_Ratio, na.rm = TRUE))
+# A (the lead in that game, > 50% of the team's rushes)
+#   1: LOW AF          ~81 rows, ~48 carries. every xpass quantile low (q50 -.11, q80 +.06); smallest share of 1st-and-10 and of everything long
+#   2: MID             ~282 rows, ~111 carries. the biggest group. early-down lead, gives up 3rd-and-3 and longer; narrow xpass range (-.15 .. +.12)
+#   3: LONG YARDAGE    ~124 rows, ~69 carries. the long buckets, least 2nd-and-2 / 3rd-and-1; highest xpass (q50 +.02, q80 +.22)
+#   4: BELLCOW         ~219 rows, ~124 carries. biggest share of almost every bucket, short yardage and 3rd downs included; widest xpass range (-.20 .. +.20)
 
 
 
@@ -757,11 +763,12 @@ b_dashboard <- cluster_dashboard(combined_rush_summation_final_b, rusher_xpass_d
 b_dashboard$percs
 b_dashboard$pvals
 
-# 1: 3RD DOWN
-# 2: EARLY DOWN 
-# 3: BELLCOW MID
-# 4: LONGER DOWN / YARDAGE MID
-# 5: SHORT YARDAGE
+# B (15-50% of the team's rushes)
+#   1: LATER/LONG      ~106 rows, ~21 carries. the 3rd-down back: about half the team's 3rd-and-4+ carries; xpass far above the rest (q50 +.16)
+#   2: BELLCOW MID     ~219 rows, ~39 carries. an even ~30% of every bucket; widest xpass range (-.22 .. +.20)
+#   3: SHORT YARDAGE   ~190 rows, ~28 carries. top on 3rd-and-1 / 4th-and-1, bottom on everything long; every xpass quantile negative (q50 -.14)
+#   4: EARLY DOWN      ~376 rows, ~46 carries. the biggest group. 1st-and-10 and 2nd-and-up-to-10, least 3rd-and-long and 4th down; xpass q50 -.03
+#   5: MID             ~271 rows, ~41 carries. leans long: 1st-and-long, 2nd-and-long, 3rd-and-3; xpass q50 +.03, q80 +.26
 
 
 c_dashboard <- cluster_dashboard(combined_rush_summation_final_c, rusher_xpass_diff_c_full, 4)
@@ -769,10 +776,11 @@ c_dashboard <- cluster_dashboard(combined_rush_summation_final_c, rusher_xpass_d
 c_dashboard$percs
 c_dashboard$pvals
 
-# 1: ONLY SHORT YARDAGE
-# 2: LONG YARDAGE / LATER DOWN
-# 3: SHORT YARDAGE MID
-# 4: MID
+# C (under 15% of the team's rushes)
+#   1: EARLY DOWN      ~378 rows, ~13 carries. the biggest group. spot carries on 1st-and-10 and 2nd-and-medium; xpass q50 -.04
+#   2: MID             ~276 rows, ~14 carries. leans later-down / longer; xpass q50 +.10, q80 +.32
+#   3: SHORT YARDAGE   ~249 rows, ~10 carries. carries almost only on 2nd-and-2, 3rd-and-1, 4th-and-1; every xpass quantile negative (q50 -.18)
+#   4: LONG YARDAGE    ~100 rows, ~12 carries. 2nd-and-6+ and the 3rd-and-longer buckets; xpass far above the rest (q50 +.27)
 
 
 ####

@@ -1,14 +1,14 @@
-comparison_blitz_func("DENNix-2025", .89) # 138
-comparison_depth_func("DENNix-2025", .995) # 69
-comparison_less_func("DENNix-2025", .915) # 123
-comparison_pa_func("DENNix-2025", .975) # 88
-comparison_pressure_func("DENNix-2025", .93) # 114
+comparison_blitz_func("JAXLawrence-2025", .91) # 123
+comparison_depth_func("JAXLawrence-2025", .975) # 75
+comparison_less_func("JAXLawrence-2025", .93) # 111
+comparison_pa_func("JAXLawrence-2025", .945) # 97
+comparison_pressure_func("JAXLawrence-2025", .905) # 128
 
-all_qbs <- rbind(as.data.frame(comparison_blitz_func("DENNix-2025", .84)), 
-             as.data.frame(comparison_depth_func("DENNix-2025", .945)), 
-             as.data.frame(comparison_less_func("DENNix-2025", .865)), 
-             as.data.frame(comparison_pa_func("DENNix-2025", .925)), 
-             as.data.frame(comparison_pressure_func("DENNix-2025", .88)))
+all_qbs <- rbind(as.data.frame(comparison_blitz_func("JAXLawrence-2025", .882)), 
+             as.data.frame(comparison_depth_func("JAXLawrence-2025", .952)), 
+             as.data.frame(comparison_less_func("JAXLawrence-2025", .907)), 
+             as.data.frame(comparison_pa_func("JAXLawrence-2025", .922)), 
+             as.data.frame(comparison_pressure_func("JAXLawrence-2025", .882)))
 
 sim_qb <- sqldf("SELECT QB, COUNT(*) AS CNT
         FROM  all_qbs 
@@ -205,10 +205,13 @@ det_blitz2 <- df_pressure_scaled_z %>%
 
 # BLTJackson-2024, DENNix-2025, HSTWatson-2020
 
-df_pressure_scaled_z %>%
-  filter(qbgrp_ssn %in% c("BLTJackson-2024", "DENNix-2025", "HSTWatson-2020")) %>%
-  select(pressure_ypa_Good, pressure_ypa_Bad, pressure_ypa_diff)
+df_depth_scaled_z %>%
+  filter(qbgrp_ssn %in% c("DETGoff-2022", "DETGoff-2023", "DETGoff-2024", "DETGoff-2025")) %>%
+  select(-contains("snaps"), -contains("int_rate"))
 
+df_pa_scaled_z %>%
+  filter(qbgrp_ssn %in% c("DETGoff-2022", "DETGoff-2023", "DETGoff-2024", "DETGoff-2025")) %>%
+  select(-contains("snaps"), -contains("int_rate"))
 
 
 df_depth_scaled_z %>%
@@ -226,12 +229,20 @@ df_pa_scaled_z %>%
                         bucket = "nfl-pff-data-lucas")
 
 
-df_less_scaled_z %>%
-  filter(less_rate_Bad >= -1.1, less_rate_Bad <= .7, adot_difference_Bad >= -1, adot_difference_Bad <= 1, less_sack_pct_Bad <= .9, less_sack_pct_Bad >= -1.1, less_pressure_rate_Good <= .6, less_pressure_rate_Good >= -1.4, qbr_difference_Bad >= -1.1, qbr_difference_Bad <= .9, less_qbr_Bad >= .4) %>%
+df_depth_scaled_z %>%
+  filter(behind_los_pressure_rate_Good >= -.95, behind_los_pressure_rate_Good <= .45, 
+         medium_qbr_diff >= -.25, medium_qbr_diff <= 1.25, 
+         short_qbr_Good >= -.35, short_qbr_Good <= 1.15, 
+         ttt_difference_Bad >= -1.35, ttt_difference_Bad <= .15, 
+         behind_los_ypa_Good >= -.65, behind_los_ypa_Good <= .85) %>%
   pull(qbgrp_ssn)
 
-df_pressure_scaled_z %>%
-  filter(pressure_rate_Good <= .65, pressure_rate_Good >= -1.15, no_pressure_qbr_Good >= .05, no_pressure_qbr_Good <= 1.95, pressure_time_to_throw_Bad <= 1.05, pressure_time_to_throw_Bad >= -.85, pressure_grade_Bad >= -1.45, pressure_grade_Bad <= .45, acc_pct_difference_Bad <= 1.65, acc_pct_difference_Bad >= -.35) %>%
+df_pa_scaled_z %>%
+  filter(pa_qbr_Bad >= .10, pa_qbr_Bad <= 1.40, 
+         pa_ypa_Bad >= -.10, pa_ypa_Bad <= 1.40,
+         npa_adot_Bad >= -1.50, npa_adot_Bad <= -.10, 
+         qbr_difference_Bad >= .30, qbr_difference_Bad <= 1.50, 
+         acc_pct_difference_Bad <= 1.25, acc_pct_difference_Bad >= -.25) %>%
   pull(qbgrp_ssn)
 
 

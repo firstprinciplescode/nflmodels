@@ -41,3 +41,6 @@ util/amazon_web_credentials.R
 *.env
 .claude/
 57cbbad (seven-unit machine: backlog + pff_stats unit subfolders)
+
+# everything in cache/ stays local (it was only ignored by file extension before)
+cache/

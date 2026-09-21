@@ -713,7 +713,7 @@ sack_rate_func <- function(qbgrp_one, defgrp_one) {
 sack_rate_func("TBMayfield-2024", "CAR2025")
 
 
-qb_stats_df_final %>% filter(qbgrp_ssn == "TBMayfield-2024") %>%
+qb_stats_df_final %>% filter(qbgrp_ssn == "DETGoff-2025") %>%
   dplyr::summarise(
     sack_rate = mean(sack_rate, na.rm = T),
     pbp_sack_rate = mean(pbp_sack_rate, na.rm = T),
@@ -722,7 +722,16 @@ qb_stats_df_final %>% filter(qbgrp_ssn == "TBMayfield-2024") %>%
     pbp_pressure_before_rate = mean(pbp_pressure, na.rm = T)
   )
 
-qb_stats_df_final %>% filter(def_ssn == "CAR2025") %>%
+qb_stats_df_final %>% filter(def_ssn == "BUF2025") %>%
+  dplyr::summarise(
+    sack_rate = mean(sack_rate, na.rm = T),
+    pbp_sack_rate = mean(pbp_sack_rate, na.rm = T),
+    part_sack_rate = mean(part_sack_rate, na.rm = T),
+    pressure_rate = mean(pressure_rate, na.rm = T),
+    pbp_pressure_before_rate = mean(pbp_pressure, na.rm = T)
+  )
+
+qb_stats_df_final %>% filter(def_ssn == "LAC2021") %>%
   dplyr::summarise(
     sack_rate = mean(sack_rate, na.rm = T),
     pbp_sack_rate = mean(pbp_sack_rate, na.rm = T),

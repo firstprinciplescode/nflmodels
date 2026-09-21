@@ -623,7 +623,7 @@ precip_xtds_func <- function(qbgrp_one, defgrp_one) {
 precip_xtds_func("CARYoung-2025", "LA2025")
 
 
-qb_stats_df_final %>% filter(qbgrp_ssn == "NEMaye-2025") %>%
+qb_stats_df_final %>% filter(qbgrp_ssn == "DETGoff-2025") %>%
   dplyr::summarise(mn_tds = mean(tds, na.rm = T),
                    mn_pbp_xtds = mean(pbp_xtds, na.rm = T),
                    mn_part_xtds = mean(part_xtds, na.rm = T),
@@ -631,13 +631,34 @@ qb_stats_df_final %>% filter(qbgrp_ssn == "NEMaye-2025") %>%
                    mn_fgs = mean(fgs, na.rm = T),
                    n = n())
 
-qb_stats_df_final %>% filter(def_ssn == "SEA2025") %>%
+qb_stats_df_final %>% filter(def_ssn == "BUF2025") %>%
   dplyr::summarise(mn_tds = mean(tds, na.rm = T),
                    mn_pbp_xtds = mean(pbp_xtds, na.rm = T),
                    mn_part_xtds = mean(part_xtds, na.rm = T),
                    mn_pbp_xtd_rank = mean(pbp_xtds_rank, na.rm = T),
                    mn_fgs = mean(fgs, na.rm = T))
 
+qb_stats_df_final %>% filter(qbgrp_ssn == "BUFAllen-2025") %>%
+  dplyr::summarise(mn_tds = mean(tds, na.rm = T),
+                   mn_pbp_xtds = mean(pbp_xtds, na.rm = T),
+                   mn_part_xtds = mean(part_xtds, na.rm = T),
+                   mn_pbp_xtd_rank = mean(pbp_xtds_rank_def, na.rm = T),
+                   mn_fgs = mean(fgs, na.rm = T),
+                   n = n())
+
+qb_stats_df_final %>% filter(def_ssn == "DET2025") %>%
+  dplyr::summarise(mn_tds = mean(tds, na.rm = T),
+                   mn_pbp_xtds = mean(pbp_xtds, na.rm = T),
+                   mn_part_xtds = mean(part_xtds, na.rm = T),
+                   mn_pbp_xtd_rank = mean(pbp_xtds_rank, na.rm = T),
+                   mn_fgs = mean(fgs, na.rm = T))
+
+qb_stats_df_final %>% filter(def_ssn == "LAC2021") %>%
+  dplyr::summarise(mn_tds = mean(tds, na.rm = T),
+                   mn_pbp_xtds = mean(pbp_xtds, na.rm = T),
+                   mn_part_xtds = mean(part_xtds, na.rm = T),
+                   mn_pbp_xtd_rank = mean(pbp_xtds_rank, na.rm = T),
+                   mn_fgs = mean(fgs, na.rm = T))
 
 qb_stats_df_final %>% filter(qbgrp_ssn == "JAXLawrence-2025") %>%
   select(week, pbp_xtds, tds, pbp_xtds_rank_def) %>%

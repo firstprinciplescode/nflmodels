@@ -113,8 +113,9 @@ cat(sprintf("#   T(t) %s\n",
 # ---------------------------------------------------------------------------
 # 2. ENTITIES, LENSES, LOOKUPS
 # ---------------------------------------------------------------------------
-qbs    <- c("SEADarnold-2025")
-defs   <- c("NE2025", "NE2025")
+qbs    <- c("JAXLawrence-2025")
+defs   <- c("DEN2025", "DEN2025")   # the optimizer needs two defense slots; one real defense = list it twice
+# DEN-offense side:  qbs <- c("DENNix-2025", "MIATagovailoa-2023");  defs <- c("JAX2025", "BUF2025")
 lenses <- names(stats_categories)
 lenses <- c("blitz", "depth", "less", "pa", "pressure")
 qb_funcs  <- list(blitz = comparison_blitz_func,  depth = comparison_depth_func,
@@ -317,12 +318,20 @@ for (a in seq_along(qbs)) for (b in seq_along(defs))
 
 
 xtds_tol_qb <- list(
-  "NEMaye-2025" = c(blitz = 0.995, depth = 0.960, less = 0.990, pa = 1.020, pressure = 1.035),
-  "TENTannehill-2019" = c(blitz = 1.090, depth = 1.100, less = 0.995, pa = 0.980, pressure = 1.115),
-  "DALPrescott-2025" = c(blitz = 0.970, depth = 0.965, less = 0.940, pa = 0.940, pressure = 0.940)
+  "DENNix-2025" = c(blitz = 0.885, depth = 1.000, less = 0.915, pa = 0.975, pressure = 0.930),
+  "MIATagovailoa-2023" = c(blitz = 0.975, depth = 0.995, less = 0.965, pa = 0.985, pressure = 0.935)
 )
 
 xtds_tol_def <- list(
-  "SEA2025" = c(blitz = 0.995, depth = 1.110, less = 1.020, pa = 1.035, pressure = 1.005),
-  "SEA2024" = c(blitz = 0.965, depth = 1.085, less = 0.955, pa = 1.005, pressure = 1.010)
+  "JAX2025" = c(blitz = 0.970, depth = 1.035, less = 0.940, pa = 1.225, pressure = 0.950),
+  "BUF2025" = c(blitz = 0.925, depth = 1.120, less = 0.955, pa = 1.095, pressure = 1.015)
+)
+
+
+xtds_tol_qb <- list(
+  "JAXLawrence-2025" = c(blitz = 0.910, depth = 0.980, less = 0.930, pa = 0.950, pressure = 0.905)
+)
+
+xtds_tol_def <- list(
+  "DEN2025" = c(blitz = 1.220, depth = 1.105, less = 1.165, pa = 1.050, pressure = 1.090)
 )

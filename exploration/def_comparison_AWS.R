@@ -1,14 +1,14 @@
-comparison_blitz_def_func("DEN2025", 1.13) # 12
-comparison_depth_def_func("DEN2025", 1.075) # 25
-comparison_less_def_func("DEN2025", 1.11) # 15
-comparison_pa_def_func("DEN2025", 1.03) # 46
-comparison_pressure_def_func("DEN2025", 1.07) # 28
+comparison_blitz_def_func("JAX2025", .965) # 86
+comparison_depth_def_func("JAX2025", 1.025) # 45
+comparison_less_def_func("JAX2025", .935) # 103
+comparison_pa_def_func("JAX2025", 1.155) # 14
+comparison_pressure_def_func("JAX2025", .945) # 97
 
-all_def <- rbind(as.data.frame(comparison_blitz_def_func("DEN2025", 1.11)), 
-                 as.data.frame(comparison_depth_def_func("DEN2025", 1.055)), 
-                 as.data.frame(comparison_less_def_func("DEN2025", 1.09)), 
-                 as.data.frame(comparison_pa_def_func("DEN2025", 1.01)), 
-                 as.data.frame(comparison_pressure_def_func("DEN2025", 1.05)))
+all_def <- rbind(as.data.frame(comparison_blitz_def_func("JAX2025", .955)), 
+                 as.data.frame(comparison_depth_def_func("JAX2025", 1.015)), 
+                 as.data.frame(comparison_less_def_func("JAX2025", .925)), 
+                 as.data.frame(comparison_pa_def_func("JAX2025", 1.145)), 
+                 as.data.frame(comparison_pressure_def_func("JAX2025", .935)))
 
 sim_def <- sqldf("SELECT QB, COUNT(*) AS CNT
         FROM  all_def 

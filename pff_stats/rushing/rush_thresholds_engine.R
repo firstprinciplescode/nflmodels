@@ -58,6 +58,48 @@ rush_template_sea <- tibble::tribble(
   "Sam Darnold"       , "QB"           , "C"      , "4 NA"    , "3 NA"  , "(-99, 99) NA", "0 TO 50 NA"
 )
 
+# the JAX rushing block, read off the TEMPLATE sheet of "JAX v DEN.xlsx" as saved 2026-09-20 12:59 (columns RUSH GRP / RUN SIT / GAP /
+# ZONE (RSH) / XTD PERC), verbatim. NEW FORMAT in this block: a back who plays in two rank groups carries BOTH in one row --
+# RUSH GRP "A B", and RUN SIT / GAP written "A part | B part". rush_template_split() below turns that into one row PER GROUP
+# ("Bhayshul Tuten A", "Bhayshul Tuten B"), so each group gets its own spec, its own floor and its own workbook.
+rush_template_jax <- tibble::tribble(
+  ~rusher              , ~position_group, ~rush_grp, ~run_sit     , ~gap           , ~zone          , ~xtd,
+  "Trevor Lawrence"    , "QB"           , "C"      , "1 3 99"     , "4 99"         , "(-99, 99) NA" , "60 TO 100",      # TEMPLATE row 15 (the QB row sits ABOVE the header row 16 -- it was missed in the first read; added 2026-09-20)
+  "Bhayshul Tuten"     , "HB"           , "A B"    , "1 2 | 2 5"  , "1 6 | 2"      , "(-99, 0)"     , "0 TO 60",
+  "Chris Rodriguez Jr.", "HB"           , "B C"    , "3 4 | 1 2 3", "1 2 4 | 1 2 3", "(-99, 99) NA" , "0 TO 100",
+  "Ameer Abdullah"     , "HB"           , "C"      , "2 99 NA"    , "1 2 3 NA"     , "(-99, 99) NA" , "50 TO 100 NA",
+  "Jakobi Meyers"      , "REC"          , "C"      , "1 NA"       , "2 NA"         , "(-99, 99) NA" , "30 TO 90",
+  "Parker Washington"  , "REC"          , "C"      , "1 NA"       , "2 NA"         , "(-99, 99) NA" , "30 TO 90",
+  "Brian Thomas Jr."   , "REC"          , "C"      , "1 NA"       , "2 NA"         , "(-99, 99) NA" , "30 TO 90",
+  "Travis Hunter"      , "REC"          , "C"      , "1 NA"       , "2 NA"         , "(-99, 99) NA" , "30 TO 90"
+)
+
+# one row per rank group; all the receivers folded into ONE row (one spec, one workbook) named wr_name.
+#   "A B" + "1 | 2 5"  ->  "<rusher> A" with "1"   and   "<rusher> B" with "2 5". A field with no "|" is used for every group.
+#   Receivers are folded only when their rows are identical; if they differ it stops and says which.
+rush_template_split <- function(df, wr_name = NULL) {
+  out <- list()
+  for (i in seq_len(nrow(df))) {
+    r <- df[i, ]; g <- trimws(unlist(strsplit(r$rush_grp, "[[:space:]]+"))); g <- g[g != ""]
+    if (length(g) == 1) { out[[length(out) + 1]] <- r; next }
+    for (k in seq_along(g)) { rk <- r; rk$rusher <- paste(r$rusher, g[k]); rk$rush_grp <- g[k]
+      for (f in c("run_sit", "gap", "zone", "xtd")) { parts <- trimws(unlist(strsplit(r[[f]], "|", fixed = TRUE)))
+        if (length(parts) == 1) next
+        if (length(parts) != length(g)) stop(r$rusher, ": ", f, " has ", length(parts), " parts for ", length(g), " groups: '", r[[f]], "'")
+        rk[[f]] <- parts[k] }
+      out[[length(out) + 1]] <- rk }
+  }
+  out <- dplyr::bind_rows(out)
+  if (!is.null(wr_name) && any(out$position_group == "REC")) {
+    w <- out[out$position_group == "REC", ]; key <- unique(w[, c("rush_grp", "run_sit", "gap", "zone", "xtd")])
+    if (nrow(key) > 1) stop("the receivers do not all carry the same rushing profile, so they cannot share one row: ",
+                            paste(w$rusher, w$rush_grp, w$run_sit, w$gap, w$zone, w$xtd, sep = " / ", collapse = "  ||  "))
+    cat(wr_name, "= one spec for:", paste(w$rusher, collapse = ", "), "\n")
+    out <- dplyr::bind_rows(out[out$position_group != "REC", ], dplyr::mutate(w[1, ], rusher = wr_name))
+  }
+  out
+}
+
 # ---- 3. specs (profile only; matchups ride beside) ---------------------------
 rush_specs_from_df <- function(df) {
   # "A TO B [NA]"  or  "(a, b) [NA]"  or a bare "NA" (= only NA rows match: range NA/NA, flag on)
@@ -90,6 +132,7 @@ rush_specs_from_df <- function(df) {
 rush_matchups_ne <- expand.grid(qbgrp = c("NEMaye-2025", "TENTannehill-2019", "DALPrescott-2025"),
                                 defgrp = c("SEA2025", "SEA2024"), stringsAsFactors = FALSE, KEEP.OUT.ATTRS = FALSE)
 rush_matchups_sea <- data.frame(qbgrp = "SEADarnold-2025", defgrp = "NE2025", stringsAsFactors = FALSE)
+rush_matchups_jax <- data.frame(qbgrp = "JAXLawrence-2025", defgrp = "DEN2025", stringsAsFactors = FALSE)
 
 # the SEA matchup's TUNED BASE, banked here under entity keys and merged
 # into stats_tol_qb / stats_tol_def (entity-level add; NE entities untouched).
@@ -99,13 +142,18 @@ rush_matchups_sea <- data.frame(qbgrp = "SEADarnold-2025", defgrp = "NE2025", st
 if (exists("stats_tol_qb") && exists("stats_tol_def")) {
   stats_tol_qb[["SEADarnold-2025"]] <- c(blitz = 0.960, depth = 0.920, less = 0.955, pa = 1.065, pressure = 0.950)
   stats_tol_def[["NE2025"]]         <- c(blitz = 0.960, depth = 1.015, less = 1.010, pa = 0.970, pressure = 0.965)
+  # JAX @ DEN: the tuner result pasted at the bottom of comparison_engine_thresholds.R. Added ONLY if the session has no row yet (a live tune wins).
+  if (is.null(stats_tol_qb[["JAXLawrence-2025"]])) stats_tol_qb[["JAXLawrence-2025"]] <- c(blitz = 0.910, depth = 0.980, less = 0.930, pa = 0.950, pressure = 0.905)
+  if (is.null(stats_tol_def[["DEN2025"]]))         stats_tol_def[["DEN2025"]]         <- c(blitz = 1.220, depth = 1.105, less = 1.165, pa = 1.050, pressure = 1.090)
   cat("stats_tol_qb covers:", paste(names(stats_tol_qb), collapse = ", "), "| stats_tol_def covers:", paste(names(stats_tol_def), collapse = ", "), "\n")
 } else stop("source stats_comparison_engine.R before this file")
 
 rush_specs_ne  <- rush_specs_from_df(rush_template_ne)
 rush_specs_sea <- rush_specs_from_df(rush_template_sea)
+rush_specs_jax <- rush_specs_from_df(rush_template_split(rush_template_jax, wr_name = "JAX WR"))
 cat("rush_specs_ne:", length(rush_specs_ne), "rushers --", paste(names(rush_specs_ne), collapse = ", "), "\n")
 cat("rush_specs_sea:", length(rush_specs_sea), "rushers --", paste(names(rush_specs_sea), collapse = ", "), "\n")
+cat("rush_specs_jax:", length(rush_specs_jax), "specs --", paste(names(rush_specs_jax), collapse = ", "), "\n")
 
 # ---- 4. the profile match, once per rusher (rush_func lines 189-201) ---------
 rush_hits <- function(sp) {

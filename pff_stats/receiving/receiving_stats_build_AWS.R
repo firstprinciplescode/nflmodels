@@ -312,8 +312,8 @@ receiving_func_base %>%
 receiving_func_base %>%
   filter(week %ni% c(8,9,10), player_id %ni% c(9502, 47864, 129758), position == "WR", season == 2024, abbreviation == "SEA")
 
-rm(combined_pbp)
-rm(combined_ids)
+# rm(combined_pbp)
+# rm(combined_ids)
 
 
 left_join(receiving_func_base,

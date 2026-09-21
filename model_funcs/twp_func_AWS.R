@@ -710,18 +710,23 @@ twp_rate_func <- function(qbgrp_one, defgrp_one) {
 twp_rate_func("TBMayfield-2024", "CAR2025")
 
 
-qb_stats_df_final %>% filter(qbgrp_ssn == "TBMayfield-2024") %>%
+qb_stats_df_final %>% filter(qbgrp_ssn == "DETGoff-2025") %>%
   dplyr::summarise(
     twp_rate = mean(twp_rate, na.rm = T),
     int_rate = mean(int_rate, na.rm = T)
   )
 
-qb_stats_df_final %>% filter(def_ssn == "CAR2024") %>%
+qb_stats_df_final %>% filter(def_ssn == "BUF2025") %>%
   dplyr::summarise(
     twp_rate = mean(twp_rate, na.rm = T),
     int_rate = mean(int_rate, na.rm = T)
   )
 
+qb_stats_df_final %>% filter(def_ssn == "LAC2021") %>%
+  dplyr::summarise(
+    twp_rate = mean(twp_rate, na.rm = T),
+    int_rate = mean(int_rate, na.rm = T)
+  )
 
 qb_stats_df_final %>% filter(qbgrp_ssn == "TBMayfield-2024") %>%
   select(week, twp_rate, twp_rate_rank_def, int_rate, int_rate_rank_def) %>%

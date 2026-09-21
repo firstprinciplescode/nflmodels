@@ -743,7 +743,7 @@ scr_stats_func <- function(qbgrp_one, defgrp_one) {
 
 scr_stats_func("TBMayfield-2024", "CAR2025")
 
-qb_stats_df_final %>% filter(qbgrp_ssn == "TBMayfield-2024") %>%
+qb_stats_df_final %>% filter(qbgrp_ssn == "DETGoff-2025") %>%
   dplyr::summarise(
     mn_scr_rate = mean(scr_rate, na.rm = T),
     mn_scr_ypc = mean(scr_ypc, na.rm = T),
@@ -751,7 +751,15 @@ qb_stats_df_final %>% filter(qbgrp_ssn == "TBMayfield-2024") %>%
     mn_part_scr_xypc = mean(part_scr_xypc, na.rm = T)
   )
 
-qb_stats_df_final %>% filter(def_ssn == "CAR2025") %>%
+qb_stats_df_final %>% filter(def_ssn == "BUF2025") %>%
+  dplyr::summarise(
+    mn_scr_rate = mean(scr_rate, na.rm = T),
+    mn_scr_ypc = mean(scr_ypc, na.rm = T),
+    mn_pbp_scr_xypc = mean(pbp_scr_xypc, na.rm = T),
+    mn_part_scr_xypc = mean(part_scr_xypc, na.rm = T)
+  )
+
+qb_stats_df_final %>% filter(def_ssn == "LAC2021") %>%
   dplyr::summarise(
     mn_scr_rate = mean(scr_rate, na.rm = T),
     mn_scr_ypc = mean(scr_ypc, na.rm = T),

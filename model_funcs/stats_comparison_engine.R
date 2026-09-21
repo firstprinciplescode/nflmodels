@@ -31,8 +31,8 @@
 STATS_BUCKET     <- "nfl-pff-data-lucas"
 STATS_LOAD_DEPS  <- TRUE    # pull the ten comparison lookups from S3 if absent
 
-STATS_QBS  <- c("SEADarnold-2025")
-STATS_DEFS <- c("NE2025")
+STATS_QBS  <- c("DENNix-2025", "MIATagovailoa-2023")
+STATS_DEFS <- c("JAX2025", "BUF2025")
 
 if (!exists("%ni%")) `%ni%` <- Negate(`%in%`)   # fallback only; upstream wins
 
@@ -243,24 +243,34 @@ stats_tables_from_tuner <- function() {
   list(qb = tq, def = td)
 }
 
-if (exists("final_qb") && exists("final_def") && exists("qbs") &&
-    exists("defs") && exists("lenses")) {
-  stats_pulled  <- stats_tables_from_tuner()
-  stats_tol_qb  <- stats_pulled$qb
-  stats_tol_def <- stats_pulled$def
-  STATS_TOL_STAMP <- paste0("FROM TUNER SESSION (T_INT ", T_INT, " / T_FLOOR ", T_FLOOR,
-                            " / anchor ", T_ANCHOR, " / one-sided ", ONE_SIDED, ")")
-} else {
+# The banked rows are ALWAYS loaded. If the tuner ran in this session, its rows are laid
+# on top (the tuner wins for any entity it solved). The tuner only ever holds ONE side of
+# a game, so without the banked rows the other side stops with "no tuned tolerances".
+{
   stats_tol_qb <- list(
     "NEMaye-2025"       = c(blitz = 0.995, depth = 0.960, less = 0.990, pa = 1.020, pressure = 1.035),
     "TENTannehill-2019" = c(blitz = 1.090, depth = 1.100, less = 0.995, pa = 0.980, pressure = 1.115),
-    "DALPrescott-2025"  = c(blitz = 0.970, depth = 0.965, less = 0.940, pa = 0.940, pressure = 0.940)
+    "DALPrescott-2025"  = c(blitz = 0.970, depth = 0.965, less = 0.940, pa = 0.940, pressure = 0.940),
+    # JAX @ DEN week -- the tuner's own result, as pasted at the bottom of comparison_engine_thresholds.R
+    "DENNix-2025"        = c(blitz = 0.885, depth = 1.000, less = 0.915, pa = 0.975, pressure = 0.930),
+    "MIATagovailoa-2023" = c(blitz = 0.975, depth = 0.995, less = 0.965, pa = 0.985, pressure = 0.935)
   )
   stats_tol_def <- list(
     "SEA2025" = c(blitz = 0.995, depth = 1.110, less = 1.020, pa = 1.035, pressure = 1.005),
-    "SEA2024" = c(blitz = 0.965, depth = 1.085, less = 0.955, pa = 1.005, pressure = 1.010)
+    "SEA2024" = c(blitz = 0.965, depth = 1.085, less = 0.955, pa = 1.005, pressure = 1.010),
+    # JAX @ DEN week -- same source
+    "JAX2025" = c(blitz = 0.970, depth = 1.035, less = 0.940, pa = 1.225, pressure = 0.950),
+    "BUF2025" = c(blitz = 0.925, depth = 1.120, less = 0.955, pa = 1.095, pressure = 1.015)
   )
   STATS_TOL_STAMP <- "BANKED (no tuner objects in session)"
+}
+if (exists("final_qb") && exists("final_def") && exists("qbs") &&
+    exists("defs") && exists("lenses")) {
+  stats_pulled <- stats_tables_from_tuner()
+  stats_tol_qb[names(stats_pulled$qb)]   <- stats_pulled$qb
+  stats_tol_def[names(stats_pulled$def)] <- stats_pulled$def
+  STATS_TOL_STAMP <- paste0("BANKED + TUNER SESSION for ", paste(c(names(stats_pulled$qb), unique(names(stats_pulled$def))), collapse = ", "),
+                            " (T_INT ", T_INT, " / T_FLOOR ", T_FLOOR, " / anchor ", T_ANCHOR, " / one-sided ", ONE_SIDED, ")")
 }
 
 stats_tol_or_stop <- function(tab, key, side) {
@@ -500,5 +510,5 @@ xtds_tol_qb / xtds_tol_def; here they are stats_tol_qb / stats_tol_def).
 # stats_run_grid(stat = "<key>") writes "<stem> - QB vs DEF.xlsx" for the six combos.
 # Weather/precip modes prefix the stem: "Weather SackRt - ...", "Precip SackRt - ...".
 
-stats_push_all(stat = 'twp')  
+# stats_push_all()  
 stats_run_grid(stat = 'xtd_prop')

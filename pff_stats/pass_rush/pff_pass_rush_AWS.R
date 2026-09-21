@@ -357,8 +357,12 @@ tps_pass_block_opp_position_pctl <- tps_pass_block_opp_position_percentile %>%
                 .names = "{.col}_rank"))
 
 
+
+### START HERE
+
+
 det_def_games <- qb_stats_df_final %>%
-  filter(defteam == "SEA", season == 2025)
+  filter(defteam == "KC", season == 2025)
 
 ggplot(det_def_games, aes(adot_rank_def, pbp_xtds_rank_def)) +
   geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey60") +
@@ -431,12 +435,12 @@ tps_pblk_agg_summary <- tps_pblk_agg %>%
   )
 
 # Aggregate (3 rows)
-plot_strip(df = tps_pblk_agg,         bkt = "TPS", focal = "SEA2025", id_col = "def_ssn")
-plot_dumb(df  = tps_pblk_agg_summary, bkt = "TPS", focal = "SEA2025")
+plot_strip(df = tps_pblk_agg,         bkt = "TPS", focal = "DEN2025", id_col = "def_ssn")
+plot_dumb(df  = tps_pblk_agg_summary, bkt = "TPS", focal = "DEN2025")
 
 # Position-split (15 rows)
-plot_strip(df = tps_pblk_long,        bkt = "TPS", focal = "SEA2025", id_col = "def_ssn")
-plot_dumb(df  = tps_pblk_summary,     bkt = "TPS", focal = "SEA2025")
+plot_strip(df = tps_pblk_long,        bkt = "TPS", focal = "DEN2025", id_col = "def_ssn")
+plot_dumb(df  = tps_pblk_summary,     bkt = "TPS", focal = "DEN2025")
 
 
 all_pblk_z <- all_pass_block_opp_position_pctl %>%
@@ -515,31 +519,31 @@ plot_pblk_games <- function(df = all_pass_block_summary,
 
 
 # Usage
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LT", metric = "grade", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LT", metric = "pressure", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LT", metric = "hurries", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "LT", metric = "grade", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "LT", metric = "pressure", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "LT", metric = "hurries", sort_by = "perc")
 
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LG", metric = "grade", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LG", metric = "pressure", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "LG", metric = "hurries", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "LG", metric = "grade", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "LG", metric = "pressure", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "LG", metric = "hurries", sort_by = "perc")
 
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "C", metric = "grade", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "C", metric = "pressure", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "C", metric = "hurries", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "C", metric = "grade", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "C", metric = "pressure", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "C", metric = "hurries", sort_by = "perc")
 
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RG",  metric = "grade", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RG",  metric = "pressure", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RG",  metric = "hurries", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "RG",  metric = "grade", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "RG",  metric = "pressure", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "RG",  metric = "hurries", sort_by = "perc")
 
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RT",  metric = "grade", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RT",  metric = "pressure", sort_by = "perc")
-plot_pblk_games(df = tps_pass_block_summary, focal = "SEA2025", pos = "RT",  metric = "hurries", sort_by = "perc")
-
-
-View(tps_pass_block_opp_position_pctl %>% filter(def_ssn %in% c("SEA2025")))
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "RT",  metric = "grade", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "RT",  metric = "pressure", sort_by = "perc")
+plot_pblk_games(df = tps_pass_block_summary, focal = "KC2025", pos = "RT",  metric = "hurries", sort_by = "perc")
 
 
-View(qb_stats_df_final %>% filter(def_ssn == "SEA2025"))
+View(all_pass_block_opp_position_pctl %>% filter(def_ssn %in% c("KC2025")))
+
+
+View(qb_stats_df_final %>% filter(def_ssn == "DEN2025"))
 
 
 plot_prush_card <- function(team_season,
@@ -694,10 +698,10 @@ plot_prush_players <- function(team_season,
 
 
 # plot_prush_card("SEA2025")                          # all snaps
-plot_prush_card("SEA2025", view = "tps")            # true pass set
+plot_prush_card("KC2025", view = "tps")            # true pass set
 
 
-plot_prush_players("SEA2025", metric = "hit_rate", view = "tps")
+plot_prush_players("DEN2025", metric = "hit_rate", view = "tps")
 plot_prush_players("PHI2024", metric = "hit_rate", view = "tps")
 plot_prush_players("SEA2025", metric = "grade_pass_rush", view = "tps")
 
@@ -887,15 +891,15 @@ plot_prush_players_player <- function(player_id_vec,
 }
 
 
-plot_prush_card_player(c(9439, 131252, 8669, 50084, 98130, 10683), view = "tps")    # NE PLAYERS WHO STAYED                
-plot_prush_card_player(c(55220), view = "tps") # NE PLAYERS WHO LEFT
-plot_prush_card_player(c(9436), view = "tps") # INCOMING NE PLAYERS. 
+plot_prush_card_player(c(49605, 77196, 43021, 50191, 11953, 45414, 156124), view = "tps")    # NE PLAYERS WHO STAYED                
+plot_prush_card_player(c(50088), view = "tps") # NE PLAYERS WHO LEFT
+plot_prush_card_player(c(52000, ), view = "tps") # INCOMING NE PLAYERS. 
 # ALSO GABE JACAS - 77 NGS, 
 
 
-plot_prush_card_player(c(76914, 151084, 8675, 28075, 124147, 7863), view = "tps")    # NE PLAYERS WHO STAYED                
-plot_prush_card_player(c(43742, 10678, 50201, 28075, 49935, 99321, 56962, 129579), view = "tps") # NE PLAYERS WHO LEFT
-plot_prush_card_player(c(28075), view = "tps") # INCOMING NE PLAYERS. 
+plot_prush_card_player(c(10671, 98319, 144154), view = "tps")    # NE PLAYERS WHO STAYED                
+plot_prush_card_player(c(50612, 48415, 49949), view = "tps") # NE PLAYERS WHO LEFT
+plot_prush_card_player(c(52000, 10666), view = "tps") # INCOMING NE PLAYERS. 
 # ALSO GABE JACAS - 77 NGS, 
 
 

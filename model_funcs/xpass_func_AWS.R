@@ -530,20 +530,26 @@ xpass_calc_func <- function(qbgrp_one, defgrp_one) {
 
 xpass_calc_func("TENWard-2025", "JAX2025")
 
-qb_stats_df_final %>% filter(qbgrp_ssn == "TENTannehill-2019") %>%
+qb_stats_df_final %>% filter(qbgrp_ssn == "DETGoff-2025") %>%
   dplyr::summarise(mn_pass_rate = mean(pass_rate, na.rm = T),
                    mn_fastr_xpass_rate = mean(fastr_xpass_rate, na.rm = T),
                    mn_pbp_xpass_rate = mean(pbp_xpass_rate, na.rm = T),
                    mn_part_xpass_rate = mean(part_xpass_rate, na.rm = T)
   )
 
-qb_stats_df_final %>% filter(def_ssn == "SEA2024") %>%
+qb_stats_df_final %>% filter(def_ssn == "BUF2025") %>%
   dplyr::summarise(mn_pass_rate = mean(pass_rate, na.rm = T),
                    mn_fastr_xpass_rate = mean(fastr_xpass_rate, na.rm = T),
                    mn_pbp_xpass_rate = mean(pbp_xpass_rate, na.rm = T),
                    mn_part_xpass_rate = mean(part_xpass_rate, na.rm = T)
   )
 
+qb_stats_df_final %>% filter(def_ssn == "LAC2021") %>%
+  dplyr::summarise(mn_pass_rate = mean(pass_rate, na.rm = T),
+                   mn_fastr_xpass_rate = mean(fastr_xpass_rate, na.rm = T),
+                   mn_pbp_xpass_rate = mean(pbp_xpass_rate, na.rm = T),
+                   mn_part_xpass_rate = mean(part_xpass_rate, na.rm = T)
+  )
 
 qb_stats_df_final %>% filter(qbgrp_ssn == "TENWard-2025") %>%
   select(week, pass_rate, pass_rate_rank_def, fastr_xpass_rate, fastr_xpass_rate_rank_def, pbp_xpass_rate, pbp_xpass_rate_rank_def, part_xpass_rate, part_xpass_rate_rank_def) %>%

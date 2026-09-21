@@ -268,7 +268,7 @@ pass_rush_tps_opp_percentile <- pass_rush_tps_opp_percentile %>%
 View(all_pass_block_player_season_summary %>% filter(player_id == 124034))
 View(tps_pass_block_player_season_summary %>% filter(player_id == 83018))
 
-View(pass_rush_tps_opp_percentile %>% filter(qbgrp_ssn == "DETGoff-2025")) 
+View(pass_rush_tps_opp_percentile %>% filter(qbgrp_ssn == "DENNix-2025")) 
 View(pass_rush_all_opp_percentile %>% filter(qbgrp_ssn == "DETGoff-2024"))
 
 View(qb_stats_df_final %>% filter(qbgrp_ssn == "DETGoff-2025") %>% select(pressure_rate_rank_def, less_rate_rank_def, sack_rate_rank_def))
@@ -371,18 +371,14 @@ plot_ol_pass_block <- function(player_ids,
 }
 
 
-ol_ids <- c(60218, 125314, 99103, 98401, 91396)
+ol_ids <- c(46275, 11775, 112915, 41024, 59738, 41482)
 
 # True pass set only
 plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "grade_season_pctl",    "SEA — True Pass Set Grade Pctl")
 plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "pressure_season_pctl", "SEA — True Pass Set Pressure Pctl")
 
 
-ol_ids <- c(123068)
-
-# All pass block snaps
-plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "grade_season_pctl",    "NE Signings — Pass Block Grade Pctl")
-plot_ol_pass_block(ol_ids, all_pass_block_player_season_summary, "pressure_season_pctl", "NE Signings — Pass Block Pressure Pctl")
+ol_ids <- c(41665, 174220)
 
 # True pass set only
 plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "grade_season_pctl",    "NE Signings — True Pass Set Grade Pctl")
@@ -391,13 +387,13 @@ plot_ol_pass_block(ol_ids, tps_pass_block_player_season_summary, "pressure_seaso
 
 
 View(pass_rush_tps_opp_percentile %>% 
-       filter(qbgrp_ssn %in% c("SEADarnold-2025")))
+       filter(qbgrp_ssn %in% c("DENNix-2025")))
 
 ne_long <- bind_rows(
   pass_rush_all_opp_percentile %>%
     mutate(across(matches("_perc_(DI|ED|LB)$"),
                   percent_rank_avg, .names = "{.col}_rank")) %>%
-    filter(qbgrp_ssn %in% c("SEADarnold-2025")) %>%
+    filter(qbgrp_ssn %in% c("DENNix-2025")) %>%
     select(qbgrp_ssn, ends_with("_rank")) %>%
     mutate(snap_type = "All Pass-Rush"),
   pass_rush_tps_opp_percentile %>%
@@ -480,7 +476,7 @@ ggplot(ne_long, aes(position, metric, fill = pctl)) +
   )
 
 ne_protection <- qb_stats_df_final %>% 
-  filter(posteam == "SEA", season %in% c(2025)) %>%
+  filter(posteam == "DEN", season %in% c(2025)) %>%
   select(qbgrp_ssn, week, season, defteam,
          # Scheme tendencies
          less_rate,         less_rate_rank_def,
@@ -521,7 +517,7 @@ ne_protection %>%
 
 # Build the game-level frame
 ne_games <- qb_stats_df_final %>% 
-  filter(posteam == "SEA", season %in% c(2025)) %>%
+  filter(posteam == "KC", season %in% c(2025)) %>%
   select(qbgrp_ssn, week, season, defteam, tds, pbp_xtds, part_xtds,
          # Scheme
          less_rate_rank_def, pa_rate_rank_def, behind_los_rate_rank_def,
@@ -599,7 +595,7 @@ league_protect <- qb_stats_df_final %>%
     .groups = "drop"
   ) %>%
   filter(n_games >= 8) %>%                       # full(ish) season only
-  mutate(is_det = grepl("^SEA", qbgrp_ssn))
+  mutate(is_det = grepl("^DEN", qbgrp_ssn))
 
 # Helper
 plot_league <- function(df, x_var, y_var, x_lab, y_lab, title) {
@@ -638,7 +634,7 @@ patchwork::wrap_plots(pl1, pl2, ncol = 2)
 
 
 det_games_25 <- qb_stats_df_final %>%
-  filter(posteam == "SEA", season == 2025) %>%
+  filter(posteam == "DEN", season == 2025) %>%
   select(qbgrp_ssn, week, season, defteam,
          less_rate_rank_def, pa_rate_rank_def, adot_rank_def,
          blitz_rate_rank_def,
@@ -686,7 +682,7 @@ league_protect <- qb_stats_df_final %>%
     .groups = "drop"
   ) %>%
   filter(n_games >= 8) %>%
-  mutate(is_det = grepl("^SEA", qbgrp_ssn))
+  mutate(is_det = grepl("^DEN", qbgrp_ssn))
 
 # Same plot_league helper from before
 pl_b1 <- plot_league(league_protect, "less_rate", "blitz_pressure",

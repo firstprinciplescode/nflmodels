@@ -106,6 +106,11 @@ PIPELINE_MAP <- tibble::tribble(
   "secondary",   "league",      "cov_pctl_sec_lg",                       "pff_stats/secondary/league_opp_secondary_schedule.R",
   "secondary",   "availability","members_cv",                            "pff_stats/secondary/league_secondary_availability.R",
   "secondary",   "availability","sweep_unit_cv",                         "pff_stats/secondary/league_secondary_availability.R",
+  # ---- model-function frames (added 2026-09-20: these rode in stale with workspace images and nothing flagged it) ----
+  "model_frames","rushing",     "rush_stats_final",                      "pff_stats/rushing/rebuild_rush_stats_final_headless.R  (Terminal, ~3 min) -> readRDS(\"cache/rush_stats_final.rds\")",
+  "model_frames","rushing",     "rush_stats_high",                       "pff_stats/rushing/rush_stats_df_build.R  (after rush_stats_final)",
+  "model_frames","rushing",     "rush_stats_low",                        "pff_stats/rushing/rush_stats_df_build.R  (after rush_stats_final)",
+  "model_frames","rushing",     "rush_stats_rec",                        "pff_stats/rushing/rush_stats_df_build.R  (after rush_stats_final)",
   # ---- viewer --------------------------------------------------------------
   "viewer",      "functions",   "team_yoy",                              "pff_stats/evaluation/any_team_evaluation.R",
   "viewer",      "functions",   "team_report",                           "pff_stats/evaluation/any_team_evaluation.R"
@@ -155,7 +160,7 @@ pipeline_status <- function(units = NULL) {
         paste(stale, collapse = ", "), "\n  re-run those step-0 files; do not trust the workspace copies\n", sep = "")
 
   cat("\n== verdict (the viewer prints a unit only when its availability stage is loaded) ==\n")
-  for (u in setdiff(unique(m$unit), c("shared", "viewer"))) {
+  for (u in setdiff(unique(m$unit), c("shared", "viewer", "model_frames"))) {   # model_frames: staleness check only, no source() verdict
     sub    <- m[m$unit == u, ]
     stages <- unique(sub$stage)
     done   <- vapply(stages, function(s) all(sub$status[sub$stage == s] == "LOADED"), logical(1))

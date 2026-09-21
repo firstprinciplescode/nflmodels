@@ -26,8 +26,7 @@ create_rush_stats <- function(data, suffix = "") {
       ybc = total_ybc / attempts,
       yac = total_yac / attempts,
       pbp_xypc = total_pbp_xypc / attempts,
-      part_xypc = ifelse(season == 2025, NA_real_, total_part_xypc / attempts),
-      part_xtd = ifelse(season == 2025, NA_real_, part_xtd)
+      part_xypc = total_part_xypc / attempts      # 2026-09-20: the 2025 blanking is gone -- part_ data is populated for 2025 now (0 NA in rush_stats_final)
     ) %>%
     select(-starts_with("total_"))
   
@@ -85,7 +84,7 @@ View(rush_stats_high %>%
                 ybc_rank = mean(ybc_rank_def),
                 yac_rank = mean(yac_rank_def)))
 
-View(rush_stats_high %>% filter(off_ssn == "KC2025"))
+View(rush_stats_high %>% filter(off_ssn == "SEA2025"))
 View(rush_stats_rec %>% filter(off_ssn == "NE2025"))
 
 View(rush_stats_high %>% filter(def_ssn == "SEA2025"))

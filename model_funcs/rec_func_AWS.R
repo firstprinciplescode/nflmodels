@@ -1,7 +1,7 @@
 
 conflicts_prefer(dplyr::filter, dplyr::select, dplyr::lag, dplyr::arrange, dplyr::summarise, dplyr::mutate)
 
-rm(combined_pbp)
+# rm(combined_pbp)   # commented 2026-09-19: never delete a shared session frame
 
 
 bucket <- "nfl-pff-data-lucas"

@@ -1,6 +1,6 @@
 # Parameters
-mu_law <- 34.9; sd_law <- 6.72
-mu_nix <- 28.4; sd_nix <- 5.38
+mu_law <- 21.51; sd_law <- 5
+mu_nix <- 20.56; sd_nix <- 5.8
 
 # Difference distribution
 mu_diff <- mu_law - mu_nix

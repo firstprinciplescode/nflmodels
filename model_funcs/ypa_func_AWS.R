@@ -778,20 +778,26 @@ ypa_func <- function(qbgrp_one, defgrp_one) {
 ypa_func("TBMayfield-2024", "CAR2025")
 
 
-qb_stats_df_final %>% filter(qbgrp_ssn == "TBMayfield-2024") %>%
+qb_stats_df_final %>% filter(qbgrp_ssn == "DETGoff-2025") %>%
   dplyr::summarise(
     ypa = mean(ypa, na.rm = T),
     pbp_xypa = mean(pbp_xypa, na.rm = T),
     part_xypa = mean(part_xypa, na.rm = T)
   )
 
-qb_stats_df_final %>% filter(def_ssn == "CAR2025") %>%
+qb_stats_df_final %>% filter(def_ssn == "BUF2025") %>%
   dplyr::summarise(
     ypa = mean(ypa, na.rm = T),
     pbp_xypa = mean(pbp_xypa, na.rm = T),
     part_xypa = mean(part_xypa, na.rm = T)
   )
 
+qb_stats_df_final %>% filter(def_ssn == "LAC2021") %>%
+  dplyr::summarise(
+    ypa = mean(ypa, na.rm = T),
+    pbp_xypa = mean(pbp_xypa, na.rm = T),
+    part_xypa = mean(part_xypa, na.rm = T)
+  )
 
 qb_stats_df_final %>% filter(qbgrp_ssn == "TBMayfield-2024") %>%
   select(week, ypa, ypa_rank_def, pbp_xypa, pbp_xypa_rank_def) %>%

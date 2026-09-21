@@ -35,15 +35,19 @@ gap_ref <- list(
 
 # VERIFY THESE: kmeans labels are seed-dependent, and your gap profiles printed via arrange(desc(center)) -
 # so cluster integer -> name may be off. cross-check against the *_full cluster ids before trusting.
+# 2026-09-20: renumbered to the build saved 2026-09-20 11:14 (cache/situation_cluster_df.rds, cache/rush_stats_final.rds). The old map fit the
+# 2026-06-16 rushing workspace, a different kmeans run. Shapes behind each name: model_funcs/rush_func_AWS.R lines 70+. RE-CHECK after any rebuild.
 situation_labels <- list(
-  A = c(`1`="BELLCOW", `2`="MID", `3`="LONG YARDAGE", `4`="LOW AF"),
-  B = c(`1`="LATER/LONG", `2`="MID", `3`="SHORT YARDAGE", `4`="BELLCOW MID", `5`="EARLY DOWN"),
-  C = c(`1`="SHORT YARDAGE", `2`="EARLY DOWN", `3`="LONG YARDAGE", `4`="MID")
+  A = c(`1`="LOW AF", `2`="MID", `3`="LONG YARDAGE", `4`="BELLCOW"),
+  B = c(`1`="LATER/LONG", `2`="BELLCOW MID", `3`="SHORT YARDAGE", `4`="EARLY DOWN", `5`="MID"),
+  C = c(`1`="EARLY DOWN", `2`="MID", `3`="SHORT YARDAGE", `4`="LONG YARDAGE")
 )
+# 2026-09-20 12:10: gap names redone against the same build (they were still the June-workspace numbers: 12 of 16 named the wrong gap,
+# e.g. B 2 read "TACKLE" on a cluster that is 48% center). Read off run_gap_a/b/c_full: mean center / guard / tackle / end share per cluster.
 gap_labels <- list(
-  A = c(`1`="GUARD/TACKLE", `2`="GUARD", `3`="OUTSIDE", `4`="CENTER/TACKLE", `5`="TACKLE/OUTSIDE", `6`="CENTER/OUTSIDE", `7`="CENTER", `8`="GUARD/TACKLE"),
-  B = c(`1`="OUTSIDE", `2`="TACKLE", `3`="CENTER", `4`="GUARD"),
-  C = c(`1`="OUTSIDE", `2`="GUARD", `3`="TACKLE", `4`="CENTER")
+  A = c(`1`="CENTER", `2`="CENTER/TACKLE", `3`="NOT CENTER", `4`="GUARD/TACKLE", `5`="NOT OUTSIDE", `6`="GUARD", `7`="OUTSIDE", `8`="MID"),
+  B = c(`1`="OUTSIDE", `2`="CENTER", `3`="TACKLE-ISH", `4`="GUARD"),
+  C = c(`1`="TACKLE-ISH", `2`="OUTSIDE", `3`="CENTER/GUARD", `4`="CENTER")
 )
 
 lbl <- function(map, rg, cl) {
@@ -62,21 +66,31 @@ cluster_closest <- function(raw_vec, rank_grp, ref) {
   tibble(rank_grp = rank_grp, cluster = r$centers$cluster, distance = d) %>% arrange(distance)
 }
 
-# player input rows (gsis id); may span multiple rank_grps in a season
-get_rusher_cluster_inputs <- function(rusher_id, season_in,
+# 2026-09-20: every rusher function below takes the PFF player_id (rush_stats_final$player_id) OR the gsis id ("00-00...").
+resolve_rusher_id <- function(id, df_games = rush_stats_final) {
+  if (is.character(id) && grepl("^00-", id)) return(id)
+  g <- unique(stats::na.omit(df_games$rusher_player_id[df_games$player_id %in% id]))
+  if (length(g) == 0) stop("PFF player_id ", id, " is not in rush_stats_final")
+  if (length(g) > 1)  stop("PFF player_id ", id, " maps to more than one gsis id: ", paste(g, collapse = ", "))
+  g
+}
+
+# player input rows (PFF player_id or gsis id); may span multiple rank_grps in a season
+get_rusher_cluster_inputs <- function(player_id_in, season_in,
                                       df_situation = rusher_xpass_diff_df,
                                       df_gap       = base_run_gap_cluster) {
-  sit <- df_situation %>% ungroup() %>% filter(rusher_player_id == rusher_id, season %in% season_in)
-  gap <- df_gap       %>% ungroup() %>% filter(rusher_player_id == rusher_id, season %in% season_in)
+  player_id_in <- resolve_rusher_id(player_id_in)
+  sit <- df_situation %>% ungroup() %>% filter(rusher_player_id == player_id_in, season %in% season_in)
+  gap <- df_gap       %>% ungroup() %>% filter(rusher_player_id == player_id_in, season %in% season_in)
   if (nrow(sit) == 0 && nrow(gap) == 0) {
-    message("No rusher rows for ", rusher_id, " season(s) ", paste(season_in, collapse = ","))
+    message("No rusher rows for ", player_id_in, " season(s) ", paste(season_in, collapse = ","))
     return(invisible(NULL))
   }
   list(situation = sit, gap = gap)
 }
 
 # closest clusters per rank_grp appeared in (single season), trimmed by distance_mult - border-aware
-get_rusher_cluster_neighbors <- function(rusher_id, season_in,
+get_rusher_cluster_neighbors <- function(player_id_in, season_in,
                                          distance_mult    = 1.75,
                                          situation_ref_in = situation_ref,
                                          gap_ref_in       = gap_ref,
@@ -85,7 +99,7 @@ get_rusher_cluster_neighbors <- function(rusher_id, season_in,
   
   if (length(season_in) != 1) stop("get_rusher_cluster_neighbors takes ONE season. Use get_rusher_identity_history for multi-season.")
   
-  inp <- get_rusher_cluster_inputs(rusher_id, season_in, df_situation, df_gap)
+  inp <- get_rusher_cluster_inputs(player_id_in, season_in, df_situation, df_gap)
   if (is.null(inp)) return(invisible(NULL))
   
   score_rows <- function(rows_df, feats, ref) {
@@ -103,24 +117,105 @@ get_rusher_cluster_neighbors <- function(rusher_id, season_in,
   )
 }
 
+# NEW 2026-09-20 -- the whole picture for one rusher-season in one call (the rushing twin of get_player_cluster_neighbors):
+#   $games      how many games he spent in each rank_grp (A / B / C), with his mean share of the team's rushes and his carries there
+#   $situation  first row of each block = "PLAYER ACTUAL": HIS OWN q20 / q35 / q50 / q65 / q80 xpass-diff numbers (raw). Under it, the clusters of
+#               EVERY group (A, B and C) that those numbers sit close to, each with ITS centre in the same raw units -- so you read his numbers
+#               against the cluster's numbers directly, column by column. The distance is always from HIS numbers to that cluster's centre.
+#               "numbers_from" = the group the numbers come from, "as_if_grp" = the group whose clusters they are measured against.
+#               Only clusters within distance_mult x the closest one are kept, so a border case shows both names (e.g. MID and EARLY DOWN).
+#               x_closest = distance / the closest distance in that as_if group (1.00 = the closest). "assigned" marks the cluster he actually carries.
+#   $gap        the same for the gap clusters (center / guard / tackle / end shares)
+# Nothing is refit: it reads situation_ref / gap_ref (built above from the *_full frames) and the assigned clusters in situation_cluster_df / gap_cluster_df.
+# Takes the PFF player_id (the player_id column of rush_stats_final); the gsis id is looked up from rush_stats_final inside.
+#   get_rusher_cluster_whatif(150568, 2025)                             # tighter borders: distance_mult = 1.25; everything: distance_mult = Inf
+get_rusher_cluster_whatif <- function(player_id_in, season_in,
+                                      distance_mult       = 1.75,
+                                      situation_ref_in    = situation_ref,
+                                      gap_ref_in          = gap_ref,
+                                      df_situation        = rusher_xpass_diff_df,
+                                      df_gap              = base_run_gap_cluster,
+                                      df_situation_assign = situation_cluster_df,
+                                      df_gap_assign       = gap_cluster_df,
+                                      df_games            = rush_stats_final) {
+
+  if (length(season_in) != 1) stop("get_rusher_cluster_whatif takes ONE season. Use get_rusher_identity_history for multi-season.")
+  rusher_id <- unique(stats::na.omit(df_games$rusher_player_id[df_games$player_id %in% player_id_in]))      # PFF player_id -> gsis id
+  if (length(rusher_id) == 0) stop("PFF player_id ", player_id_in, " is not in rush_stats_final")
+  if (length(rusher_id) > 1)  stop("PFF player_id ", player_id_in, " maps to more than one gsis id: ", paste(rusher_id, collapse = ", "))
+
+  inp <- get_rusher_cluster_inputs(rusher_id, season_in, df_situation, df_gap)
+  if (is.null(inp)) return(invisible(NULL))
+
+  games <- df_games %>% ungroup() %>%
+    filter(rusher_player_id == rusher_id, season %in% season_in) %>%
+    distinct(week, rank_grp, .keep_all = TRUE) %>%
+    group_by(season, rank_grp) %>%
+    summarise(games = n(),
+              mean_share = round(mean(rush_proportion, na.rm = TRUE), 2),
+              carries = sum(pbp_rushes, na.rm = TRUE),
+              .groups = "drop") %>%
+    arrange(rank_grp)
+
+  score_all <- function(rows_df, feats, ref, labels, assign_df) {
+    if (nrow(rows_df) == 0) return(tibble())
+    asg <- assign_df %>% ungroup() %>%
+      filter(rusher_player_id == rusher_id, season %in% season_in) %>%
+      distinct(posteam, rank_grp, cluster)
+    n_col <- intersect(c("n", "total_rushes"), names(rows_df))[1]                 # carries behind the numbers (situation: n, gap: total_rushes)
+    short <- sub("_xpass_diff$|_perc$", "", feats)                                # q20 .. q80  /  center guard tackle end
+    bind_rows(lapply(seq_len(nrow(rows_df)), function(i) {
+      from <- rows_df$rank_grp[i]
+      own  <- asg$cluster[asg$rank_grp == from & asg$posteam == rows_df$posteam[i]]
+      mine <- as.numeric(rows_df[i, feats])                                       # THE PLAYER'S ACTUAL NUMBERS (raw, not scaled)
+      head_cols <- tibble(season = rows_df$season[i], posteam = rows_df$posteam[i], numbers_from = from,
+                          carries = if (is.na(n_col)) NA_real_ else as.numeric(rows_df[[n_col]][i]))
+      me <- bind_cols(head_cols, tibble(as_if_grp = "", cluster = NA_integer_, label = "PLAYER ACTUAL", distance = NA_real_, x_closest = NA_real_, assigned = ""),
+                      as_tibble(stats::setNames(as.list(round(mine, 3)), short)))
+      them <- bind_rows(lapply(names(ref), function(target) {
+        r <- ref[[target]]
+        raw_centres <- sweep(sweep(as.matrix(r$centers[paste0(feats, "_scaled")]), 2, r$scale_vec, "*"), 2, r$center_vec, "+")   # each cluster's centre back in raw units
+        colnames(raw_centres) <- short
+        cen <- bind_cols(tibble(cluster = r$centers$cluster), as_tibble(round(raw_centres, 3)))
+        cluster_closest(mine, target, ref) %>%
+          mutate(x_closest = round(distance / min(distance), 2)) %>%
+          filter(distance <= min(distance) * distance_mult) %>%
+          transmute(as_if_grp = target, cluster,
+                    label = vapply(cluster, function(cl) lbl(labels, target, cl), character(1)),
+                    distance = round(distance, 2), x_closest,
+                    assigned = ifelse(target == from & length(own) > 0 & cluster %in% own, "<-- assigned", "")) %>%
+          left_join(cen, by = "cluster")
+      }))
+      bind_rows(me, bind_cols(head_cols[rep(1, nrow(them)), ], them))
+    }))
+  }
+
+  list(
+    games     = games,
+    situation = score_all(inp$situation, situation_feats, situation_ref_in, situation_labels, df_situation_assign),
+    gap       = score_all(inp$gap,       gap_feats,       gap_ref_in,       gap_labels,       df_gap_assign)
+  )
+}
+
 # multi-season assigned clusters - shows the A<->B wandering directly
-get_rusher_identity_history <- function(rusher_id, season_in,
+get_rusher_identity_history <- function(player_id_in, season_in,
                                         df_situation_assign = situation_cluster_df,
                                         df_gap_assign       = gap_cluster_df,
                                         df_stats            = rush_stats_final) {
+  player_id_in <- resolve_rusher_id(player_id_in, df_stats)
   
   sit <- df_situation_assign %>% ungroup() %>%
-    filter(rusher_player_id == rusher_id, season %in% season_in) %>%
+    filter(rusher_player_id == player_id_in, season %in% season_in) %>%
     group_by(season, rank_grp) %>%
     summarise(situation_cluster = first(cluster), .groups = "drop")
   
   gap <- df_gap_assign %>% ungroup() %>%
-    filter(rusher_player_id == rusher_id, season %in% season_in) %>%
+    filter(rusher_player_id == player_id_in, season %in% season_in) %>%
     group_by(season, rank_grp) %>%
     summarise(gap_cluster = first(cluster), .groups = "drop")
   
   stats <- df_stats %>% ungroup() %>%
-    filter(rusher_player_id == rusher_id, season %in% season_in) %>%
+    filter(rusher_player_id == player_id_in, season %in% season_in) %>%
     group_by(season, rank_grp) %>%
     summarise(
       xtd_percentile = mean(xtd_percentile, na.rm = TRUE),
@@ -163,11 +258,11 @@ get_offense_rusher_identity <- function(qbgrp_ssn_in,
 View(rush_stats_final %>% filter(qbgrp_ssn == "SEADarnold-2025") %>% arrange(player, week))
 View(combined_ids %>% filter(team == "SEA", season == 2025) %>% select(player, player_id, team, season, gsis_id) %>% distinct())
 
-get_rusher_cluster_neighbors("00-0038134", 2025, distance_mult = 2.25)   # situation + gap, per rank_grp
-get_rusher_cluster_neighbors("00-0038134", 2024, distance_mult = 2.25)
+get_rusher_cluster_neighbors(158290, 2025, distance_mult = 2.25)   # situation + gap, per rank_grp
+get_rusher_cluster_neighbors(158290, 2024, distance_mult = 2.25)
 get_rusher_cluster_neighbors("00-0039165", 2025, distance_mult = 2.25)   # situation + gap, per rank_grp
 get_rusher_cluster_neighbors("00-0039165", 2024, distance_mult = 2.25)
-get_rusher_identity_history("00-0039165", c(2025))         # drift across seasons + rank_grps
+get_rusher_identity_history(123056, c(2023, 2024, 2025))         # drift across seasons + rank_grps
 get_offense_rusher_identity(c("SEADarnold-2025"), rush_prop_min = .38, rush_prop_max = .7)
 
 

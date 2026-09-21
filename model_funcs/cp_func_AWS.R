@@ -725,7 +725,7 @@ cp_func <- function(qbgrp_one, defgrp_one) {
 cp_func("TBMayfield-2024", "CAR2025")
 
 
-qb_stats_df_final %>% filter(qbgrp_ssn == "TBMayfield-2024") %>%
+qb_stats_df_final %>% filter(qbgrp_ssn == "DETGoff-2025") %>%
   dplyr::summarise(
     acc_rate = mean(acc_rate, na.rm = T),
     fastr_cp = mean(fastr_cp, na.rm = T),
@@ -733,7 +733,7 @@ qb_stats_df_final %>% filter(qbgrp_ssn == "TBMayfield-2024") %>%
     part_cp = mean(part_cp, na.rm = T)
   )
 
-qb_stats_df_final %>% filter(def_ssn == "CAR2025") %>%
+qb_stats_df_final %>% filter(def_ssn == "BUF2025") %>%
   dplyr::summarise(
     acc_rate = mean(acc_rate, na.rm = T),
     fastr_cp = mean(fastr_cp, na.rm = T),
@@ -741,6 +741,13 @@ qb_stats_df_final %>% filter(def_ssn == "CAR2025") %>%
     part_cp = mean(part_cp, na.rm = T)
   )
 
+qb_stats_df_final %>% filter(def_ssn == "LAC2021") %>%
+  dplyr::summarise(
+    acc_rate = mean(acc_rate, na.rm = T),
+    fastr_cp = mean(fastr_cp, na.rm = T),
+    pbp_cp = mean(pbp_cp, na.rm = T),
+    part_cp = mean(part_cp, na.rm = T)
+  )
 
 qb_stats_df_final %>% filter(qbgrp_ssn == "TBMayfield-2024") %>%
   select(week, acc_rate, acc_rate_rank_def, fastr_cp, fastr_cp_rank_def, pbp_cp, pbp_cp_rank_def) %>%

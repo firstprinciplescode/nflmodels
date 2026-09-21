@@ -54,6 +54,34 @@ def test_no_file_wipes_the_session():
     )
 
 
+# --- 1b. no file may delete a shared session frame ------------------------
+
+# Frames that take hours to rebuild and that many files read. On 2026-09-19 a live
+# rm(combined_pbp) at the top of rec_func_AWS.R / rush_func_AWS.R removed it from
+# the working session without a word; the rm(list = ...) test above never saw it.
+# The file-local cleanup blocks (step-0 temporaries, the ids builds) name none of these.
+PROTECTED_FRAMES = [
+    "combined_pbp", "combined_ids", "combined_ids_defense", "qb_stats_df_final",
+    "xtd_proportion", "pbp_rush", "pbp_base", "receiving_func_base",
+]
+FRAME_RM = re.compile(
+    r"^[^#\n]*\b(?:rm|remove)\s*\([^)]*\b(" + "|".join(PROTECTED_FRAMES) + r")\b",
+    re.M,
+)
+
+
+def test_no_file_deletes_a_shared_frame():
+    offenders = []
+    for p in r_files():
+        for m in FRAME_RM.finditer(read(p)):
+            rel = str(p.relative_to(REPO)).replace("\\", "/")
+            offenders.append(f"{rel}: rm() of {m.group(1)}")
+    assert offenders == [], (
+        "these lines delete a shared session frame when the file is sourced; "
+        "comment them out:\n  " + "\n  ".join(sorted(offenders))
+    )
+
+
 # --- 2. every walled-on object must have a producer somewhere ------------
 
 # Objects a wall lists that no file in the repo produces, with the reason.

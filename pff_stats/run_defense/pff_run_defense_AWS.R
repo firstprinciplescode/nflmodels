@@ -248,11 +248,11 @@ plot_ybc_yac_quadrants_def <- function(team_season, data = rush_stats_high) {
     )
 }
 
-plot_ybc_yac_quadrants_def("DEN2025")
+plot_ybc_yac_quadrants_def("KC2025")
 
 
-View(gap_opp_position_percentile %>% filter(def_ssn == "DEN2025"))
-View(zone_opp_position_percentile %>% filter(def_ssn == "DEN2025"))
+View(gap_opp_position_percentile %>% filter(def_ssn == "KC2025"))
+View(zone_opp_position_percentile %>% filter(def_ssn == "KC2025"))
 
 
 View(run_defense_player_season_summary %>% filter(def_ssn == "SEA2025") %>%
