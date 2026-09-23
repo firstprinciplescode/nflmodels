@@ -124,6 +124,29 @@ final_coverage_df %>%
 final_coverage_df <- 
   final_coverage_df %>% filter(snap_counts_coverage >= 23 | man_snap_counts_coverage >= 8 | zone_snap_counts_coverage >= 13 | coverage_snaps_slot >= 8)
 
+## POSITION WALL (2026-09-22): every season must get its position from coverage_summary_by_game.
+## When Athena lost that table's 2023 partitions, adv_position came back NA for ALL of 2023, and
+## old frames labeled the whole season "DE" (the cached frames still carried it on 2026-09-22).
+## Normal seasons miss a position on ~0% of rows, so more than 2% of a season, or more than half
+## of any one week (a lost playoff week is under 2% of a season), means the table or that week's
+## scrape is missing. Stop here instead of building percentiles on weeks with no positions.
+pos_wall_cov <- final_coverage_df %>%
+  group_by(season, week) %>%
+  summarise(rows = n(), no_position = sum(is.na(adv_position)), .groups = "drop") %>%
+  group_by(season) %>%
+  mutate(season_share = sum(no_position) / sum(rows)) %>%
+  ungroup() %>%
+  filter(season_share > 0.02 | no_position / rows > 0.5)
+if (nrow(pos_wall_cov) > 0) {
+  print(as.data.frame(pos_wall_cov %>% filter(no_position > 0)))
+  stop("POSITION WALL: coverage_summary_by_game gave no position for the season-weeks above. ",
+       "Athena probably can't see those partitions: run  MSCK REPAIR TABLE nfl_data.coverage_summary_by_game;  ",
+       "in the Athena console (or run the dbt build), then source this file again. ",
+       "If only the newest week is listed, that week's coverage-by-game scrape is missing.")
+} else {
+  cat("POSITION WALL OK: every season-week has its position from coverage_summary_by_game\n")
+}
+
 
 final_coverage_df <- final_coverage_df %>%
   mutate(

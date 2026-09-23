@@ -1635,6 +1635,35 @@ wf_without <- function(team, unit, player, currency = c("c1", "c3"), ol_avail = 
   } else {
     d1 <- d0[-r, ]
     how <- "his playing time spread over the rest of the room"
+    # FIX 2026-09-22: a room he was the ONLY seat-holder of (e.g. the one SCB seat) vanished here,
+    # and the empty room read as "no change" (NA -> 0 below). Keep his seat, priced at your
+    # replacement level for that room (your 2025 pricing law), else your VET BACKUP for the band.
+    grp <- intersect(.WF_GRP[[unit]], names(d0))
+    fcols <- vapply(.WF_PAIRS[[unit]], function(x) x[1], character(1))
+    repl <- .wf_repl_d(d0, setNames(.WF_PAIRS[[unit]], fcols), grp)
+    alone <- character(0)
+    for (k in r) {
+      others <- setdiff(on, r)
+      if (length(grp)) others <- others[vapply(others, function(j) isTRUE(all(d0[j, grp] == d0[k, grp])), logical(1))]
+      if (length(others)) next
+      row_k <- d0[k, , drop = FALSE]
+      vb <- tryCatch(.wf_vetbk_vals(unit, row_k), error = function(e) NULL)
+      priced <- FALSE
+      for (pr in .WF_PAIRS[[unit]]) {
+        rv <- NA_real_
+        if (!is.null(repl) && pr[1] %in% names(repl)) {
+          rr <- if (length(grp)) inner_join(row_k[, grp, drop = FALSE], repl, by = grp) else repl
+          if (nrow(rr)) rv <- rr[[pr[1]]][1]
+        }
+        if (is.na(rv) && !is.null(vb) && pr[1] %in% names(vb)) rv <- vb[[pr[1]]]
+        if (!is.na(rv)) { priced <- TRUE; for (cc in intersect(pr, names(row_k))) row_k[[cc]] <- rv }
+      }
+      d1 <- bind_rows(d1, row_k)
+      room <- if (length(grp)) paste(unlist(d0[k, grp]), collapse = " ") else "the room"
+      alone <- c(alone, if (priced) room else paste0(room, " (NO replacement value found -- seat kept at his own value)"))
+    }
+    if (length(alone)) how <- paste0(how, "; he was the only seat in ", paste(unique(alone), collapse = ", "),
+                                     ", so that seat is priced at your replacement level")
   }
   effs <- list(); rooms <- list()
   for (cur in currency) {

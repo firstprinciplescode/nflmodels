@@ -9,6 +9,8 @@
 #     kept as ONE build: a member left over from an older build (other cluster numbers) is swapped for the cache copy, old one kept.
 #   * A key frame that checks GOOD is left alone. A frame that checks STALE (an old copy that came in
 #     with a workspace) is replaced from cache/ and the old one is kept beside it as <name>_STALE_<mmdd_HHMM>.
+#   * A coverage frame that fails the position check (any "DE", or a season with no / one position) is kept as <name>_BAD_<time>
+#     and the real name is removed, with a message saying which file to rebuild (added 2026-09-22 after the 2023 "DE" frames came back).
 #   * It does NOT join the weather columns. rec_func_AWS.R and rush_func_AWS.R do that when you source them; twice = temp.x / temp.y.
 #   * Safe to source again mid-session: whatever is already there and GOOD is left alone.
 #
@@ -72,6 +74,32 @@ SS_RUSH_BUNDLE <- c("rush_stats_final", "situation_cluster_df", "gap_cluster_df"
     want <- c("qb_stats_df_final", "xtd_proportion", "receiving_func_base", "cluster_join", "receiver_scheme_final", "combined_ids", SS_RUSH_BUNDLE)
     want <- want[!vapply(want, exists, logical(1), envir = G, inherits = FALSE)]
     if (length(want)) uncache_frames(want)
+    # ---- 3b. COVERAGE POSITION CHECK (2026-09-22). The January coverage frames had ALL of 2023 labeled "DE" (Athena could not
+    #      see that season's positions when they were built), and they rode back in through cache/ every session. A coverage frame
+    #      is BAD if it has any "DE", if a season is nearly all one position, or if a season has more than 5% rows with no position.
+    #      A bad frame is not left under its real name: it is kept as <name>_BAD_<time> and the real name is removed, so nothing
+    #      downstream reads it by mistake. Fix = rebuild from pff_stats/secondary/pff_pass_coverage_AWS.R, then cache_frames().
+    ss_cov_bad <- function(x) {
+      if (!is.data.frame(x) || !all(c("final_position", "season") %in% names(x))) return(NULL)
+      if (any(x$final_position == "DE", na.rm = TRUE)) return("has \"DE\" positions (an old build)")
+      for (s in sort(unique(x$season))) {
+        p <- x$final_position[which(x$season == s)]; if (length(p) < 100) next
+        if (mean(is.na(p)) > 0.05) return(sprintf("season %s: %.0f%% of rows have no position", s, 100 * mean(is.na(p))))
+        tb <- table(p); if (length(tb) && max(tb) / sum(tb) > 0.9) return(sprintf("season %s is nearly all one position (%s)", s, names(tb)[which.max(tb)]))
+      }
+      NULL
+    }
+    bad_cov <- character(0)
+    for (cf in c("coverage_man_player_season_summary", "coverage_zone_player_season_summary", "coverage_slot_player_season_summary",
+                 "coverage_combined_player_season_summary", "final_coverage_df_qbgrp", "coverage_built_mz")) {
+      if (!exists(cf, envir = G, inherits = FALSE)) next
+      why <- ss_cov_bad(get(cf, envir = G, inherits = FALSE)); if (is.null(why)) next
+      assign(paste0(cf, "_BAD_", stamp), get(cf, envir = G, inherits = FALSE), envir = G); rm(list = cf, envir = G)
+      bad_cov <- c(bad_cov, cf); cat("BAD COVERAGE FRAME ", cf, ": ", why, " -- kept as ", cf, "_BAD_", stamp, ", real name removed\n", sep = "")
+    }
+    if (length(bad_cov)) cat("REBUILD them: pff_stats/secondary/pff_pass_coverage_AWS.R makes the summaries and final_coverage_df_qbgrp;",
+                             " pff_stats/secondary/pff_secondary_cache_step0_AWS.R makes coverage_built_mz (both have a position wall). Then run:\n",
+                             "   cache_frames(\"", paste(bad_cov, collapse = "\", \""), "\")\nDo not use the _BAD_ copies.\n", sep = "")
     if (!exists("receiver_registry", envir = G, inherits = FALSE) && file.exists(REGISTRY_FILE)) registry_back()
   }
   if (SS_LOAD_PBP && !exists("combined_pbp", envir = G, inherits = FALSE)) {

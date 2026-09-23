@@ -224,6 +224,29 @@ cat("2025 playoff weeks in the cache: ", paste(w25_cov[w25_cov > 18], collapse =
     "  (want 28,29,30,32 -- NE faced 21 weeks)\n", sep = "")
 
 # ------------------------------------------------------------
+# 4b. POSITION WALL (2026-09-22) -- same wall as pff_pass_coverage_AWS.R.
+#     When Athena lost coverage_summary_by_game's 2023 partitions, all of 2023 came
+#     back with no adv_position and old frames labeled the season "DE". Normal rate
+#     here is ~0%. Stop BEFORE writing the cache if more than 2% of a season, or more
+#     than half of any one week, has no position.
+# ------------------------------------------------------------
+pos_wall_s0 <- cov_built %>%
+  group_by(season, week) %>%
+  summarise(rows = n(), no_position = sum(is.na(adv_position)), .groups = "drop") %>%
+  group_by(season) %>%
+  mutate(season_share = sum(no_position) / sum(rows)) %>%
+  ungroup() %>%
+  filter(season_share > 0.02 | no_position / rows > 0.5)
+if (nrow(pos_wall_s0) > 0) {
+  print(as.data.frame(pos_wall_s0 %>% filter(no_position > 0)))
+  stop("POSITION WALL: coverage_summary_by_game gave no position for the season-weeks above; cache NOT written. ",
+       "Athena probably can't see those partitions: run  MSCK REPAIR TABLE nfl_data.coverage_summary_by_game;  ",
+       "in the Athena console (or run the dbt build), then source this file again.")
+} else {
+  cat("POSITION WALL OK: every season-week has its position\n")
+}
+
+# ------------------------------------------------------------
 # 5. write the cache the consumers read + leave it in session
 # ------------------------------------------------------------
 saveRDS(cov_built, CACHE_COV)
