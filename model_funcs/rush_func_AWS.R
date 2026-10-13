@@ -12,28 +12,29 @@ conflicts_prefer(dplyr::filter, dplyr::select, dplyr::lag, dplyr::arrange, dplyr
 bucket <- "nfl-pff-data-lucas"
 
 # qbgrp_def_functions/ - all files
-tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_blitz_func.rds", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_depth_func.rds", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_less_func.rds", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_pa_func.rds", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_pressure_func.rds", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_blitz.RData", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_depth.RData", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_less.RData", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_pa.RData", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_pressure.RData", bucket = bucket, file = tmp); load(tmp)
+# 2026-09-29 (Andy): the comparison lookups come ONLY from util/start_session.R -> util/load_april_lookups.R (April set + pressure_def wrap). Raw S3 loads below are commented out.
+# tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_blitz_func.rds", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_depth_func.rds", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_less_func.rds", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_pa_func.rds", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("qbgrp_def_functions/comparison_pressure_func.rds", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_blitz.RData", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_depth.RData", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_less.RData", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_pa.RData", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("qbgrp_def_functions/list_dependencies_pressure.RData", bucket = bucket, file = tmp); load(tmp)
 
 # def_functions/ - all files
-tmp <- tempfile(); save_object("def_functions/comparison_blitz_def_func.rds", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("def_functions/comparison_depth_def_func.rds", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("def_functions/comparison_less_def_func.rds", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("def_functions/comparison_pa_def_func.rds", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("def_functions/comparison_pressure_def_func.rds", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("def_functions/list_dependencies_blitz_def.RData", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("def_functions/list_dependencies_depth_def.RData", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("def_functions/list_dependencies_less_def.RData", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("def_functions/list_dependencies_pa_def.RData", bucket = bucket, file = tmp); load(tmp)
-tmp <- tempfile(); save_object("def_functions/list_dependencies_pressure_def.RData", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("def_functions/comparison_blitz_def_func.rds", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("def_functions/comparison_depth_def_func.rds", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("def_functions/comparison_less_def_func.rds", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("def_functions/comparison_pa_def_func.rds", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("def_functions/comparison_pressure_def_func.rds", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("def_functions/list_dependencies_blitz_def.RData", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("def_functions/list_dependencies_depth_def.RData", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("def_functions/list_dependencies_less_def.RData", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("def_functions/list_dependencies_pa_def.RData", bucket = bucket, file = tmp); load(tmp)
+# tmp <- tempfile(); save_object("def_functions/list_dependencies_pressure_def.RData", bucket = bucket, file = tmp); load(tmp)
 
 
 importance_matrix_blitz <- list_dependencies_blitz[[2]]
@@ -325,7 +326,7 @@ rush_stats_final %>%
 
 
 rush_stats_final %>%
-  filter(player == "Trevor Lawrence", rush_proportion >= 0, rush_proportion <= 1) %>%
+  filter(player == "Jalen Hurts", rush_proportion > 0, rush_proportion <= 1) %>%
   dplyr::select(qbgrp_ssn, rank_grp, gap_cluster, situation_cluster, gap_z) %>%
   distinct()
 
@@ -334,21 +335,56 @@ rush_stats_final %>%
          (rank_grp == "A" & position_group == "HB" & situation_cluster %in% c(3)), rush_proportion >= 0, rush_proportion <= 1) %>%
   mutate(pbp_xtd_ratio = pbp_xtd_share / rush_proportion,
          part_xtd_ratio = part_xtd_share / rush_proportion) %>%
-  dplyr::summarise(mn_pbp_xtd = mean(pbp_xtd_ratio))
+  dplyr::summarise(mn_pbp_xtd = mean(pbp_xtd_ratio), mn_part_xtd = mean(part_xtd_ratio))
   
   filter(pbp_xtd_ratio != Inf) %>%
   dplyr::summarise(mn_ypc = mean(ypc),
                    mn_pbp_xypc = mean(pbp_xypc))
 
 rush_stats_final %>%
-  filter(def_ssn == "JAX2025", ((rank_grp == "A" & gap_cluster %in% c(2)) | (rank_grp == "B" & gap_cluster %in% c(2,3)) ), rush_proportion >= 0, rush_proportion <= 1) %>%
+  filter(def_ssn %in% c("SF2017", "LAC2021"), 
+         position_group == "REC",
+         rank_grp == "C",
+         # (rank_grp == "B" & situation_cluster %in% c(4) | rank_grp == "C" & situation_cluster %in% c(1)),
+         # position_group == "REC",
+         # (rank_grp == "B" & situation_cluster %in% c(2,3,5) | rank_grp == "C" & situation_cluster %in% c(1,2,3)),          
+         # situation_cluster %in% c(1,2,4,99,NA),
+         rush_proportion > 0,
+         rush_proportion <= 1) %>%
+  filter(rush_proportion != 0) %>%
+  mutate(pbp_xtd_ratio = pbp_xtd_share / rush_proportion,
+         part_xtd_ratio = part_xtd_share / rush_proportion) %>%
   dplyr::summarise(mn_ypc = mean(ypc),
-                   mn_pbp_xypc = mean(pbp_xypc))
+                   mn_pbp_xypc = mean(pbp_xypc),
+                   mn_part_xypc = mean(part_xypc))
 
 rush_stats_final %>%
-  filter(qbgrp_ssn == "SEADarnold-2025", player == "Kenneth Walker III", rush_proportion >= 0, rush_proportion <= 1) %>%
+  filter(qbgrp_ssn == "LAStafford-2025", 
+         # player == "Matthew Stafford", 
+         # (rank_grp == "B" & situation_cluster %in% c(4) | rank_grp == "C" & situation_cluster %in% c(1)),    
+         rank_grp == "C",
+         # situation_cluster %in% c(2,3,4), 
+         position_group == "REC",
+         rush_proportion > 0,
+         rush_proportion <= 1) %>%
+  # filter(rush_proportion != 0) %>%  
+  mutate(pbp_xtd_ratio = pbp_xtd_share / rush_proportion,
+         part_xtd_ratio = part_xtd_share / rush_proportion) %>%
+  dplyr::summarise(mn_ypc = mean(ypc),
+                   mn_pbp_xypc = mean(pbp_xypc),
+                   mn_part_xypc = mean(part_xypc))
+  
+  
+dplyr::summarise(mn_pbp_xtd = mean(pbp_xtd_ratio), mn_part_xtd = mean(part_xtd_ratio))
+
+dplyr::summarise(mn_rush_prop = mean(rush_proportion, na.rm = T))
+
   arrange(pbp_xtd_share ) %>%
   pull(pbp_xtd_share )
+  
+  dplyr::summarise(mn_ypc = mean(ypc),
+                   mn_pbp_xypc = mean(pbp_xypc),
+                   mn_part_xypc = mean(part_xypc))
 
 # rush_share
 # pbp_xtd_share

@@ -8,6 +8,9 @@
 # percentile (quantile type 4: position n*p, linear between the
 # bracketing sorted values). Ends with mean / median / middle-4 across
 # the twelve carried values of each metric.
+# 2026-09-26: sacks, TWP and INTs are ranked "higher = fewer" in qb_stats_df_build_AWS.R, so those five
+# (carry_flip below) are read from the TOP of the other side's games (1 - percentile). Before this fix
+# they were read from the bottom, which mirrored every sack / TWP / INT number this tool printed.
 #
 # Session needs: qb_stats_df_final, STATS_QBS, STATS_DEFS, dplyr.
 
@@ -25,20 +28,20 @@
 # defense's games, and that defense's percentile read inside the QB's games.
 # Vectors need list(), not c(): c() flattens them into pbp_xtds1, pbp_xtds2 (pct_carry folds that back).
 carry_spec <- list(
-  xtds  = list(pbp_xtds = c(-.045, -.04, -.005, .015), part_xtds = c(-.065, -.05, -.005, -.02)),
-  plays = list(plays = c(.025, .005, .04, .075)),
-  xpass = list(pass_rate = c(.07, .045, .085, .08), fastr_xpass_rate = c(.04, .035, .06, .055),
-               pbp_xpass_rate = c(.04, .04, .06, .065), part_xpass_rate = c(.05, .05, .07, .065)),
-  scr_rate = list(scr_rate = c(.005, 0, -.045, -.03)),
-  scr_ypc  = list(scr_ypc = c(-.045, -.015, -.015, -.015), pbp_scr_xypc = c(-.03, -.02, -.025, -.025), part_scr_xypc = c(-.045, -.01, -.035, -.035)),
-  cp    = list(acc_rate = c(-.06, -.02, -.04, -.075), fastr_cp = c(-.01, -.01, -.055, -.045),
-               pbp_cp = c(-.005, -.015, -.015, -.055), part_cp = c(-.025, -.045, -.03, -.08)),
-  ypa   = list(ypa = c(-.025, -.025, -.025, -.02), pbp_xypa = c(.015, -.01, .025, .015), part_xypa = c(.005, .025, .015, -.04)),
-  sack  = list(sack_rate = c(-.025, -.01, -.025, 0), pbp_sack_rate = c(-.035, -.035, -.055, -.045), part_sack_rate = c(-.035, -.025, -.06, -.05)),
-  twp   = list(twp_rate = c(-.035, .02, -.05, -.015), int_rate = c(-.035, .015, -.025, -.025)),
-  xtd_prop = list(pbp_pass_prop = c(.065, .065, .05, .11), part_pass_prop = c(.07, .05, .07, .11),
-                  pbp_qb_scramble_prop = c(.015, .015, 0, -.02), part_qb_scramble_prop = c(.02, .03, -.01, -.02),
-                  pbp_run_prop = c(-.08, -.08, -.05, -.09), part_run_prop = c(-.09, -.08, -.06, -.09))
+  xtds  = list(pbp_xtds = c(-.085, .04, -.01, .07), part_xtds = c(-.05, .04, -.01, .07)),
+  plays = list(plays = c(.03, .04, .02, .04)),
+  xpass = list(pass_rate = c(.04, .045, .04, -.07), fastr_xpass_rate = c(.05, -.02, .06, -.06),
+               pbp_xpass_rate = c(.055, -.01, .08, -.02), part_xpass_rate = c(.065, 0, .05, -.03)),
+  scr_rate = list(scr_rate = c(.06, .015, .11, .06)),
+  scr_ypc  = list(scr_ypc = c(.045, -.035, .025, -.015), pbp_scr_xypc = c(-.01, -.055, .02, .025), part_scr_xypc = c(-.01, -.04, -.025, .06)),
+  cp    = list(acc_rate = c(-.03, .07, -.06, .05), fastr_cp = c(.015, .04, -.025, .05),
+               pbp_cp = c(-.02, .055, -.05, .07), part_cp = c(-.025, .025, -.065, .06)),
+  ypa   = list(ypa = c(-.03, .065, -.07, .04), pbp_xypa = c(-.01, -.085, -.07, -.02), part_xypa = c(-.02, -.07, -.055, -.03)),
+  sack  = list(sack_rate = c(-.075, .06, -.06, .04), pbp_sack_rate = c(-.02, .04, .005, .04), part_sack_rate = c(-.04, .045, -.035, .05)),
+  twp   = list(twp_rate = c(-.045, .045, .01, .03), int_rate = c(-.03, .06, .005, .035)),
+  xtd_prop = list(pbp_pass_prop = c(.015, -.01, .06, -.06), part_pass_prop = c(.005, .005, .06, -.05),
+                  pbp_qb_scramble_prop = c(.045, 0, -.02, .025), part_qb_scramble_prop = c(.055, -.01, -.05, .02),
+                  pbp_run_prop = c(-.06, .01, -.04, .035), part_run_prop = c(-.06, .005, -.01, .03))
 )
 
 # KEPT, not lost -- the JAXLawrence-2025 vs DEN2025 modifiers that sat here before 2026-09-19
@@ -61,6 +64,11 @@ carry_spec <- list(
 
 carry_data <- list(xtd_prop = "xtd_proportion")   # same frame stats_comparison_engine reads for XTD_Prop
 carry_rank <- list(pbp_run_prop = "pbp_run_xtd", part_run_prop = "part_run_xtd")
+
+# Ranked "higher = fewer" in qb_stats_df_build_AWS.R ((n - rank) / (n - 1)), so a HIGH percentile means FEW sacks / turnovers.
+# These are read at 1 - percentile. A NEGATIVE modifier on them means MORE sacks / turnovers (worse for the offense);
+# before 2026-09-26 a negative modifier here meant fewer. pct_carry stops if the data ever runs the other way.
+carry_flip <- c("sack_rate", "pbp_sack_rate", "part_sack_rate", "twp_rate", "int_rate")
 
 pct_q <- function(x, p)
   unname(stats::quantile(x, probs = pmin(pmax(p, 0), 1), type = 4, na.rm = TRUE))
@@ -100,6 +108,14 @@ pct_carry <- function(stat, qbs = STATS_QBS, defs = STATS_DEFS, digits = 3) {
   miss <- setdiff(c(mets, vapply(mets, rank_col, "", side = "QB"),
                     vapply(mets, rank_col, "", side = "DEF")), names(df))
   if (length(miss)) stop("data frame is missing: ", paste(miss, collapse = ", "))
+
+  # direction check: a carry_flip metric must fall as its rank rises; every other metric must rise
+  for (m in mets) {
+    r <- suppressWarnings(stats::cor(df[[m]], df[[rank_col(m, "QB")]], use = "complete.obs", method = "spearman"))
+    if (is.finite(r) && ((m %in% carry_flip && r > 0.3) || (!(m %in% carry_flip) && r < -0.3)))
+      stop(m, " runs the other way from what carry_flip says (rank correlation ", round(r, 2),
+           ") -- check its rank in qb_stats_df_build_AWS.R before carrying it")
+  }
   
   games <- function(e, side) {
     if (side == "QB") df[df$qbgrp_ssn == e, ] else df[df$def_ssn == e, ]
@@ -125,7 +141,7 @@ pct_carry <- function(stat, qbs = STATS_QBS, defs = STATS_DEFS, digits = 3) {
       p <- pct(from, m) + mod_for(m, q, d)
       row[[paste0("mod_", m)]] <- mod_for(m, q, d)
       row[[paste0("pct_", m)]] <- p
-      row[[m]] <- round(pct_q(g[[m]], p), digits)
+      row[[m]] <- round(pct_q(g[[m]], if (m %in% carry_flip) 1 - p else p), digits)   # carry_flip: read from the top
     }
     row
   }
@@ -156,7 +172,7 @@ pct_carry <- function(stat, qbs = STATS_QBS, defs = STATS_DEFS, digits = 3) {
 #   r <- pct_carry("plays"); r$summary
 # set a family's modifiers in carry_spec, then pct_carry("<family>")
 # Nothing runs when this file is sourced: fill a family's four slots, source, then call it, e.g.
-pct_carry("twp")
+pct_carry("xpass")
 
 cat("pct_adjuster_engine loaded. Families still holding NA slots: ",
     paste(names(carry_spec)[vapply(carry_spec, function(a) anyNA(unlist(a)), TRUE)], collapse = ", "), "\n", sep = "")

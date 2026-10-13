@@ -121,6 +121,101 @@ rec_specs_ne  <- rec_specs_from_df(rec_template_ne)
 cat("rec_specs_sea:", length(rec_specs_sea), "receivers x", nrow(rec_matchups_sea), "matchup  |  rec_specs_ne:",
     length(rec_specs_ne), "receivers x", nrow(rec_matchups_ne), "matchups\n")
 
+# ---- LAC @ BUF (2026-09-26) ------------------------------------------------
+# LAC rows: copied verbatim from LAC v BUF_2.xlsx, TEMPLATE rows 17-28, cols BI:BR
+# (Andy's save 2026-09-26 14:37). POS GRP (col BH) was blank on every row, so
+# position_group is set from the player (BACK / TE / WR, the base's spelling).
+# Names as typed on the sheet ("Quentin Johnson"). Two typed tokens match no label in
+# their column -- left exactly as typed:
+#   Keaton Mitchell  tgt_cluster "LR" (LR is a ROUTE label; target low-volume is LT)
+#   Oronde Gadsden II rte_cluster "ML" (ML is a TARGET label)
+rec_template_lac <- tibble::tribble(
+  ~rec                      , ~position_group, ~pos_rank, ~team_rank, ~tgt_cluster             , ~rte_cluster             , ~align_cluster     , ~man_zone_grp                    , ~man_z        , ~xpass       , ~xtd_grp                        , ~xtd,
+  "Omarion Hampton"         , "BACK"         , "1 TO 3" , "5 TO 10" , "BT / RB"                , "BT / RB / SMT / DT"     , "RB"               , "HB_SHORT"                       , "25 TO 75"    , "0 TO 50"    , "TD_LOW"                        , "0 TO 40",
+  "Keaton Mitchell"         , "BACK"         , "1 TO 3" , "5 TO 11" , "BT / LR"                , "BT / RB / MT / LR"      , "RB"               , "HB_SHORT / HB_LT / NA"          , "0 TO 100 NA" , "0 TO 40 NA" , "TD_LOW / HB_LT"                , "0 TO 40 NA",
+  "Kimani Vidal"            , "BACK"         , "2 TO 99", "8 TO 99" , "LT / BT / RB"           , "RB / ST / SMT / MT / LR", "RB"               , "HB_SHORT / HB_LT / NA"          , "40 TO 100 NA", "0 TO 50 NA" , "TD_LOW / HB_LT"                , "40 TO 100 NA",
+  "Alec Ingold"             , "BACK"         , "1 TO 99", "6 TO 11" , "LT / BT / RB / ST"      , "BT / RB / MT / LR"      , "RB / STE / ITE"   , "HB_SHORT / HB_DEEP / HB_LT / NA", "0 TO 100 NA" , "0 TO 35 NA" , "TD_LOW / HB_LT / NA"           , "0 TO 55 NA",
+  "Oronde Gadsden II"       , "TE"           , "1 TO 1" , "1 TO 5"  , "ML (SMT)"               , "SMT / ST / ML / MT"     , "STE"              , "TE_SHORT"                       , "0 TO 60"     , "15 TO 65"   , "TD_LOW"                        , "20 TO 80",
+  "Hayden Rucci"            , "TE"           , "2 TO 99", "5 TO 99" , "ST / SMT / G / LT"      , "RB / ST / SMT / LR"     , "ITE"              , "TE_SHORT / TE_LT"               , "0 TO 60 NA"  , "0 TO 40 NA" , "TD_HIGH / TD_LOW / REC_LT / NA", "0 TO 100 NA",
+  "Evan Svoboda"            , "TE"           , "2 TO 99", "5 TO 99" , "ST / SMT / G / LT"      , "RB / ST / SMT / LR"     , "ITE"              , "TE_SHORT / TE_LT"               , "0 TO 60 NA"  , "0 TO 40 NA" , "TD_HIGH / TD_LOW / REC_LT / NA", "0 TO 100 NA",
+  "Tre Harris"              , "WR"           , "1 TO 3" , "1 TO 5"  , "MT / ML / DT"           , "MT / DT / SMT"          , "WSWR"             , "WR_DEEP"                        , "0 TO 60"     , "30 TO 90"   , "TD_HIGH"                       , "0 TO 100",
+  "Quentin Johnson"         , "WR"           , "1 TO 3" , "1 TO 5"  , "MT / ML / G / DT"       , "RB / SMT / MT / DT"     , "WWR"              , "WR_DEEP"                        , "0 TO 70"     , "30 TO 90"   , "TD_HIGH"                       , "30 TO 100",
+  "Ladd McConkey"           , "WR"           , "1 TO 3" , "2 TO 6"  , "ML (G / MT)"            , "MT / SMT / DT / RB / ST", "SWR / WSWR"       , "WR_DEEP"                        , "30 TO 80"    , "30 TO 90"   , "TD_HIGH"                       , "0 TO 50",
+  "Derius Davis"            , "WR"           , "4 TO 5" , "5 TO 10" , "G / DT / MT / ML / LT"  , "BT / MT / DT / LR"      , "SWR / WSWR / WWR" , "WR_DEEP / WR_LT / NA"           , "0 TO 70 NA"  , "0 TO 40 NA" , "TD_LOW / REC_LT / NA"          , "30 TO 90 NA",
+  "Marquez Valdes-Scantling", "WR"           , "4 TO 99", "5 TO 99" , "ML / MT / DT / G / LT"  , "RB / ST / SMT / DT / LR", "WSWR / WWR"       , "WR_DEEP / WR_LT / NA"           , "0 TO 100 NA" , "30 TO 90 NA", "TD_HIGH / REC_LT / NA"         , "0 TO 100 NA"
+)
+
+# LAC offense: Herbert 2025 against BUF2025 and LAC2021 (Andy's stand-in for the Bills D)
+rec_matchups_lac <- data.frame(qbgrp  = c("LACHerbert-2025", "LACHerbert-2025"),
+                               defgrp = c("BUF2025", "LAC2021"), stringsAsFactors = FALSE)
+
+# the tuned base for this game, verbatim from the tuner tail of comparison_engine_thresholds.R
+# (2026-09-26 00:03). Own names on purpose: this file's xtds_tol_qb / xtds_tol_def at the top
+# are the NE / SEA tables and overwrite the session's copies when this file is sourced.
+rec_base_tol_qb_lac <- list(
+  "LACHerbert-2025" = c(blitz = 0.970, depth = 0.990, less = 0.960, pa = 0.970, pressure = 0.930)
+)
+rec_base_tol_def_lac <- list(
+  "BUF2025" = c(blitz = 0.925, depth = 1.120, less = 0.955, pa = 1.095, pressure = 1.015),
+  "LAC2021" = c(blitz = 0.985, depth = 0.945, less = 0.920, pa = 0.925, pressure = 0.935)
+)
+
+rec_specs_lac <- rec_specs_from_df(rec_template_lac)
+cat("rec_specs_lac:", length(rec_specs_lac), "receivers x", nrow(rec_matchups_lac), "matchups\n")
+
+# ---- NE @ JAX, NE offense (2026-09-27) ---------------------------------------
+# Copied verbatim from NE v JAX.xlsx TEMPLATE rows 17-27, cols BH:BR (Andy's save 2026-09-27 11:10). Henderson (row 18) has
+# only POS GRP on the sheet -- no receiving profile -- so he is rushing-only this week and is not in this block.
+rec_template_nej <- tibble::tribble(
+  ~rec                 , ~position_group, ~pos_rank, ~team_rank, ~tgt_cluster        , ~rte_cluster        , ~align_cluster  , ~man_zone_grp                    , ~man_z        , ~xpass        , ~xtd_grp                      , ~xtd,
+  "Rhamondre Stevenson", "BACK"         , "1 TO 1" , "1 TO 6"  , "BT / RB"           , "SMT / DT / RB"     , "RB"            , "HB_SHORT / HB_DEEP"             , "40 TO 100"   , "25 TO 85"    , "TD_LOW"                      , "0 TO 100",
+  "Corey Kiner"        , "BACK"         , "2 TO 99", "6 TO 99" , "RB / ST / LT"      , "RB / ST / LR"      , "RB"            , "HB_SHORT / HB_DEEP / HB_LT / NA", "25 TO 100 NA", "0 TO 80 NA"  , "TD_LOW / HB_LT / NA"         , "0 TO 100 NA",
+  "Reggie Gilliam"     , "BACK"         , "2 TO 99", "7 TO 99" , "DT / SMT / ST / LT", "DT / MT / RB / LR" , "RB / STE / SWR", "HB_LT / TE_LT / OTH_LT / NA"    , "0 TO 100 NA" , "0 TO 100 NA" , "HB_LT / OTH_LT / REC_LT / NA", "0 TO 100 NA",
+  "Hunter Henry"       , "TE"           , "1 TO 1" , "1 TO 5"  , "SMT / ML"          , "SMT / MT / DT / RB", "STE"           , "TE_SHORT / TE_DEEP"             , "0 TO 60"     , "20 TO 70"    , "TD_LOW / TD_HIGH"            , "50 TO 100",
+  "Eli Raridon"        , "TE"           , "2 TO 2" , "5 TO 8"  , "ST / SMT"          , "ST / SMT"          , "ITE"           , "TE_DEEP / TE_SHORT"             , "0 TO 100"    , "0 TO 40"     , "TD_HIGH"                     , "0 TO 100",
+  "AJ Brown"           , "WR"           , "1 TO 3" , "1 TO 5"  , "ML"                , "RB / ST / SMT / DT", "WWR"           , "WR_DEEP"                        , "45 TO 100"   , "15 TO 85"    , "TD_HIGH"                     , "30 TO 100",
+  "Romeo Doubs"        , "WR"           , "1 TO 3" , "1 TO 5"  , "ML"                , "BT / DT / RB / SMT", "WWR"           , "WR_DEEP"                        , "0 TO 70"     , "30 TO 80"    , "TD_LOW / TD_HIGH"            , "20 TO 85",
+  "Mack Hollins"       , "WR"           , "2 TO 4" , "3 TO 7"  , "MT / ML / DT"      , "SMT / MT / DT"     , "WSWR / WWR"    , "WR_DEEP / WR_LT"                , "0 TO 45"     , "0 TO 60"     , "TD_HIGH / REC_LT"            , "0 TO 65",
+  "Demario Douglas"    , "WR"           , "2 TO 5" , "5 TO 10" , "G / ML / LT"       , "RB / DT"           , "WSWR / SWR"    , "WR_SHORT / WR_DEEP / WR_LT"     , "25 TO 100"   , "15 TO 100"   , "TD_LOW / REC_LT"             , "25 TO 100",
+  "Kyle Williams"      , "WR"           , "4 TO 99", "7 TO 99" , "DT / MT / ML / LT" , "SMT / MT / DT / LR", "WWR"           , "WR_DEEP / WR_LT"                , "0 TO 100 NA" , "60 TO 100 NA", "TD_HIGH / REC_LT / NA"       , "0 TO 100 NA"
+)
+# NE offense: Maye 2025 against BUF2025 and JAX2025 (BUF first, matching STATS_DEFS / the workbook tab order)
+rec_matchups_nej <- data.frame(qbgrp = c("NEMaye-2025", "NEMaye-2025"), defgrp = c("BUF2025", "JAX2025"), stringsAsFactors = FALSE)
+# starting tolerances = the passing tuner rows for this game (NEMaye tail as pasted 2026-09-26; BUF2025 / JAX2025 = engine bank)
+rec_base_tol_qb_nej <- list(
+  "NEMaye-2025" = c(blitz = 0.985, depth = 0.950, less = 0.985, pa = 1.015, pressure = 1.025)
+)
+rec_base_tol_def_nej <- list(
+  "BUF2025" = c(blitz = 0.925, depth = 1.120, less = 0.955, pa = 1.095, pressure = 1.015),
+  "JAX2025" = c(blitz = 0.970, depth = 1.035, less = 0.940, pa = 1.225, pressure = 0.950)
+)
+rec_specs_nej <- rec_specs_from_df(rec_template_nej)
+cat("rec_specs_nej:", length(rec_specs_nej), "receivers x", nrow(rec_matchups_nej), "matchups\n")
+# JAX offense receiving: TEMPLATE rows 31-41 carry POS GRP only (no TGT C .. XTD PERC), so there is no JAX receiving block yet.
+
+# ---- PHI @ CHI, PHI offense (2026-09-28, Monday night) ----------------------------
+# Copied verbatim from PHI v CHI_2.xlsx TEMPLATE rows 17-26, cols BH:BR (Andy's save 2026-09-28 18:31). Tokens left exactly as
+# typed (Darius Cooper's MAN ZONE carries "REC_LT", Mundt's TGT C is "ST (SMT)").
+rec_template_phi <- tibble::tribble(
+  ~rec              , ~position_group, ~pos_rank, ~team_rank, ~tgt_cluster             , ~rte_cluster                  , ~align_cluster, ~man_zone_grp                    , ~man_z       , ~xpass        , ~xtd_grp                        , ~xtd,
+  "Saquon Barkley"  , "BACK"         , "1 TO 2" , "4 TO 7"  , "BT / RB"                , "RB / ST / SMT / DT"          , "RB"          , "HB_SHORT"                       , "60 TO 100"  , "15 TO 55"    , "TD_LOW"                        , "20 TO 80",
+  "Tank Bigsby"     , "BACK"         , "2 TO 99", "7 TO 99" , "BT / RB / LT"           , "RB / SMT / DT / LR"          , "RB"          , "HB_DEEP / HB_LT"                , "0 TO 60"    , "0 TO 40 NA"  , "TD_LOW / HB_LT / NA"           , "0 TO 70 NA",
+  "Will Shipley"    , "BACK"         , "1 TO 3" , "5 TO 10" , "RB / ST / LT"           , "RB / ST / SMT / MT / DT / LR", "RB"          , "HB_DEEP / HB_LT"                , "60 TO 100"  , "60 TO 100 NA", "TD_LOW / HB_LT / NA"           , "50 TO 100 NA",
+  "Zach Ertz"       , "TE"           , "1 TO 1" , "1 TO 6"  , "SMT / ML"               , "RB / ST / SMT / MT / DT"     , "STE"         , "TE_SHORT"                       , "10 TO 80"   , "0 TO 60"     , "TD_LOW / TD_HIGH"              , "50 TO 100",
+  "Johnny Mundt"    , "TE"           , "2 TO 99", "5 TO 99" , "ST (SMT)"               , "RB / SMT / MT / DT"          , "ITE"         , "TE_SHORT / TE_DEEP / TE_LT"     , "30 TO 100"  , "0 TO 80"     , "TD_LOW / TD_HIGH"              , "0 TO 100",
+  "EJ Jenkins"      , "TE"           , "3 TO 99", "6 TO 99" , "SMT / ML / MT / LT"     , "RB / ST / SMT / MT / LR"     , "ITE / STE"   , "TE_SHORT / TE_DEEP / TE_LT"     , "0 TO 100 NA", "0 TO 40 NA"  , "TD_LOW / TD_HIGH / REC_LT / NA", "0 TO 100 NA",
+  "DeVonta Smith"   , "WR"           , "1 TO 2" , "1 TO 3"  , "G / SMT / ML / MT / DT" , "RB / ST / SMT / DT"          , "WWR"         , "WR_DEEP"                        , "0 TO 45"    , "20 TO 80"    , "TD_LOW / TD_HIGH"              , "40 TO 100",
+  "Dontayvion Wicks", "WR"           , "1 TO 3" , "1 TO 5"  , "ML / MT / DT"           , "BT / RB / SMT / MT / DT"     , "WWR / WSWR"  , "WR_DEEP"                        , "0 TO 100"   , "0 TO 100"    , "TD_LOW / TD_HIGH"              , "0 TO 100",
+  "Makai Lemon"     , "WR"           , "1 TO 3" , "1 TO 5"  , "BT / RB / G / ML"       , "BT / RB / SMT / MT / DT"     , "WSWR / SWR"  , "WR_DEEP"                        , "0 TO 60"    , "50 TO 100"   , "TD_HIGH"                       , "0 TO 100",
+  "Darius Cooper"   , "WR"           , "4 TO 99", "5 TO 99" , "G / ML / MT / SMT / LT" , "ST / SMT / LR"               , "WWR / WSWR"  , "WR_DEEP / WR_LT / REC_LT / NA"  , "0 TO 100 NA", "60 TO 100 NA", "TD_LOW / TD_HIGH / REC_LT / NA", "0 TO 100 NA"
+)
+rec_matchups_phi <- data.frame(qbgrp = "PHIHurts-2025", defgrp = "CHI2025", stringsAsFactors = FALSE)
+# starting tolerances = Andy's pasted xtds rows for this game (2026-09-28): "THIS IS THE BEGINNING THRESHOLDS"
+rec_base_tol_qb_phi  <- list("PHIHurts-2025" = c(blitz = 0.960, depth = 1.020, less = 0.925, pa = 0.935, pressure = 0.955))
+rec_base_tol_def_phi <- list("CHI2025"       = c(blitz = 0.955, depth = 1.000, less = 0.990, pa = 1.110, pressure = 0.990))
+rec_specs_phi <- rec_specs_from_df(rec_template_phi)
+cat("rec_specs_phi:", length(rec_specs_phi), "receivers x", nrow(rec_matchups_phi), "matchups\n")
+
 # ---- 3. the profile match, computed ONCE per receiver ---------------------
 # rec_ind (rec_func lines 182-213) depends only on the receiver's profile,
 # never on a tolerance. So each receiver reduces to the set of team-games
@@ -367,4 +462,5 @@ rec_base_values <- function(align = "RB") {
 # Westover/Walker/Saubert run 94-199. The binding receivers are TE1s and
 # WR3-4s with specific profiles, not the stars and not the fifth guys.
 
-sw <- rec_sweep(rec_specs_ne,  rec_matchups_ne,  tol_qb = stats_tol_qb, tol_def = stats_tol_def)
+# sw <- rec_sweep(rec_specs_ne,  rec_matchups_ne,  tol_qb = stats_tol_qb, tol_def = stats_tol_def)   # NE week (commented 2026-09-26)
+# sw <- rec_sweep(rec_specs_lac, rec_matchups_lac, tol_qb = rec_base_tol_qb_lac, tol_def = rec_base_tol_def_lac)   # LAC @ BUF (commented 2026-09-27; rec_tune runs the sweep)

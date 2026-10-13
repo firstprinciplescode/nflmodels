@@ -13,6 +13,9 @@
 #
 # Session needs: qb_stats_df_final, STATS_QBS, STATS_DEFS, dplyr.
 
+STATS_QBS  <- c("LACHerbert-2025", "CHIFields-2021")
+STATS_DEFS <- c("DEN2025", "DEN2023")
+
 entity_family_cols <- list(
   xtds  = list(actual = "tds",       expected = c("pbp_xtds", "part_xtds"),
                extra = "fgs"),
@@ -114,7 +117,7 @@ entity_stats_all <- function(qbs = STATS_QBS, defs = STATS_DEFS, families = name
 #   r <- entity_stats_all()                 # every family for STATS_QBS / STATS_DEFS
 #   r$cp; r$sack
 #   entity_stats_all(qbs = "CINBurrow-2025", defs = c("CIN2025", "JAX2022"), families = c("xtds", "cp"))
-r <- entity_stats_all()          # every family, for STATS_QBS / STATS_DEFS
-r$scr_ypc; 
-r$twp                     # or grab one
-entity_stats_all(qbs = "JAXLawrence-2025", defs = c("DEN2025"), families = c("xtds", "cp", "sack"))
+r <- entity_stats_all()          # every family, for STATS_QBS / STATS_DEFSr$scr_ypc; 
+r$scr
+# or grab one
+# entity_stats_all(qbs = "JAXLawrence-2025", defs = c("DEN2025"), families = c("xtds", "cp", "sack"))

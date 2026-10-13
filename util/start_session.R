@@ -15,20 +15,20 @@
 #   * Safe to source again mid-session: whatever is already there and GOOD is left alone.
 #
 # Switches -- set one BEFORE sourcing to change it, e.g.  SS_LOAD_PBP <- TRUE
-#   SS_LOAD_FRAMES  TRUE       qb_stats_df_final, xtd_proportion, receiving_func_base, the 21 rushing objects, receiver_registry
+#   SS_LOAD_FRAMES  TRUE       qb_stats_df_final, xtd_proportion, receiving_func_base, the rushing objects, receiver_registry, and the
+#                              seven-unit objects the waterfall / bridge cards need (members_*, slot_value_26_*, coverage frames, ids, constants)
 #   SS_LOAD_PBP     FALSE      combined_pbp (about 1.4 GB in memory) -- only when you need plays
-#   SS_LOOKUPS      "session"  the ten comparison functions + scaled frames + importance matrices:
-#                              "session" = the 2026-01-27 build, the set every workbook pushed so far and every saved tolerance was made with
-#                                          (cache/comparison_lookups_from_workspace_2026-09-19.rds);
-#                                          Loaded only where a lookup is MISSING; lookups already in the session are left alone and counted.
-#                              "force"   = the same set, put in over whatever is there;
-#                              "s3"      = load nothing here; the *_func_AWS.R files pull the 2026-04-01 rebuild from S3 when sourced;
-#                              "none"    = leave whatever is in the session.
-#   NOTE: every *_func_AWS.R file downloads the S3 (April) set again when it is sourced, which replaces the "session" set.
+#   SS_LOOKUPS      "april"    the ten comparison functions + scaled frames + importance matrices:
+#                              "april" = APRIL ONLY (Andy 2026-09-27: "IT'S ALL APRIL"). Sources util/load_april_lookups.R, which removes
+#                                        any lookup already in the session and loads the 2026-04-01 set from S3.
+#                              "none"  = leave whatever is in the session.
+#   The January (2026-01-27) set is RETIRED: its cache file was moved to archive/2026-09-27_january_lookups_retired/.
+#   NOTE: every *_func_AWS.R file downloads the S3 (April) set again when it is sourced, so re-source util/load_april_lookups.R after it.
 
 if (!exists("SS_LOAD_FRAMES")) SS_LOAD_FRAMES <- TRUE
 if (!exists("SS_LOAD_PBP"))    SS_LOAD_PBP    <- FALSE
-if (!exists("SS_LOOKUPS"))     SS_LOOKUPS     <- "session"
+if (!exists("SS_LOOKUPS"))     SS_LOOKUPS     <- "april"
+if (SS_LOOKUPS %in% c("session", "force", "s3")) { cat("SS_LOOKUPS \"", SS_LOOKUPS, "\" is retired (January set gone) -- using \"april\"\n", sep = ""); SS_LOOKUPS <- "april" }
 SS_REPO <- "C:/Users/vflre/Downloads/nflmodels_UPDATE"
 
 # ---- 1. packages (the ones in util/R_packages.R that are installed on this machine, same order, plus cluster / rpart for the rushing build)
@@ -40,6 +40,14 @@ SS_RUSH_BUNDLE <- c("rush_stats_final", "situation_cluster_df", "gap_cluster_df"
                     "base_run_gap_cluster", "run_gap_a_full", "run_gap_b_full", "run_gap_c_full",
                     "rushing_summary_rank", "rush_order_df", "player_zone_gap_zscore", "rusher_xtd_final",
                     "rush_stats_high", "rush_stats_low", "rush_stats_rec", "a_dashboard", "b_dashboard", "c_dashboard")
+# the seven-unit objects waterfall_bridge / impact_bridge / the cards need (cached from the 09-18 session on 2026-09-21)
+SS_UNIT_OBJECTS <- c("combined_grade_epa_summary", "combined_ids_defense", "id_xwalk", "pff_team_lookup", "in_season", "blend2", "percent_rank_avg",
+                     "opp_2026_teams", "sched_2026", "members_cv", "members_pa", "members_ra", "members_rc", "memb_lg_ru",
+                     "slot_value_26_pb_build", "slot_value_26_rb_build", "starters_all_av", "starters_all_rb",
+                     "coverage_summary", "coverage_man_player_season_summary", "coverage_zone_player_season_summary", "final_coverage_df_qbgrp",
+                     "full_pass_rush_qbgrp", "run_block_summary_qbgrp", "run_defense_qbgrp", "rushing_qbgrp", "all_pass_block_summary",
+                     "all_pass_block_player_season_summary", "tps_pass_block_player_season_summary", "gap_player_season_summary", "zone_player_season_summary",
+                     "coverage_scheme", "coverage_built_mz", "team_yoy", "team_report")
 `%ni%` <- Negate(`%in%`)
 
 # everything below runs inside one function, so no loop variable of this file can land on top of a variable of yours
@@ -71,7 +79,8 @@ SS_RUSH_BUNDLE <- c("rush_stats_final", "situation_cluster_df", "gap_cluster_df"
       if (!same_shape(cur, ref)) { assign(paste0(b, "_STALE_", stamp), cur, envir = G); assign(b, ref, envir = G); swapped <- c(swapped, b) }
     }
     if (length(swapped)) cat("OLDER BUILD in the session, replaced from cache (old copies kept as <name>_STALE_", stamp, "): ", paste(swapped, collapse = ", "), "\n", sep = "")
-    want <- c("qb_stats_df_final", "xtd_proportion", "receiving_func_base", "cluster_join", "receiver_scheme_final", "combined_ids", SS_RUSH_BUNDLE)
+    want <- c("qb_stats_df_final", "xtd_proportion", "receiving_func_base", "cluster_join", "receiver_scheme_final", "combined_ids", SS_RUSH_BUNDLE, SS_UNIT_OBJECTS)
+    want <- want[file.exists(file.path(SS_REPO, "cache", paste0(want, ".rds")))]
     want <- want[!vapply(want, exists, logical(1), envir = G, inherits = FALSE)]
     if (length(want)) uncache_frames(want)
     # ---- 3b. COVERAGE POSITION CHECK (2026-09-22). The January coverage frames had ALL of 2023 labeled "DE" (Athena could not
@@ -106,18 +115,12 @@ SS_RUSH_BUNDLE <- c("rush_stats_final", "situation_cluster_df", "gap_cluster_df"
     pbp <- readRDS(file.path(SS_REPO, "cache/combined_pbp_GOOD_2026-09-19.rds")); assign("combined_pbp", pbp, envir = G)
     cat(sprintf("LOADED combined_pbp  (%d x %d; good-build test: %s)\n", nrow(pbp), ncol(pbp), "part_predicted_after_scramble_xtd" %in% names(pbp)))
   }
-  if (SS_LOOKUPS %in% c("session", "force")) {
-    lk <- readRDS(file.path(SS_REPO, "cache/comparison_lookups_from_workspace_2026-09-19.rds"))
-    have <- names(lk)[vapply(names(lk), exists, logical(1), envir = G, inherits = FALSE)]
-    put  <- if (SS_LOOKUPS == "force") names(lk) else setdiff(names(lk), have)
-    for (k in put) assign(k, lk[[k]], envir = G)
-    if (length(put)) cat(sprintf("LOADED %d comparison lookups, the 2026-01-27 build (the set the pushed workbooks and saved tolerances were made with)\n", length(put)))
-    if (length(have) && SS_LOOKUPS != "force") {
-      same <- vapply(have, function(k) isTRUE(all.equal(get(k, envir = G), lk[[k]], check.environment = FALSE)), logical(1))
-      cat(sprintf("comparison lookups already in the session were LEFT ALONE: %d match the 2026-01-27 build, %d are a different build%s\n", sum(same), sum(!same),
-                  if (any(!same)) "  (SS_LOOKUPS <- \"force\" then source again to swap them)" else ""))
-    }
-  }
+  if (SS_LOOKUPS == "april") sys.source(file.path(SS_REPO, "util/load_april_lookups.R"), envir = G)
   frames_check()
 }
 .ss_run()
+
+
+# source("C:/Users/vflre/Downloads/nflmodels_UPDATE/pff_stats/evaluation/waterfall_bridge.R")
+
+# safe_load("C:/Users/vflre/Downloads/nflmodels_UPDATE/nfl_the_everything_workspace.RData", big = TRUE)

@@ -31,8 +31,8 @@
 STATS_BUCKET     <- "nfl-pff-data-lucas"
 STATS_LOAD_DEPS  <- TRUE    # pull the ten comparison lookups from S3 if absent
 
-STATS_QBS  <- c("DENNix-2025", "MIATagovailoa-2023")
-STATS_DEFS <- c("JAX2025", "BUF2025")
+STATS_QBS  <- c("LAStafford-2025", "LAGoff-2020")
+STATS_DEFS <- c("SF2017", "LAC2021")
 
 if (!exists("%ni%")) `%ni%` <- Negate(`%in%`)   # fallback only; upstream wins
 
@@ -46,33 +46,34 @@ if (!exists("qb_stats_df_final"))
 #    which is why they take load() and not readRDS() -- unchanged from the
 #    original loader on purpose.
 # ---------------------------------------------------------------------------
-if (STATS_LOAD_DEPS && !exists("comparison_blitz_func")) {
-  for (k in c("blitz", "depth", "less", "pa", "pressure")) {
-    tmp <- tempfile()
-    aws.s3::save_object(paste0("qbgrp_def_functions/comparison_", k, "_func.rds"),
-                        bucket = STATS_BUCKET, file = tmp); load(tmp)
-    tmp <- tempfile()
-    aws.s3::save_object(paste0("qbgrp_def_functions/list_dependencies_", k, ".RData"),
-                        bucket = STATS_BUCKET, file = tmp); load(tmp)
-    tmp <- tempfile()
-    aws.s3::save_object(paste0("def_functions/comparison_", k, "_def_func.rds"),
-                        bucket = STATS_BUCKET, file = tmp); load(tmp)
-    tmp <- tempfile()
-    aws.s3::save_object(paste0("def_functions/list_dependencies_", k, "_def.RData"),
-                        bucket = STATS_BUCKET, file = tmp); load(tmp)
-  }
-  for (k in c("blitz", "depth", "less", "pa", "pressure")) {
-    assign(paste0("importance_matrix_", k),
-           get(paste0("list_dependencies_", k))[[2]], envir = globalenv())
-    assign(paste0("df_", k, "_scaled_z"),
-           get(paste0("list_dependencies_", k))[[1]], envir = globalenv())
-    assign(paste0("importance_matrix_", k, "_def"),
-           get(paste0("list_dependencies_", k, "_def"))[[2]], envir = globalenv())
-    assign(paste0("df_", k, "_def_scaled_z"),
-           get(paste0("list_dependencies_", k, "_def"))[[1]], envir = globalenv())
-  }
-  cat("loaded the ten comparison lookups from s3://", STATS_BUCKET, "\n", sep = "")
-}
+# 2026-09-29 (Andy): the comparison lookups come ONLY from util/start_session.R -> util/load_april_lookups.R (April set + pressure_def wrap). Raw S3 loads below are commented out.
+# if (STATS_LOAD_DEPS && !exists("comparison_blitz_func")) {
+#   for (k in c("blitz", "depth", "less", "pa", "pressure")) {
+#     tmp <- tempfile()
+#     aws.s3::save_object(paste0("qbgrp_def_functions/comparison_", k, "_func.rds"),
+#                         bucket = STATS_BUCKET, file = tmp); load(tmp)
+#     tmp <- tempfile()
+#     aws.s3::save_object(paste0("qbgrp_def_functions/list_dependencies_", k, ".RData"),
+#                         bucket = STATS_BUCKET, file = tmp); load(tmp)
+#     tmp <- tempfile()
+#     aws.s3::save_object(paste0("def_functions/comparison_", k, "_def_func.rds"),
+#                         bucket = STATS_BUCKET, file = tmp); load(tmp)
+#     tmp <- tempfile()
+#     aws.s3::save_object(paste0("def_functions/list_dependencies_", k, "_def.RData"),
+#                         bucket = STATS_BUCKET, file = tmp); load(tmp)
+#   }
+#   for (k in c("blitz", "depth", "less", "pa", "pressure")) {
+#     assign(paste0("importance_matrix_", k),
+#            get(paste0("list_dependencies_", k))[[2]], envir = globalenv())
+#     assign(paste0("df_", k, "_scaled_z"),
+#            get(paste0("list_dependencies_", k))[[1]], envir = globalenv())
+#     assign(paste0("importance_matrix_", k, "_def"),
+#            get(paste0("list_dependencies_", k, "_def"))[[2]], envir = globalenv())
+#     assign(paste0("df_", k, "_def_scaled_z"),
+#            get(paste0("list_dependencies_", k, "_def"))[[1]], envir = globalenv())
+#   }
+#   cat("loaded the ten comparison lookups from s3://", STATS_BUCKET, "\n", sep = "")
+# }
 
 # ---------------------------------------------------------------------------
 # 2. CATEGORY SPEC -- the five lenses, defined ONCE. One column set per
@@ -510,5 +511,5 @@ xtds_tol_qb / xtds_tol_def; here they are stats_tol_qb / stats_tol_def).
 # stats_run_grid(stat = "<key>") writes "<stem> - QB vs DEF.xlsx" for the six combos.
 # Weather/precip modes prefix the stem: "Weather SackRt - ...", "Precip SackRt - ...".
 
-# stats_push_all()  
-stats_run_grid(stat = 'xtd_prop')
+stats_push_all()  
+# stats_run_grid(stat = 'xtd_prop')

@@ -532,6 +532,33 @@ q26_twp <- q26_less %>%
 q26_qb_stats <- left_join(q26_qb_stats, q26_twp,
                           by = c("posteam" = "team_name", "week" = "week", "season" = "season"))
 
+# ---- TIME TO THROW (added 2026-09-24) --------------------------------------
+# Same columns and rule as qb_stats_df_build_AWS.R's TIME TO THROW block, from the
+# q26_* pulls above (SELECT *). Appended at the END so no existing column moves.
+# Pre-change copy of this file: archive/2026-09-24_before_time_to_throw/.
+ttt_cols_26 <- list(
+  q26_blitz    = c("blitz_time_to_throw", "no_blitz_time_to_throw"),
+  q26_depth    = c("behind_los_time_to_throw", "short_time_to_throw", "medium_time_to_throw", "deep_time_to_throw"),
+  q26_less     = c("less_time_to_throw", "more_time_to_throw"),
+  q26_pa       = c("pa_time_to_throw", "npa_time_to_throw"),
+  q26_pressure = c("pressure_time_to_throw", "no_pressure_time_to_throw"))
+ttt_rows_before_26 <- nrow(q26_qb_stats)
+for (ttt_q in names(ttt_cols_26)) {
+  q26_qb_stats <- left_join(q26_qb_stats,
+                            get(ttt_q) %>% dplyr::select(team_name, week, season, all_of(ttt_cols_26[[ttt_q]])) %>%
+                              distinct(team_name, week, season, .keep_all = TRUE),
+                            by = c("posteam" = "team_name", "week" = "week", "season" = "season"))
+}
+ttt_all_26 <- q26_less %>% group_by(team_name, week, season) %>%
+  dplyr::summarise(time_to_throw = sum(ifelse(is.na(less_time_to_throw), 0, less_snaps * less_time_to_throw) +
+                                         ifelse(is.na(more_time_to_throw), 0, more_snaps * more_time_to_throw), na.rm = TRUE) /
+                     sum(ifelse(is.na(less_time_to_throw), 0, less_snaps) + ifelse(is.na(more_time_to_throw), 0, more_snaps), na.rm = TRUE),
+                   .groups = "drop") %>%
+  mutate(time_to_throw = ifelse(is.finite(time_to_throw), time_to_throw, NA_real_))
+q26_qb_stats <- left_join(q26_qb_stats, ttt_all_26, by = c("posteam" = "team_name", "week" = "week", "season" = "season"))
+stopifnot(nrow(q26_qb_stats) == ttt_rows_before_26)
+# ---- END TIME TO THROW -----------------------------------------------------
+
 
 # ---- 8. receipts + save ----------------------------------------------------
 

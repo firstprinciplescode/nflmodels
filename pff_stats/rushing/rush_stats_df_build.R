@@ -11,7 +11,6 @@ create_rush_stats <- function(data, suffix = "") {
     ) %>%
     group_by(off_ssn, def_ssn, team, week, season) %>%
     summarise(
-      attempts = sum(attempts, na.rm = TRUE),
       total_yards = sum(ypc * attempts, na.rm = TRUE),
       total_ybc = sum(total_ybc, na.rm = TRUE),
       total_yac = sum(total_yac, na.rm = TRUE),
@@ -19,6 +18,8 @@ create_rush_stats <- function(data, suffix = "") {
       total_part_xypc = sum(part_xypc * attempts, na.rm = TRUE),
       pbp_xtd = sum(pbp_xtd, na.rm = TRUE),
       part_xtd = sum(part_xtd, na.rm = TRUE),
+      # 2026-10-12: attempts summed LAST -- before, the total_* lines above used the team's summed attempts and ADDED players' ypc / xypc on multi-row team-games
+      attempts = sum(attempts, na.rm = TRUE),
       .groups = "drop"
     ) %>%
     mutate(
